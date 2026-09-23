@@ -9,7 +9,7 @@ Page({
     regions: [{ id: '', name: '全部区域' }], regionIndex: 0, regionId: '', regionError: '',
     categories: [{ value: '', name: '全部分类' }], categoryIndex: 0, category: '',
     plantLabels: [{ value: '', name: '全部植物标签' }], plantIndex: 0, plant_label: '',
-    tagsLoading: false, tagsError: '', searchInput: '', search: '', place: '',
+    showFilters: false, tagsLoading: false, tagsError: '', searchInput: '', search: '', place: '',
     contents: [], contentsLoading: false, contentsLoadingMore: false, contentsError: '', contentsMoreError: '', contentsNext: '',
     routes: [], routesLoading: false, routesLoadingMore: false, routesError: '', routesMoreError: '', routesNext: '', tab: 'contents',
   },
@@ -125,6 +125,7 @@ Page({
   moreContents() { return this.loadList('contents', true); },
   moreRoutes() { return this.loadList('routes', true); },
   onReachBottom() { return this.loadList(this.data.tab, true); },
+  toggleFilters() { if (this.visible()) this.setData({ showFilters: !this.data.showFilters }); },
   changeTab(event) { if (this.visible() && ['contents', 'routes'].includes(event.currentTarget.dataset.tab)) this.setData({ tab: event.currentTarget.dataset.tab }); },
   changeRegion(event) {
     if (!this.visible()) return;

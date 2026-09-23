@@ -1,15 +1,15 @@
-<view class="page">
-  <text class="eyebrow">EXPLORE / 身边的自然</text>
-  <view class="page-title">在校园，遇见山水。</view>
-  <view class="subtitle">静态生态导览 · 地点与自然的学习笔记</view>
+<view class="page explore-page">
+  <view class="explore-heading"><text class="eyebrow">EXPLORE · 身边的自然</text><view class="page-title">在校园，遇见山水。</view><view class="subtitle">沿着好奇心，走近每一处绿意。</view><view class="heading-leaf" aria-hidden="true"></view></view>
   <picker wx:if="{{regions.length}}" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion" class="section">
-    <view class="region-picker row"><view><text class="small muted">当前区域</text><view class="title">{{region.name}}</view></view><text class="chevron">⌄</text></view>
+    <view class="region-picker row" hover-class="pressable"><view><text class="small muted">当前区域</text><view class="title">{{region.name}}</view></view><text class="chevron">⌄</text></view>
   </picker>
-  <view wx:if="{{region.is_demo}}" class="notice">虚构示范区域：地点关系、河湖和学习点均为课程设计，不对应真实地理位置。</view>
+  <view wx:if="{{region.is_demo}}" class="notice">科普模拟体验 · 本区域的地点与河湖为虚构场景，可用于学习，不对应真实地理位置。</view>
   <view wx:if="{{!loading && !error && !region && mapNotice}}" class="notice">{{mapNotice}}</view>
-  <view wx:if="{{!loading && !error && region}}" class="section">
-    <view class="section-head"><text class="section-title">一张绿色导览图</text><text class="pill">静态示意 · 非 GIS</text></view>
-    <picker wx:if="{{maps.length > 1}}" range="{{maps}}" range-key="selectionLabel" value="{{mapIndex}}" bindchange="chooseMap"><view class="map-picker row"><text>{{activeMap.selectionLabel}}</text><text>切换版本 ⌄</text></view></picker>
+  <scroll-view scroll-x class="filters section"><view class="filter {{activeType === item.value ? 'active' : ''}}" wx:for="{{types}}" wx:key="value" data-type="{{item.value}}" bindtap="chooseType" hover-class="pressable" aria-role="button">{{item.label}}</view></scroll-view>
+  <view class="view-toolbar row" wx:if="{{!loading && !error && region}}"><view><text class="place-count">{{filtered.length}}</text><text class="small muted"> 处地点待探索</text></view><view class="view-tabs"><button class="{{viewMode === 'map' ? 'active' : ''}}" data-mode="map" bindtap="changeView" hover-class="pressable">导览图</button><button class="{{viewMode === 'list' ? 'active' : ''}}" data-mode="list" bindtap="changeView" hover-class="pressable">地点列表</button></view></view>
+  <view wx:if="{{!loading && !error && region}}" hidden="{{viewMode !== 'map'}}" class="map-section">
+    <view class="section-head"><text class="section-title">一张绿色导览图</text><text class="map-kind">静态示意图</text></view>
+    <picker wx:if="{{maps.length > 1}}" range="{{maps}}" range-key="selectionLabel" value="{{mapIndex}}" bindchange="chooseMap"><view class="map-picker row" hover-class="pressable"><text>{{activeMap.selectionLabel}}</text><text>切换版本 ⌄</text></view></picker>
     <view class="map-frame" wx:for="{{imageFrames}}" wx:for-item="frame" wx:key="generation">
       <movable-area class="map-viewport" style="width: {{viewportWidth}}px; height: {{viewportHeight}}px;">
         <movable-view wx:for="{{viewportFrames}}" wx:for-item="viewport" wx:key="generation" class="map-content" direction="all" disabled="{{!imageReady || zoom === 1}}" x="{{panX}}" y="{{panY}}" inertia="{{false}}" out-of-bounds="{{false}}" animation="{{false}}" style="width: {{mapWidth}}px; height: {{mapHeight}}px;" data-generation="{{frame.generation}}" data-viewport="{{viewport.generation}}" bindchange="panMap">
@@ -17,17 +17,17 @@
           <block wx:if="{{imageReady}}"><view wx:for="{{markers}}" wx:key="id" class="map-marker marker-{{item.kind}} {{selectedPoint.id === item.id ? 'selected' : ''}}" style="left: {{item.left}}%; top: {{item.top}}%;" data-id="{{item.id}}" data-generation="{{frame.generation}}" data-viewport="{{viewport.generation}}" catchtap="selectPoint"><text>{{item.order}}</text></view></block>
         </movable-view>
       </movable-area>
-      <view wx:if="{{!imageReady}}" class="map-loading">正在加载导览图…</view>
+      <view wx:if="{{!imageReady}}" class="map-loading">正在展开这片绿意…</view>
     </view>
     <view wx:if="{{mapNotice}}" class="notice">{{mapNotice}}</view>
-    <view wx:if="{{mapImage}}" class="map-toolbar row"><text class="small muted">{{zoomLabel}} · 放大后可拖动</text><view class="zoom-buttons"><button data-action="out" bindtap="zoomMap" disabled="{{!imageReady || zoom <= 1}}" aria-label="缩小导览图">−</button><button data-action="in" bindtap="zoomMap" disabled="{{!imageReady || zoom >= 3}}" aria-label="放大导览图">＋</button><button class="reset" data-action="reset" bindtap="zoomMap" disabled="{{!imageReady}}">复位</button></view></view>
-    <view wx:if="{{imageReady}}" class="map-help">点击编号选择地点；编号与下方列表对应。相对点位仅用于阅读示意图，不提供导航。</view>
-    <view wx:if="{{selectedPoint && imageReady}}" class="card selected-card"><view class="row"><text class="selected-number">{{selectedPoint.order}}</text><view class="grow"><view class="title">{{selectedPoint.name}}</view><view class="copy">{{selectedPoint.description}}</view></view></view><button class="secondary gap" data-id="{{selectedPoint.id}}" bindtap="open">查看地点详情 ›</button></view>
+    <view wx:if="{{mapImage}}" class="map-toolbar row"><text class="small muted">{{zoomLabel}} · 放大后可拖动</text><view class="zoom-buttons"><button hover-class="pressable" data-action="out" bindtap="zoomMap" disabled="{{!imageReady || zoom <= 1}}" aria-label="缩小导览图">−</button><button hover-class="pressable" data-action="in" bindtap="zoomMap" disabled="{{!imageReady || zoom >= 3}}" aria-label="放大导览图">＋</button><button hover-class="pressable" class="reset" data-action="reset" bindtap="zoomMap" disabled="{{!imageReady}}">复位</button></view></view>
+    <view wx:if="{{imageReady}}" class="map-help">轻点编号查看地点，放大后可拖动。示意图不用于实际导航。</view>
+    <view wx:if="{{selectedPoint && imageReady}}" class="card selected-card"><view class="row"><text class="selected-number">{{selectedPoint.order}}</text><view class="grow"><view class="title">{{selectedPoint.name}}</view><view class="copy">{{selectedPoint.description}}</view></view></view><button hover-class="pressable" class="primary gap" data-id="{{selectedPoint.id}}" bindtap="open">查看地点详情 ›</button></view>
     <view wx:if="{{activeMap}}" class="map-credit">{{activeMap.name}} · v{{activeMap.version}}<text wx:if="{{activeMap.attribution}}">{{activeMap.attribution}}</text></view>
   </view>
-  <scroll-view scroll-x class="filters section"><view class="filter {{activeType === item.value ? 'active' : ''}}" wx:for="{{types}}" wx:key="value" data-type="{{item.value}}" bindtap="chooseType">{{item.label}}</view></scroll-view>
-  <page-state loading="{{loading}}" error="{{error}}" empty="{{!loading && !error && !placesError && !filtered.length}}" empty-text="当前分类暂无地点，可切换分类或在管理端添加。" bindretry="load" />
+  <page-state loading="{{loading}}" error="{{error}}" empty="{{!loading && !error && !placesError && !filtered.length}}" empty-text="这类地点还在整理中，换个分类看看吧。" bindretry="load" />
   <view wx:if="{{!loading && placesError}}" class="error-inline">地点列表暂不可用：{{placesError}}<button class="text-button gap" bindtap="load">重新加载</button></view>
-  <block wx:if="{{!loading && !error}}"><view class="card location-card" wx:for="{{filtered}}" wx:key="id" data-id="{{item.id}}" bindtap="open"><view class="row"><text class="location-number">{{item.order}}</text><view class="grow"><view class="title">{{item.name}}</view><view class="copy">{{item.summary || item.description || '查看地点资料与关联监测站'}}</view></view><text class="chevron">›</text></view><view class="location-meta"><text class="pill">{{item.is_demo ? '虚构示范' : '地点资料'}}</text><text class="small muted">{{item.map_layout === activeMap.id ? '当前底图关联地点' : '地点目录'}}</text></view></view></block>
+  <view wx:if="{{!loading && !error}}" hidden="{{viewMode !== 'list'}}" class="location-list"><view class="card location-card" wx:for="{{filtered}}" wx:key="id" data-id="{{item.id}}" bindtap="open" hover-class="pressable" aria-role="button"><view class="row"><text class="location-number">{{item.order}}</text><view class="grow"><view class="title">{{item.name}}</view><view class="copy">{{item.summary || item.description || '查看地点资料与关联监测站'}}</view></view><text class="chevron">›</text></view><view class="location-meta"><text class="pill">{{item.is_demo ? '科普模拟地点' : '地点资料'}}</text><text class="small muted">{{item.map_layout === activeMap.id ? '图上已标注' : '地点目录'}}</text></view></view></view>
+  <view class="explore-hint" wx:if="{{!loading && !error && viewMode === 'map' && !selectedPoint && filtered.length}}">点选图上的编号，或切换地点列表开始探索。</view>
   <floating-ai visible="{{!loading && !error && region}}" tab-page="{{true}}" bindopen="openAI" />
 </view>

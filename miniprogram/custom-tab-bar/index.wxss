@@ -1,6 +1,6 @@
 .tab-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: #fffefa; border-top: 1rpx solid #e7ecdf; padding-bottom: constant(safe-area-inset-bottom); padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -8rpx 30rpx rgba(48, 79, 50, .035); }
 .tab-items { display: flex; align-items: center; height: 112rpx; padding: 0 25rpx; overflow: visible; }
-.tab-item { display: flex; position: relative; flex: 1; min-width: 0; height: 112rpx; align-items: center; justify-content: center; margin: 0; padding: 0; border: none; border-radius: 0; background: transparent; line-height: 1; overflow: visible; }
+.tab-item { display: flex; position: relative; flex: 1; min-width: 0; height: 112rpx; align-items: center; justify-content: center; margin: 0; padding: 0; border: none; border-radius: 24rpx; background: transparent; line-height: 1; overflow: visible; }
 .tab-item::after { border: none; }
 .tab-icon { display: block; position: absolute; top: 8rpx; width: 60rpx; height: 60rpx; overflow: hidden; opacity: .5; }
 .ai-glyph { display: block; position: relative; width: 80rpx; height: 80rpx; overflow: hidden; }
@@ -10,12 +10,15 @@
 .sprite-ai { left: -200%; top: 0; }
 .sprite-learn { left: 0; top: -100%; }
 .sprite-profile { left: -100%; top: -100%; }
-.tab-label { position: absolute; bottom: 15rpx; font-size: 20rpx; line-height: 24rpx; white-space: nowrap; color: #879181; font-weight: 400; }
-.is-selected .tab-label { color: #326b49; font-weight: 600; }
+.tab-label { position: absolute; bottom: 15rpx; font-size: 20rpx; line-height: 24rpx; white-space: nowrap; color: #697d6e; font-weight: 400; }
+.is-selected .tab-label { color: #3a7d5c; font-weight: 600; }
 .is-selected .tab-icon { opacity: 1; }
 .ai-circle { box-sizing: border-box; position: absolute; top: -32rpx; display: flex; width: 108rpx; height: 108rpx; align-items: center; justify-content: center; border: 7rpx solid #e6ecdf; border-radius: 50%; background: #fffefa; box-shadow: 0 5rpx 15rpx rgba(40, 85, 55, .13); overflow: hidden; }
 .is-selected .ai-circle { border-color: #a8bfaa; }
-.tab-pressed { opacity: .65; }
+.tab-pressed { transform: scale(.97); opacity: .8; }
 .tab-icon, .ai-circle, .tab-sprite { pointer-events: none; }
 .tab-hit { position: absolute; left: 0; right: 0; top: 0; bottom: 0; z-index: 2; background: rgba(255, 254, 250, .001); }
 .ai-item .tab-hit { top: -32rpx; }
+
+.tab-item { transition: transform 120ms ease; }
+.is-selected .tab-label::after { content: ""; position: absolute; left: 50%; bottom: -8rpx; width: 12rpx; height: 4rpx; border-radius: 4rpx; background: #3a7d5c; transform: translateX(-50%); }

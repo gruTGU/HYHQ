@@ -31,3 +31,6 @@ inference/**/*.log
 # Local SSH and private keys must never be committed.
 *.pem
 *.key
+
+# Generated local-only WeChat preview; never upload as release
+/miniprogram-preview/

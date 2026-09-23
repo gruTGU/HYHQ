@@ -1,2 +1,11 @@
-.session-card { margin-top: 24rpx; }
-.delete-link { margin-top: 20rpx; color: #a25e4a; }
+.journal-heading { position: relative; overflow: hidden; }
+.journal-leaf { position: absolute; right: 5rpx; top: -8rpx; width: 75rpx; height: 130rpx; background: #a8c99b; border-radius: 80% 0 80% 0; opacity: .25; transform: rotate(20deg); pointer-events: none; }
+.journal-note { display: flex; gap: 16rpx; align-items: center; padding: 24rpx; margin-top: 28rpx; background: #e4edde; border-radius: 26rpx; color: #6e8467; font-size: 24rpx; line-height: 1.7; }
+.note-mark { color: #3a7d5c; font-size: 32rpx; flex-shrink: 0; }
+.session-card { margin-top: 22rpx; }
+.session-main { display: flex; align-items: center; gap: 20rpx; }
+.session-symbol { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 62rpx; height: 72rpx; background: #e5eedf; color: #3a7d5c; border-radius: 70% 18% 65% 20%; font-size: 28rpx; }
+.session-main .title { line-height: 1.6; }
+.image-status { color: #7d8c77; font-size: 22rpx; margin-top: 20rpx; }
+.session-footer { display: flex; gap: 12rpx; align-items: center; justify-content: space-between; margin-top: 22rpx; padding-top: 18rpx; border-top: 1rpx solid #e5ebdf; }
+.delete-link { margin: 0; color: #b56b45; font-size: 23rpx; padding: 8rpx 0 8rpx 16rpx; flex-shrink: 0; }

@@ -1,1 +1,8 @@
-.copy { font-size: 27rpx; line-height: 1.9; }
+.legal-updated { color: #718278; font-size: 22rpx; margin-top: 18rpx; }
+.legal-tabs { display: flex; padding: 7rpx; gap: 8rpx; margin-top: 30rpx; border-radius: 26rpx; background: #e4ecdd; }
+.legal-tab { flex: 1; background: transparent; color: #617569; border-radius: 21rpx; line-height: 2.8; font-size: 26rpx; }.legal-tab.active { background: #fff; color: #3a7d5c; box-shadow: 0 4rpx 12rpx rgba(58, 125, 92, .06); }
+.legal-summary { padding: 26rpx 8rpx 0; }.legal-summary .title { color: #3a7d5c; }
+.card { position: relative; background: #fff; border-radius: 32rpx; padding: 30rpx; }
+.legal-number { color: #82a393; font-size: 22rpx; font-weight: 600; letter-spacing: 2rpx; margin-bottom: 10rpx; }
+.copy { color: #607368; font-size: 26rpx; line-height: 1.95; margin-top: 14rpx; }.copy + .copy { margin-top: 20rpx; }
+.legal-help { border: 1rpx solid #d9e7d3; }.legal-help .title { font-size: 29rpx; }

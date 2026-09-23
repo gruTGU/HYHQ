@@ -2,7 +2,7 @@ const { selectTab } = require('../../lib/tab-bar');
 const { app, toast } = require('../../lib/page');
 const { message } = require('../../lib/format');
 Page({
-  data: { loading: true, error: '', busy: false, user: null, nickname: '', avatar: '', avatarNotice: '', devAvailable: false, authMode: '' },
+  data: { loading: true, error: '', busy: false, user: null, nickname: '', avatar: '', avatarNotice: '', devAvailable: false, authMode: '', editingProfile: false },
   async onShow() {
     selectTab(this, 4);
     this._visible = true;
@@ -17,7 +17,7 @@ Page({
   onHide() {
     this._visible = false;
     this._invalidate();
-    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', loading: false, busy: false });
+    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', loading: false, busy: false, editingProfile: false });
   },
   onUnload() { this._destroyed = true; this._invalidate(); },
   _active() { return !this._destroyed && this._visible !== false; },
@@ -29,7 +29,7 @@ Page({
   },
   _clearPrivate(error = '') {
     this._profileToken = '';
-    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', error });
+    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', editingProfile: false, error });
   },
   _start(busy = false) {
     this._confirming = false;
@@ -140,6 +140,10 @@ Page({
     finally { this._finish(operation); }
   },
   nicknameInput(event) { if (this._active()) this.setData({ nickname: event.detail.value }); },
+  toggleProfileEditor() {
+    if (!this._canChange()) return;
+    this.setData({ editingProfile: !this.data.editingProfile, nickname: this.data.user.nickname || '' });
+  },
   async saveProfile() {
     if (!this._canChange()) return;
     const nickname = this.data.nickname.trim();
@@ -192,7 +196,7 @@ Page({
     const valid = () => this._active() && version === (this._version || 0) && app().session.token() === token;
     let handled = false;
     this._confirming = true;
-    wx.showModal({ title: removeAccount ? '注销账号' : '退出登录', content: removeAccount ? '注销会使现有会话失效，并删除账号、个人记录、AI 解读会话和上传图片。此操作无法恢复，已发送给外部服务的请求不能因此撤回。' : '退出后仍可浏览公开的生态与科普资料。', confirmText: removeAccount ? '确认注销' : '退出登录', confirmColor: removeAccount ? '#a25e4a' : '#326b49', success: async (result) => {
+    wx.showModal({ title: removeAccount ? '注销账号' : '退出登录', content: removeAccount ? '注销会使现有会话失效，并删除账号、个人记录、AI 解读会话和上传图片。此操作无法恢复，已发送给外部服务的请求不能因此撤回。' : '退出后仍可浏览公开的生态与科普资料。', confirmText: removeAccount ? '确认注销' : '退出登录', confirmColor: removeAccount ? '#d97b4f' : '#3a7d5c', success: async (result) => {
       if (handled) return;
       handled = true;
       if (!valid()) {

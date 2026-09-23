@@ -1,21 +1,21 @@
-.result-card { padding: 30rpx; background: #fffefa; border-radius: 28rpx; margin-top: 24rpx; color: #294634; }
+.result-card { padding: 30rpx; background: #fffefa; border-radius: 32rpx; margin-top: 24rpx; color: #2c3e33; }
 .result-eyebrow { font-size: 18rpx; letter-spacing: 2rpx; color: #719358; }
 .result-heading { font-size: 37rpx; font-weight: 600; line-height: 1.5; margin: 12rpx 0; }
-.result-copy { font-size: 25rpx; line-height: 1.8; color: #74816d; }
-.candidate-title { font-size: 24rpx; color: #74816d; margin-top: 28rpx; margin-bottom: 10rpx; }
+.result-copy { font-size: 25rpx; line-height: 1.8; color: #65796c; }
+.candidate-title { font-size: 24rpx; color: #65796c; margin-top: 28rpx; margin-bottom: 10rpx; }
 .candidate { margin-top: 22rpx; }
 .candidate-row { display: flex; justify-content: space-between; align-items: center; }
 .candidate-rank { color: #94a57e; font-size: 23rpx; margin-right: 16rpx; }
 .candidate-name { font-size: 27rpx; font-weight: 500; }
 .candidate-score { color: #798a6b; font-size: 22rpx; }
 .score-track { width: 100%; height: 8rpx; border-radius: 9rpx; background: #edf1e6; overflow: hidden; margin-top: 14rpx; }
-.score-fill { height: 100%; background: #97b47a; border-radius: 9rpx; }
+.score-fill { height: 100%; background: #a8c99b; border-radius: 9rpx; }
 .content-link { margin: 10rpx 0 0 auto; padding: 0; background: transparent; color: #598144; font-size: 22rpx; line-height: 2; text-align: right; }
 .result-action::after { border: 0; }
-.score-note { font-size: 22rpx; color: #869178; line-height: 1.8; margin-top: 24rpx; }
-.model-meta { margin-top: 22rpx; padding-top: 20rpx; border-top: 1rpx solid #edf0e4; font-size: 21rpx; color: #839075; line-height: 1.8; }
+.score-note { font-size: 22rpx; color: #697d6e; line-height: 1.8; margin-top: 24rpx; }
+.model-meta { margin-top: 22rpx; padding-top: 20rpx; border-top: 1rpx solid #edf0e4; font-size: 21rpx; color: #697d6e; line-height: 1.8; }
 .disclaimer { background: #f1f3e7; border-radius: 14rpx; padding: 16rpx; font-size: 22rpx; color: #778463; line-height: 1.8; margin-top: 20rpx; }
-.retake { background: #e8efdd; color: #496c3a; border-radius: 18rpx; font-size: 25rpx; line-height: 2.9; margin: 24rpx 0 0; }
+.retake { background: #e5efdf; color: #326849; border-radius: 18rpx; font-size: 25rpx; line-height: 2.9; margin: 24rpx 0 0; }
 .uncertain .result-eyebrow { color: #9a8755; }
 .uncertain .result-heading { color: #7e704a; }
 .uncertain .score-fill { background: #b5ac7e; }

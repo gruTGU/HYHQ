@@ -205,3 +205,19 @@ test('pull-to-refresh, more and another delete cannot bypass a pending deletion 
   pending.resolve(); await deleting; await showing;
   assert.equal(calls.length, 3); assert.deepEqual(page.data.records, []); assert.equal(page.data.loading, false);
 });
+
+test('empty records provide working destinations and a new recognition does not reopen an older task', async () => {
+  const paths = { favorites: '/pages/explore/index', histories: '/pages/explore/index', visits: '/pages/explore/index', 'recognition-jobs': '/pages/recognize/index', 'assessment-jobs': '/pages/assessment/index' };
+  for (const [kind, path] of Object.entries(paths)) {
+    const { page, navigation, application } = fixture(async () => envelope([]));
+    page.onLoad({ kind }); await page.onShow();
+    assert.ok(page.data.emptyState.heading); assert.ok(page.data.emptyState.action);
+    application.globalData.recognitionJobId = 'old-job';
+    page.discover(); assert.deepEqual(navigation, [path]);
+    if (kind === 'recognition-jobs') assert.equal(application.globalData.recognitionJobId, '');
+    page.onHide(); page.discover(); assert.equal(navigation.length, 1);
+  }
+  const { page, navigation } = fixture(async () => envelope([]));
+  await page.onShow(); page.discover({ currentTarget: { dataset: { destination: 'learn' } } });
+  assert.deepEqual(navigation, ['/pages/learn/index']);
+});

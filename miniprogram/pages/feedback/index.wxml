@@ -1,18 +1,19 @@
-<view class="page">
-  <text class="eyebrow">FEEDBACK / 一起完善</text>
-  <view class="page-title">我的反馈</view>
-  <view class="subtitle">反馈与答复仅供本人及获授权查看反馈的管理员查看。</view>
-  <view class="notice">反馈用于排查平台问题、核对内容和改进服务，提交后由管理员处理并在本页答复。内容保留至你主动删除反馈或注销账号。请勿填写密码、身份证件、住址等敏感资料。</view>
+<view class="page feedback-page">
+  <text class="eyebrow">GROW TOGETHER / 一起完善</text>
+  <view class="page-title">听见你的想法</view><view class="subtitle">关于页面、内容与体验，都可以在这里告诉我们。</view>
+  <view class="feedback-flow"><view><text class="flow-number">1</text><text>提交建议</text></view><text class="flow-line"></text><view><text class="flow-number">2</text><text>等待处理</text></view><text class="flow-line"></text><view><text class="flow-number">3</text><text>查看答复</text></view></view>
   <view wx:if="{{!loggedIn && listError}}" class="error-inline">{{listError}}</view>
-  <view wx:if="{{!loggedIn}}" class="card section"><view class="title">登录后提交和查看反馈</view><view class="copy">前往个人中心完成登录后，再返回本页。</view><button class="primary gap" bindtap="login">去登录</button></view>
+  <view wx:if="{{!loggedIn}}" class="card section"><view class="title">登录后，留下你的建议</view><view class="copy">反馈与答复仅供本人及获授权处理反馈的管理员查看。</view><button hover-class="pressable" class="primary gap" bindtap="login">去登录</button></view>
   <block wx:else>
-    <view class="card section"><text class="field-label">问题描述或改进建议</text><textarea value="{{body}}" maxlength="1000" disabled="{{busy}}" placeholder="请说明遇到的页面、问题和复现步骤，勿填写敏感资料。" bindinput="inputBody" /><view class="small muted count">{{bodyCount}} / 1000 字（不计首尾空白）</view><button class="primary gap" loading="{{busy}}" disabled="{{busy}}" bindtap="submit">提交反馈</button></view>
+    <view class="card section feedback-form"><view class="section-head"><text class="section-title">我想反馈</text><text class="form-private">私密反馈</text></view><label class="field-label" for="feedback-body">问题描述或改进建议</label><textarea id="feedback-body" value="{{body}}" maxlength="1000" disabled="{{busy}}" placeholder="在哪个页面遇到了什么问题？也欢迎告诉我们你的建议。" placeholder-class="textarea-placeholder" bindinput="inputBody" /><view class="small muted count">{{bodyCount}} / 1000 字</view><view class="form-hint">请勿填写密码、身份证件、住址等敏感资料。</view><button hover-class="pressable" class="primary gap" loading="{{busy}}" disabled="{{busy || !bodyCount}}" bindtap="submit">{{busy ? '正在处理…' : '提交反馈'}}</button></view>
     <view wx:if="{{actionError}}" class="error-inline">{{actionError}}</view>
-    <view wx:if="{{notice}}" class="notice">{{notice}}</view>
-    <view class="section-head section"><text class="section-title">本人反馈记录</text><button class="text-button" disabled="{{busy}}" bindtap="load">刷新</button></view>
-    <page-state loading="{{loading}}" error="{{!records.length ? listError : ''}}" empty="{{!loading && !listError && !records.length}}" empty-text="尚未提交反馈。" bindretry="load" />
-    <view wx:if="{{records.length && listError}}" class="error-inline">{{listError}}<button class="text-button" bindtap="load" disabled="{{busy}}">重新加载</button></view>
-    <view class="card feedback-record" wx:for="{{records}}" wx:key="id"><view class="row"><text class="pill {{item.status === 'resolved' ? 'resolved' : ''}}">{{item.status_label}}</text><button class="text-button" data-id="{{item.id}}" disabled="{{busy}}" bindtap="remove">删除</button></view><view class="feedback-body gap">{{item.body}}</view><view class="small muted gap">提交于 {{item.created_label}}</view><view wx:if="{{item.status === 'resolved'}}" class="reply"><view class="small reply-title">管理员答复</view><view class="feedback-body gap">{{item.reply || '历史记录未提供答复。'}}</view><view wx:if="{{item.resolved_label}}" class="small muted gap">处理于 {{item.resolved_label}}</view><view wx:else class="small muted gap">历史记录未提供处理时间。</view></view></view>
-    <view wx:if="{{moreError}}" class="error-inline">{{moreError}}</view><button wx:if="{{next}}" class="secondary gap" loading="{{loadingMore}}" disabled="{{loading || loadingMore || busy}}" bindtap="more">{{moreError ? '重试加载更多' : '加载更多反馈'}}</button><view wx:elif="{{records.length && !loading}}" class="footer-note">已展示 {{records.length}} 条反馈</view>
+    <view wx:if="{{notice}}" class="notice feedback-success">{{notice}}</view>
+    <view class="section-head section"><text class="section-title">我的反馈记录</text><button hover-class="pressable" class="text-button refresh-button" disabled="{{busy || loading}}" bindtap="load">刷新</button></view>
+    <page-state loading="{{loading}}" error="{{!records.length ? listError : ''}}" bindretry="load" />
+    <view wx:if="{{!loading && !listError && !records.length}}" class="card feedback-empty"><view class="empty-conversation"><text>···</text></view><view class="title">还没有反馈记录</view><view class="copy">提交后，你可以在这里查看处理状态和答复。</view></view>
+    <view wx:if="{{records.length && listError}}" class="error-inline">{{listError}}<button hover-class="pressable" class="text-button" bindtap="load" disabled="{{busy}}">重新加载</button></view>
+    <view class="card feedback-record" wx:for="{{records}}" wx:key="id"><view class="row"><text class="feedback-status {{item.status === 'resolved' ? 'resolved' : ''}}">{{item.status_label}}</text><button hover-class="pressable" class="text-button remove-feedback" data-id="{{item.id}}" disabled="{{busy}}" bindtap="remove">删除</button></view><view class="feedback-body gap">{{item.body}}</view><view class="small muted feedback-time">提交于 {{item.created_label}}</view><view wx:if="{{item.status === 'resolved'}}" class="reply"><view class="reply-title"><view class="reply-dot"></view><text>管理员答复</text></view><view class="feedback-body gap">{{item.reply || '这条记录暂无答复内容。'}}</view><view wx:if="{{item.resolved_label}}" class="small muted feedback-time">处理于 {{item.resolved_label}}</view></view><view wx:else class="pending-note">反馈已收到，处理后的答复会显示在这里。</view></view>
+    <view wx:if="{{moreError}}" class="error-inline">{{moreError}}</view><button hover-class="pressable" wx:if="{{next}}" class="secondary gap" loading="{{loadingMore}}" disabled="{{loading || loadingMore || busy}}" bindtap="more">{{moreError ? '重试加载更多' : '加载更多反馈'}}</button><view wx:elif="{{records.length && !loading}}" class="footer-note">已展示 {{records.length}} 条反馈</view>
   </block>
+  <view class="feedback-privacy">反馈用于排查问题、核对内容和改进服务。内容保留至你主动删除反馈或注销账号。</view>
 </view>

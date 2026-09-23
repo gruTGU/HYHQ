@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from ecology.models import MapLayout, Place, Region, Station, WaterBody
 from ecology.simulation import ensure_simulation_catalogue
+from ecology.seed_copy import GINKGO_DESCRIPTION, GREEN_WALK_BODY, OBSERVE_PLANTS_BODY
 from knowledge.models import Content, Route, RouteStop
 
 
@@ -15,7 +16,7 @@ PLACES = [
     ("clear-river", "清溪示范河", "river", 0.26, 0.48, "用于展示水环境指标的虚构河流，不对应真实监测点。"),
     ("mirror-lake", "镜湖示范点", "lake", 0.64, 0.36, "虚构湖泊，展示水温、pH、浊度及溶解氧。"),
     ("wetland-garden", "湿地科普园", "park", 0.79, 0.22, "示范湿地学习点，请沿步道观察、避免干扰生境。"),
-    ("ginkgo-grove", "银杏学习点", "plant", 0.35, 0.25, "示范植物观察点；识别功能待后续真实模型接入。"),
+    ("ginkgo-grove", "银杏学习点", "plant", 0.35, 0.25, GINKGO_DESCRIPTION),
     ("camphor-tree", "香樟学习点", "plant", 0.19, 0.28, "记录植物叶片、树皮与生境特征的示范学习点。"),
     ("bamboo-garden", "竹园学习点", "plant", 0.8, 0.58, "示范生态科普点，所有地点关系均为课程设计。"),
     ("waste-east", "东区分类投放点", "waste", 0.86, 0.77, "示范投放点，具体垃圾分类以实际地区规定为准。"),
@@ -60,9 +61,9 @@ class Command(BaseCommand):
                 Station.objects.get_or_create(code=code, defaults={"name": name, "kind": kind, "region": region, "place": place, "water_body": water})
             ensure_simulation_catalogue()
             articles = [
-                ("observe-campus-plants", "从一片叶子开始观察校园植物", "plants", "ginkgo-grove", "先观察叶片轮廓、叶脉和排列，再记录生境。仅凭一张照片可能无法准确确定植物类别。", "在示范植物点练习观察和记录。请勿采摘或食用未知植物。识别模型尚未接入，本篇内容为管理员示范稿。"),
+                ("observe-campus-plants", "从一片叶子开始观察校园植物", "plants", "ginkgo-grove", "先观察叶片轮廓、叶脉和排列，再记录生境。仅凭一张照片可能无法准确确定植物类别。", OBSERVE_PLANTS_BODY),
                 ("read-water-indicators", "如何阅读河湖的四项展示指标", "water", "clear-river", "水温、pH、浊度与溶解氧展示水环境的不同侧面，不能单独替代完整水质评价。", "页面中的数值由模拟生成器产生。趋势图用于学习连续数据与缺失值的表达，不用于评判真实水质或饮用安全。"),
-                ("green-campus-walk", "一次校园绿色步行", "green", "green-trail", "携带水杯、沿步道行走、带走随身垃圾，记录一次低干扰的生态观察。", "这是一份课程演示路线说明。实际出行请核实校园开放范围与天气；平台尚未接入真实气象预警。"),
+                ("green-campus-walk", "一次校园绿色步行", "green", "green-trail", "携带水杯、沿步道行走、带走随身垃圾，记录一次低干扰的生态观察。", GREEN_WALK_BODY),
             ]
             for slug, title, category, place_slug, summary, body in articles:
                 Content.objects.get_or_create(slug=slug, defaults={"title": title, "category": category, "place": places[place_slug], "summary": summary, "body": body, "status": "published", "source": "HYHQ 项目编写的示范科普稿。", "is_demo": True, "published_at": timezone.now()})

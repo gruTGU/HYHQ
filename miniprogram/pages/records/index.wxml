@@ -1,1 +1,19 @@
-<view class="page"><text class="eyebrow">COLLECTION / 绿色记忆</text><view class="page-title">{{title}}</view><view class="subtitle">这些记录仅向当前账号展示。</view><view class="section"><page-state loading="{{loading}}" error="{{error}}" empty="{{!loading && !error && !records.length}}" empty-text="去探索一下，把喜欢的绿色留在这里。" bindretry="load" /></view><block wx:if="{{!loading}}"><view class="card" wx:for="{{records}}" wx:key="id"><view data-id="{{item.id}}" bindtap="open"><view class="row"><text class="title">{{item.title}}</text><text wx:if="{{!item.unavailable}}" class="chevron">›</text></view><view class="copy" wx:if="{{item.unavailable}}">资料暂不可打开，你可以删除这条个人记录。</view><view class="copy" wx:if="{{kind === 'recognition-jobs' || kind === 'assessment-jobs'}}">{{item.result_view ? item.result_view.heading : item.status_label}}<text wx:if="{{item.error_label}}"> · {{item.error_label}}</text></view><view class="small muted gap">{{item.created_label}}</view></view><view class="record-action"><button class="text-button" data-id="{{item.id}}" bindtap="remove" disabled="{{busy}}">删除记录</button></view></view><button class="secondary gap" wx:if="{{next}}" loading="{{loadingMore}}" disabled="{{loadingMore || busy}}" bindtap="more">加载更多</button></block><view wx:if="{{kind === 'visits'}}" class="notice">游览记录由用户自行添加，不代表定位核验的真实到访。</view></view>
+<view class="page records-page">
+  <view class="records-header"><text class="eyebrow">GREEN MEMORIES / 绿色记忆</text><view class="page-title">{{title}}</view><view class="subtitle">收藏每一份喜欢，回看每一次发现。</view><view class="private-label"><view class="privacy-dot"></view><text>仅当前账号可见</text></view></view>
+  <view class="section"><page-state loading="{{loading}}" error="{{error && !records.length ? error : ''}}" bindretry="load" /></view>
+  <view wx:if="{{!loading && !error && !records.length}}" class="card records-empty">
+    <view class="empty-plant" aria-hidden="true"><view class="plant-stem"></view><view class="plant-leaf leaf-left"></view><view class="plant-leaf leaf-right"></view><view class="plant-soil"></view></view>
+    <view class="empty-title">{{emptyState.heading}}</view><view class="copy">{{emptyState.copy}}</view>
+    <button hover-class="pressable" class="primary empty-action" bindtap="discover">{{emptyState.action}}</button><button hover-class="pressable" wx:if="{{emptyState.secondary}}" class="text-button empty-secondary" data-destination="learn" bindtap="discover">{{emptyState.secondary}} ›</button>
+  </view>
+  <block wx:if="{{!loading}}">
+    <view wx:if="{{records.length && error}}" class="error-inline">{{error}}<button hover-class="pressable" class="text-button" bindtap="load" disabled="{{busy}}">重新加载</button></view>
+    <view class="card record-card" wx:for="{{records}}" wx:key="id">
+      <button hover-class="pressable" class="record-open" data-id="{{item.id}}" bindtap="open" disabled="{{busy || item.unavailable}}"><view class="row"><text class="title record-title">{{item.title}}</text><text wx:if="{{!item.unavailable}}" class="chevron">›</text></view><view class="copy" wx:if="{{item.unavailable}}">资料已下架，可删除这条记录。</view><view class="copy" wx:if="{{kind === 'recognition-jobs' || kind === 'assessment-jobs'}}">{{item.result_view ? item.result_view.heading : item.status_label}}<text wx:if="{{item.error_label}}"> · {{item.error_label}}</text></view></button>
+      <view class="record-action"><text class="small muted record-date">{{item.created_label}}</text><button hover-class="pressable" class="text-button record-remove" data-id="{{item.id}}" bindtap="remove" disabled="{{busy}}">删除</button></view>
+    </view>
+    <button hover-class="pressable" class="secondary gap" wx:if="{{next}}" loading="{{loadingMore}}" disabled="{{loadingMore || busy}}" bindtap="more">{{error ? '重试加载更多' : '加载更多'}}</button>
+    <view wx:elif="{{records.length && !error}}" class="footer-note">已展示 {{records.length}} 条记录</view>
+  </block>
+  <view wx:if="{{kind === 'visits'}}" class="notice">游览记录由你主动添加，不代表经过定位核验的真实到访。</view>
+</view>

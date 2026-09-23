@@ -10,7 +10,7 @@ Page({
     loading: true, error: '', placesError: '', places: [], filtered: [], region: null, regions: [], regionIndex: 0,
     maps: [], mapIndex: 0, activeMap: null, mapImage: '', imageFrames: [], mapNotice: '', imageReady: false, imageGeneration: 0,
     viewportGeneration: 0, viewportFrames: [], markers: [], selectedPoint: null, viewportWidth: 343, viewportHeight: 240.1, mapWidth: 343, mapHeight: 240.1,
-    zoom: 1, zoomLabel: '100%', panX: 0, panY: 0, activeType: '',
+    zoom: 1, zoomLabel: '100%', panX: 0, panY: 0, activeType: '', viewMode: 'map',
     types: [{ value: '', label: '全部地点' }, { value: 'water', label: '河湖' }, { value: 'park', label: '公园' }, { value: 'campus', label: '校园' }],
   },
   onShow() { if (this._destroyed) return; selectTab(this, 1); this._visible = true; return this.load(); },
@@ -40,7 +40,7 @@ Page({
       }
       this.setData(selection);
       selectRegion(application, selection.region);
-      if (!selection.region) { this.setData({ mapNotice: '尚未配置区域，请管理员初始化地点资料。' }); return; }
+      if (!selection.region) { this.setData({ mapNotice: '还没有可浏览的区域，请稍后再来。' }); return; }
       const region = selection.region;
       const results = await Promise.allSettled([loadAll(application.api, 'places/', { region: region.id }), loadAll(application.api, 'maps/', { region: region.id })]);
       if (!this.current(generation)) return;
@@ -69,7 +69,7 @@ Page({
     this._pan = { x: 0, y: 0 };
     this._metrics = null;
     const imageGeneration = this.data.imageGeneration + 1;
-    this.setData({ mapIndex: activeMap ? index : 0, activeMap, mapImage: resource.src, imageFrames: resource.src ? [{ generation: imageGeneration, src: resource.src }] : [], viewportFrames: [], mapNotice: resource.notice, imageReady: false, imageGeneration, zoom: 1, zoomLabel: '100%', panX: 0, panY: 0, selectedPoint: null });
+    this.setData({ mapIndex: activeMap ? index : 0, activeMap, mapImage: resource.src, imageFrames: resource.src ? [{ generation: imageGeneration, src: resource.src }] : [], viewportFrames: [], mapNotice: resource.notice, viewMode: resource.src ? this.data.viewMode : 'list', imageReady: false, imageGeneration, zoom: 1, zoomLabel: '100%', panX: 0, panY: 0, selectedPoint: null });
     this.resizeMap();
     this.filter();
   },
@@ -96,14 +96,21 @@ Page({
     if (!this.imageEventCurrent(event)) return;
     const map = this.data.activeMap;
     if (!map || event.detail.width !== map.image_width || event.detail.height !== map.image_height) {
-      this.setData({ imageReady: false, mapImage: '', imageFrames: [], selectedPoint: null, mapNotice: '底图实际尺寸与此版本配置不一致，已隐藏图上点位。请管理员核对底图尺寸。地点列表仍可使用。' });
+      this.setData({ imageReady: false, mapImage: '', imageFrames: [], selectedPoint: null, viewMode: 'list', mapNotice: '底图实际尺寸与此版本配置不一致，已隐藏图上点位。请管理员核对底图尺寸。地点列表仍可使用。' });
       return;
     }
     this.setData({ imageReady: true });
   },
   imageFailed(event) {
     if (!this.imageEventCurrent(event)) return;
-    this.setData({ imageReady: false, mapImage: '', imageFrames: [], selectedPoint: null, mapNotice: '底图加载失败，请稍后刷新；地点列表仍可使用。' });
+    this.setData({ imageReady: false, mapImage: '', imageFrames: [], selectedPoint: null, viewMode: 'list', mapNotice: '底图加载失败，请稍后刷新；地点列表仍可使用。' });
+  },
+  changeView(event) {
+    if (!this.alive()) return;
+    const viewMode = event.currentTarget.dataset.mode;
+    if (!['map', 'list'].includes(viewMode)) return;
+    this.setData({ viewMode });
+    if (viewMode === 'map') this.resizeMap();
   },
   chooseType(event) {
     if (!this.alive()) return;

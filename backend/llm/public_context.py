@@ -82,7 +82,7 @@ def measurement_samples(stations):
 def build_public_context(session, source):
     source_type, _ = reference(session)
     context = {'scope': session.scope, 'source_type': source_type, 'image_supplied_this_turn': False,
-               'notice': '只使用当前公开资料；预设路线不是实时导航，未接入真实气象预警。'}
+               'notice': '本次对话只使用当前页面及关联公开资料；预设路线不提供实时导航。平台首页已提供部分地点的天气与预警查询，但本次对话上下文不包含实时天气或预警，不能据此回答当前天气或是否存在预警。实际出行请在首页选择支持地点并核对更新时间，必要时查询官方气象渠道。'}
     articles = Content.objects.filter(status='published').filter(Q(place__isnull=True) | Q(place__is_published=True)).select_related('place')
     if source_type == 'region':
         context['current_page'] = region_card(source)

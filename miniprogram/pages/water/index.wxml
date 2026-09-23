@@ -1,44 +1,47 @@
-<view class="page">
-  <text class="eyebrow">WATER / 智慧河湖</text>
-  <view class="page-title">看见一条河的变化。</view>
-  <view class="subtitle">水温、酸碱度、浊度与溶解氧，分开看，也连续看。</view>
-  <view class="notice">数据仅作课程演示；统计与图表按单个站点、来源和批次分别展示。缺测与存疑点保持断线，不能据此认定水质等级或官方 AQI。</view>
+<view class="page measurement-page">
+  <view class="measurement-heading"><text class="eyebrow">WATER · 智慧河湖</text><view class="page-title">看见一条河的变化。</view><view class="subtitle">水温、酸碱度、浊度与溶解氧，慢慢读懂。</view><view class="river-line" aria-hidden="true"></view></view>
+  <view class="learning-note"><text class="learning-badge">科普模拟体验</text><view>模拟数据帮助理解指标变化；缺测、存疑数据保持断线，不用于认定水质等级或官方 AQI。</view></view>
   <view class="card section filters">
-    <view class="section-title">选择观测范围</view>
+    <view class="section-head"><text class="section-title">选择观测范围</text><text class="filter-hint">按需切换</text></view>
     <view class="filter-grid">
-      <view class="filter"><text class="field-label">区域</text><picker range="{{regions}}" range-key="name" value="{{regionIndex}}" disabled="{{loading || !regions.length}}" bindchange="changeRegion"><view class="picker-value">{{region.name || '暂无区域'}}<text>⌄</text></view></picker></view>
-      <view wx:if="{{!waterMode}}" class="filter"><text class="field-label">指标类别</text><picker range="{{kinds}}" range-key="name" value="{{kindIndex}}" disabled="{{loading}}" bindchange="changeKind"><view class="picker-value">{{kinds[kindIndex].name}}<text>⌄</text></view></picker></view>
-      <view wx:if="{{waterMode}}" class="filter"><text class="field-label">河流 / 湖泊</text><picker range="{{waterBodies}}" range-key="name" value="{{waterIndex}}" disabled="{{loading || !waterBodies.length}}" bindchange="changeWater"><view class="picker-value">{{waterBodies[waterIndex].name || '暂无公开水体'}}<text>⌄</text></view></picker></view>
-      <view class="filter wide"><text class="field-label">监测站</text><picker range="{{stations}}" range-key="name" value="{{stationIndex}}" disabled="{{loading || !stations.length}}" bindchange="changeStation"><view class="picker-value">{{stations[stationIndex].name || '暂无监测站'}}<text>⌄</text></view></picker></view>
-      <view class="filter wide"><text class="field-label">数据来源</text><picker range="{{sources}}" range-key="label" value="{{sourceIndex}}" disabled="{{loading || !sources.length}}" bindchange="changeSource"><view class="picker-value">{{sources[sourceIndex].label || '暂无来源'}}<text>⌄</text></view></picker></view>
-      <view wx:if="{{sources[sourceIndex].kind === 'simulation'}}" class="filter"><text class="field-label">模拟场景</text><picker range="{{scenarios}}" range-key="name" value="{{scenarioIndex}}" disabled="{{loading || !scenarios.length}}" bindchange="changeScenario"><view class="picker-value">{{scenarios[scenarioIndex].name || '暂无场景'}}<text>⌄</text></view></picker></view>
-      <view class="filter"><text class="field-label">时间范围</text><picker range="{{ranges}}" range-key="name" value="{{rangeIndex}}" disabled="{{loading}}" bindchange="changeRange"><view class="picker-value">{{ranges[rangeIndex].name}}<text>⌄</text></view></picker></view>
-      <view wx:if="{{sources[sourceIndex].kind === 'simulation'}}" class="filter wide"><text class="field-label">成功批次（生成时间 · 编号）</text><picker range="{{runs}}" range-key="label" value="{{runIndex}}" disabled="{{loading || !runs.length}}" bindchange="changeRun"><view class="picker-value compact">{{runs[runIndex].label || '暂无成功批次'}}<text>⌄</text></view></picker></view>
+      <view class="filter"><text class="field-label">区域</text><picker range="{{regions}}" range-key="name" value="{{regionIndex}}" disabled="{{loading || !regions.length}}" bindchange="changeRegion"><view class="picker-value" hover-class="pressable"><text class="picker-label">{{region.name || '暂无区域'}}</text><text>⌄</text></view></picker></view>
+      <view wx:if="{{!waterMode}}" class="filter"><text class="field-label">指标类别</text><picker range="{{kinds}}" range-key="name" value="{{kindIndex}}" disabled="{{loading}}" bindchange="changeKind"><view class="picker-value" hover-class="pressable"><text class="picker-label">{{kinds[kindIndex].name}}</text><text>⌄</text></view></picker></view>
+      <view wx:if="{{waterMode}}" class="filter"><text class="field-label">河流 / 湖泊</text><picker range="{{waterBodies}}" range-key="name" value="{{waterIndex}}" disabled="{{loading || !waterBodies.length}}" bindchange="changeWater"><view class="picker-value" hover-class="pressable"><text class="picker-label">{{waterBodies[waterIndex].name || '暂无公开水体'}}</text><text>⌄</text></view></picker></view>
+      <view class="filter wide"><text class="field-label">监测站</text><picker range="{{stations}}" range-key="name" value="{{stationIndex}}" disabled="{{loading || !stations.length}}" bindchange="changeStation"><view class="picker-value" hover-class="pressable"><text class="picker-label">{{stations[stationIndex].name || '暂无监测站'}}</text><text>⌄</text></view></picker></view>
+      <view class="filter wide"><text class="field-label">时间范围</text><picker range="{{ranges}}" range-key="name" value="{{rangeIndex}}" disabled="{{loading}}" bindchange="changeRange"><view class="picker-value" hover-class="pressable"><text class="picker-label">{{ranges[rangeIndex].name}}</text><text>⌄</text></view></picker></view>
     </view>
-    <view class="copy small">场景列表随数据来源变化；查看其他模拟场景时，请选择对应数据源。模拟时间范围以批次结束时间为基准，其他来源以当前时间为基准。起始时间计入，结束时间不计入。</view>
+    <button class="advanced-toggle row" bindtap="toggleFilters" hover-class="pressable" aria-expanded="{{advancedFilters}}"><text>数据来源与批次</text><text>{{advancedFilters ? '收起 −' : '更多筛选 ＋'}}</text></button>
+    <view wx:if="{{!advancedFilters}}" class="source-summary">{{sources[sourceIndex].label || '暂无数据来源'}}<text wx:if="{{selectedRun}}"> · {{selectedRun.scenario.name}}</text></view>
+    <view wx:if="{{advancedFilters}}" class="advanced-content">
+      <view class="filter-grid">
+        <view class="filter wide"><text class="field-label">数据来源</text><picker range="{{sources}}" range-key="label" value="{{sourceIndex}}" disabled="{{loading || !sources.length}}" bindchange="changeSource"><view class="picker-value" hover-class="pressable"><text class="picker-label">{{sources[sourceIndex].label || '暂无来源'}}</text><text>⌄</text></view></picker></view>
+        <view wx:if="{{sources[sourceIndex].kind === 'simulation'}}" class="filter wide"><text class="field-label">模拟场景</text><picker range="{{scenarios}}" range-key="name" value="{{scenarioIndex}}" disabled="{{loading || !scenarios.length}}" bindchange="changeScenario"><view class="picker-value" hover-class="pressable"><text class="picker-label">{{scenarios[scenarioIndex].name || '暂无场景'}}</text><text>⌄</text></view></picker></view>
+        <view wx:if="{{sources[sourceIndex].kind === 'simulation'}}" class="filter wide"><text class="field-label">观测批次 · 生成时间与编号</text><picker range="{{runs}}" range-key="label" value="{{runIndex}}" disabled="{{loading || !runs.length}}" bindchange="changeRun"><view class="picker-value compact" hover-class="pressable"><text class="picker-label">{{runs[runIndex].label || '暂无可用批次'}}</text><text>⌄</text></view></picker></view>
+      </view>
+      <view class="filter-explanation">模拟数据按所选批次结束时间回看，其他来源按当前时间回看。切换来源可查看对应场景；统计范围包含起始时刻，不包含结束时刻。</view>
+    </view>
   </view>
-  <view class="section"><page-state loading="{{loading}}" error="{{error}}" empty="{{!loading && !error && !view}}" empty-text="{{selectionNotice || '当前选择暂无数据'}}" bindretry="load" /></view>
+  <view class="section"><page-state loading="{{loading}}" error="{{error}}" empty="{{!loading && !error && !view}}" empty-text="{{selectionNotice || '当前选择暂无数据，试试其他站点或时间范围。'}}" bindretry="load" /></view>
   <block wx:if="{{!loading && !error && view}}">
-    <view class="card provenance">
-      <view class="row"><text class="section-title">本次观测</text><source-label source="{{view.source_type}}" /></view>
-      <view class="copy">来源：{{view.source_name}}</view>
-      <view class="copy">窗口：{{view.window_label}}</view>
-      <view class="copy">粒度：{{view.bucket_label}}</view>
-      <block wx:if="{{selectedRun}}"><view class="copy">场景：{{selectedRun.scenario.name}}</view><view class="copy break-word">批次：{{view.simulation_run_id}}</view><view class="copy">生成：{{selectedRun.created_label}}</view><view class="copy">批次范围：{{selectedRun.window_label}}</view></block>
+    <view class="observation-heading"><view class="section-head"><text class="section-title">这一刻的观测</text><source-label source="{{view.source_type}}" /></view><view class="small muted">{{stations[stationIndex].name}} · 点击指标卡切换趋势</view></view>
+    <view wx:if="{{view.status === 'unavailable'}}" class="notice">这个站点在所选范围内还没有观测记录，可调整筛选；数据空缺不会填成 0。</view>
+    <view class="metric-grid measurement-metrics">
+      <view class="metric {{metricIndex === index ? 'metric-active' : ''}}" wx:for="{{view.series}}" wx:key="metric_name" data-index="{{index}}" bindtap="selectMetricCard" hover-class="pressable" aria-role="button"><view class="row"><text class="metric-label">{{item.metric.name}}</text><text class="metric-dot" wx:if="{{metricIndex === index}}"></text></view><text class="metric-value">{{item.latest_label}} <text class="unit">{{item.metric.unit}}</text></text><view class="small muted">最新观测 · {{item.latest_quality}}</view><view class="timestamp">{{item.latest_time}}</view></view>
     </view>
-    <view wx:if="{{view.status === 'unavailable'}}" class="notice">当前站点、来源、批次与时间范围内没有观测记录。可调整筛选后重试；空缺不会填成 0。</view>
-    <view class="metric-grid section">
-      <view class="metric" wx:for="{{view.series}}" wx:key="metric_name"><text class="metric-label">{{item.metric.name}}</text><text class="metric-value">{{item.latest_label}} <text class="unit">{{item.metric.unit}}</text></text><view class="small muted">最新观测 · {{item.latest_quality}}</view><view class="timestamp">{{item.latest_time}}</view></view>
-    </view>
-    <view wx:if="{{activeMetric}}" class="card section">
-      <text class="field-label">查看一个指标的趋势与明细</text>
-      <picker range="{{view.series}}" range-key="metric_name" value="{{metricIndex}}" bindchange="changeMetric"><view class="picker-value">{{activeMetric.metric.name}}<text>⌄</text></view></picker>
+    <view wx:if="{{activeMetric}}" class="card section trend-card">
+      <view class="row"><text class="section-title">变化趋势</text><text class="small muted">{{activeMetric.metric.unit || '无量纲'}}</text></view>
+      <picker range="{{view.series}}" range-key="metric_name" value="{{metricIndex}}" bindchange="changeMetric"><view class="picker-value trend-picker" hover-class="pressable"><text class="picker-label">{{activeMetric.metric.name}}</text><text>⌄</text></view></picker>
       <view class="stats"><view><text>最低</text><view>{{activeMetric.minimum_label}}</view></view><view><text>最高</text><view>{{activeMetric.maximum_label}}</view></view><view><text>均值</text><view>{{activeMetric.mean_label}}</view></view></view>
-      <view class="small muted">单位：{{activeMetric.metric.unit || '无量纲'}} · 有效 {{activeMetric.valid_count}} / 缺测 {{activeMetric.missing_count}} / 存疑 {{activeMetric.suspect_count}} 条</view>
+      <view class="quality-line"><text class="quality-valid">有效 {{activeMetric.valid_count}}</text><text>缺测 {{activeMetric.missing_count}}</text><text>存疑 {{activeMetric.suspect_count}}</text></view>
       <trend-chart entry="{{activeMetric}}" start="{{view.start}}" end="{{view.end}}" />
     </view>
-    <view class="notice">{{view.notice}}</view>
+    <view class="card section provenance">
+      <button class="provenance-toggle row" bindtap="toggleProvenance" hover-class="pressable" aria-expanded="{{provenanceExpanded}}"><text class="title">数据从哪里来</text><text>{{provenanceExpanded ? '收起 −' : '查看 ＋'}}</text></button>
+      <view class="source-summary">{{view.source_name}}</view><view class="window-summary">{{view.window_label}}</view>
+      <view wx:if="{{provenanceExpanded}}" class="provenance-detail"><view class="copy">汇总粒度：{{view.bucket_label}}</view><block wx:if="{{selectedRun}}"><view class="copy">场景：{{selectedRun.scenario.name}}</view><view class="copy break-word">批次：{{view.simulation_run_id}}</view><view class="copy">生成：{{selectedRun.created_label}}</view><view class="copy">批次范围：{{selectedRun.window_label}}</view></block></view>
+    </view>
+    <view class="notice" wx:if="{{view.notice}}">{{view.notice}}</view>
   </block>
-  <view class="footer-note">HYHQ / 让数据有迹可循</view>
+  <view class="footer-note">HYHQ · 让每一次观察有迹可循</view>
   <floating-ai visible="{{!loading && !error && waterBodies.length}}" bindopen="openAI" />
 </view>

@@ -2,6 +2,13 @@ const { app, requireLogin, detail, toast } = require('../../lib/page');
 const { time, task, message } = require('../../lib/format');
 const { assessmentTask } = require('../../lib/assessment');
 const titles = { favorites: '我的收藏', histories: '浏览记录', 'recognition-jobs': '识别记录', 'assessment-jobs': '河道观察记录', visits: '游览记录' };
+const emptyStates = {
+  favorites: { heading: '喜欢的风景，值得收藏', copy: '浏览地点或科普文章，点击收藏后就能在这里找到。', action: '去发现', secondary: '读点科普' },
+  histories: { heading: '从一次好奇开始', copy: '阅读文章或打开地点详情后，可以在这里回看。浏览记录需在“我的”中开启。', action: '去浏览', secondary: '读点科普' },
+  'recognition-jobs': { heading: '留下一次植物发现', copy: '拍摄或选择一张花卉照片，认识身边的绿色。', action: '去识别', secondary: '' },
+  'assessment-jobs': { heading: '从一张河道照片开始', copy: '上传照片进行河道图像观察，结果会保存在这里。', action: '去观察', secondary: '' },
+  visits: { heading: '记录你走过的绿意', copy: '在地点详情主动添加游览记录，留下自己的足迹。', action: '去看地点', secondary: '' },
+};
 
 function pageKey(path, kind) {
   if (typeof path !== 'string' || /[\s\\#]/.test(path)) throw new Error('个人记录分页地址无效，请刷新重试');
@@ -25,10 +32,10 @@ function present(record, kind) {
   });
 }
 Page({
-  data: { loading: true, loadingMore: false, error: '', kind: '', title: '', records: [], next: null, busy: false },
+  data: { loading: true, loadingMore: false, error: '', kind: '', title: '', records: [], next: null, busy: false, emptyState: emptyStates.favorites },
   onLoad(options) {
     if (!titles[options.kind]) { this.setData({ loading: false, error: '记录类型无效' }); return; }
-    this.setData({ kind: options.kind, title: titles[options.kind] });
+    this.setData({ kind: options.kind, title: titles[options.kind], emptyState: emptyStates[options.kind] });
     wx.setNavigationBarTitle({ title: titles[options.kind] });
   },
   async onShow() {
@@ -123,6 +130,17 @@ Page({
     }
   },
   more() { return this.load(true); },
+  discover(event) {
+    if (!this._active() || this.data.busy || !titles[this.data.kind]) return;
+    if (event && event.currentTarget.dataset.destination === 'learn') { wx.switchTab({ url: '/pages/learn/index' }); return; }
+    if (this.data.kind === 'assessment-jobs') { wx.navigateTo({ url: '/pages/assessment/index' }); return; }
+    if (this.data.kind === 'recognition-jobs') {
+      app().globalData.recognitionJobId = '';
+      wx.switchTab({ url: '/pages/recognize/index' });
+      return;
+    }
+    wx.switchTab({ url: '/pages/explore/index' });
+  },
   open(event) {
     if (!this._canAct() || this.data.loading) return;
     const record = this.data.records.find((item) => item.id === event.currentTarget.dataset.id);
@@ -141,7 +159,7 @@ Page({
     const current = () => this._active() && action === this._actionVersion && app().session.token() === sentToken;
     let handled = false;
     this._confirming = true;
-    wx.showModal({ title: '删除这条记录', content: ['recognition-jobs', 'assessment-jobs'].includes(this.data.kind) ? '删除任务、关联图片、可选位置及关联的 AI 解读会话，无法恢复。' : '删除后，这条个人记录将不再显示。', confirmText: '删除', confirmColor: '#a25e4a', success: async (result) => {
+    wx.showModal({ title: '删除这条记录', content: ['recognition-jobs', 'assessment-jobs'].includes(this.data.kind) ? '删除任务、关联图片、可选位置及关联的 AI 解读会话，无法恢复。' : '删除后，这条个人记录将不再显示。', confirmText: '删除', confirmColor: '#d97b4f', success: async (result) => {
       if (handled) return;
       handled = true;
       if (!current()) { if (this._active() && app().session.token() !== sentToken) this._clearPrivate(); return; }

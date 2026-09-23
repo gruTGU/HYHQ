@@ -1,16 +1,32 @@
-.scope-card { padding: 26rpx; background: #edf1e2; border-radius: 24rpx; }
-.upload-panel { min-height: 340rpx; padding: 32rpx; border: 2rpx dashed #a7c6be; border-radius: 28rpx; background: #e9f1ed; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.water-symbol { font-size: 100rpx; line-height: 1.2; color: #589287; margin-bottom: 20rpx; }
+.observe-kind { display: flex; gap: 12rpx; align-items: center; color: #3a7d5c; font-size: 23rpx; margin-top: 24rpx; }
+.kind-dot { width: 10rpx; height: 10rpx; border-radius: 50%; background: #7fb3c8; }
+.kind-note { margin-left: auto; color: #758575; font-size: 21rpx; }
+.flow-steps { display: flex; align-items: center; gap: 12rpx; margin: 30rpx 0; color: #7a897a; font-size: 23rpx; }
+.flow-steps view { flex: 1; height: 2rpx; background: #d8e3d1; }
+.flow-steps .current { color: #3a7d5c; font-weight: 600; }
+.scope-card { padding: 24rpx 26rpx; background: #e7eee3; border-radius: 26rpx; }
+.help-toggle { color: #3a7d5c; font-size: 23rpx; flex-shrink: 0; margin-left: 14rpx; }
+.upload-panel { min-height: 430rpx; padding: 34rpx 28rpx; border: 2rpx solid #d7e5d3; border-radius: 32rpx; background: linear-gradient(145deg, #fafcf6, #e5efea); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.water-illustration { position: relative; width: 232rpx; height: 140rpx; margin-bottom: 24rpx; overflow: hidden; border-radius: 54% 56% 40% 44%; background: #e1eee9; }
+.water-bank { position: absolute; width: 230rpx; height: 100rpx; left: -50rpx; bottom: -10rpx; border-radius: 50% 70% 0 0; background: #a8c99b; transform: rotate(-15deg); }
+.water-stream { position: absolute; width: 200rpx; height: 92rpx; right: -30rpx; bottom: -25rpx; border: 17rpx solid #eef5ee; border-radius: 48% 80% 0 0; background: #7fb3c8; transform: rotate(18deg); }
+.water-reed { position: absolute; width: 4rpx; height: 65rpx; left: 65rpx; top: 28rpx; background: #3a7d5c; transform: rotate(10deg); }
+.water-leaf { position: absolute; width: 26rpx; height: 42rpx; left: 37rpx; top: 27rpx; border-radius: 80% 0 80% 0; background: #3a7d5c; transform: rotate(-62deg); }
+.choose-water { margin: 28rpx 0 0; padding-left: 36rpx; padding-right: 36rpx; }
 /* Only the widthFix image determines this container's height; captions live outside it. */
-.image-wrap { position: relative; overflow: hidden; border-radius: 24rpx; line-height: 0; background: #e9f1ed; }
+.image-wrap { position: relative; overflow: hidden; border-radius: 32rpx; line-height: 0; background: #e5efea; }
 .preview { width: 100%; display: block; }
 .box-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.detection-box { position: absolute; border: 3rpx solid #f3b642; }
-.box-label { position: absolute; top: 0; left: 0; background: #f3b642; color: #203a30; font-size: 21rpx; line-height: 1.4; padding: 0 6rpx; }
-.water-picker { padding: 18rpx; margin-top: 16rpx; border-radius: 16rpx; background: #f0f4e9; }
-.nearby { padding: 20rpx; border-radius: 16rpx; background: #edf4ed; }
-.privacy-link { color: #376f4a; margin-left: 10rpx; }
-.result-banner { padding: 32rpx; background: #e3eee6; border-radius: 28rpx; }
-.rule-score { font-size: 72rpx; color: #306c51; font-weight: 650; }
+.detection-box { position: absolute; border: 3rpx solid #e4a45f; }
+.box-label { position: absolute; top: 0; left: 0; background: #e4a45f; color: #2c3e33; font-size: 21rpx; line-height: 1.4; padding: 0 6rpx; }
+.water-picker { padding: 20rpx; margin-top: 20rpx; border-radius: 18rpx; background: #f0f4ed; font-size: 27rpx; }
+.nearby { padding: 22rpx; border-radius: 22rpx; background: #eaf2e7; }
+.privacy-link { color: #3a7d5c; margin-left: 10rpx; }
+.result-banner { padding: 32rpx; background: linear-gradient(140deg, #e0ecd8, #e8f0ec); border-radius: 32rpx; }
+.rule-score { font-size: 76rpx; line-height: 1.4; color: #3a7d5c; font-weight: 650; margin-top: 12rpx; }
 .rule-score text { font-size: 25rpx; font-weight: 400; }
-.detection-row { display: flex; justify-content: space-between; padding: 18rpx 0; border-bottom: 1rpx solid #edf0e5; }
+.detection-row { display: flex; gap: 16rpx; justify-content: space-between; padding: 22rpx 0; border-bottom: 1rpx solid #e5eddf; font-size: 26rpx; }
+.detection-row .small { flex-shrink: 0; }
+.ai-next { background: linear-gradient(135deg, #fdfefb, #e8f0e5); }
+.ai-model { color: #3a7d5c; font-size: 22rpx; letter-spacing: .6rpx; }
+.history-row { border-left: 5rpx solid #a8c99b; }

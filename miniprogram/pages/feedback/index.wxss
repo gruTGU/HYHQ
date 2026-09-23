@@ -1,7 +1,12 @@
-textarea { width: 100%; min-height: 240rpx; padding: 20rpx; background: #f2f5eb; border-radius: 16rpx; font-size: 26rpx; box-sizing: border-box; line-height: 1.7; }
-.count { text-align: right; margin-top: 12rpx; }
-.feedback-record { margin-top: 18rpx; }
-.feedback-body { white-space: pre-wrap; overflow-wrap: break-word; font-size: 27rpx; }
-.reply { margin-top: 24rpx; padding: 22rpx; border-radius: 18rpx; background: #f0f4e9; }
-.reply-title { color: #326549; font-weight: 600; }
-.resolved { background: #e0edda; color: #33634b; }
+.card { border-radius: 32rpx; background: #fff; }
+.feedback-flow { display: flex; align-items: center; margin: 30rpx 0 0; padding: 24rpx 16rpx; background: #e5edde; border-radius: 24rpx; }
+.feedback-flow > view { display: flex; align-items: center; flex-shrink: 0; color: #3a7d5c; font-size: 22rpx; }.flow-number { display: inline-block; width: 32rpx; height: 32rpx; margin-right: 9rpx; background: #fff; border-radius: 50%; text-align: center; line-height: 32rpx; font-size: 20rpx; }.flow-line { flex: 1; height: 1rpx; min-width: 12rpx; margin: 0 12rpx; background: #a8c99b; }
+.form-private { color: #3a7d5c; padding: 4rpx 13rpx; border-radius: 18rpx; background: #f0f4ed; font-size: 21rpx; }
+textarea { width: 100%; height: 264rpx; padding: 22rpx; background: #f0f4ed; border-radius: 22rpx; color: #2c3e33; font-size: 27rpx; box-sizing: border-box; line-height: 1.8; }.textarea-placeholder { color: #829085; }
+.count { text-align: right; margin-top: 12rpx; font-size: 22rpx; }.form-hint { color: #718278; margin-top: 12rpx; font-size: 22rpx; line-height: 1.8; }
+.feedback-success { color: #3a7d5c; background: #e5efdf; border-left: 5rpx solid #a8c99b; }
+.refresh-button { padding: 8rpx 0 8rpx 24rpx; }
+.feedback-record { margin-top: 18rpx; }.feedback-body { white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; font-size: 27rpx; line-height: 1.85; color: #2c3e33; }.feedback-time { margin-top: 16rpx; font-size: 21rpx; }
+.feedback-status { display: inline-block; padding: 5rpx 16rpx; border-radius: 22rpx; font-size: 22rpx; background: #f7eee7; color: #ad653f; }.resolved { background: #e5efdf; color: #3a7d5c; }.remove-feedback { color: #879087; font-size: 23rpx; padding: 8rpx 0 8rpx 20rpx; }
+.reply { margin-top: 24rpx; padding: 24rpx; border-radius: 22rpx; background: #f0f4ed; }.reply-title { display: flex; align-items: center; color: #3a7d5c; font-size: 24rpx; font-weight: 600; }.reply-dot { width: 8rpx; height: 8rpx; margin-right: 10rpx; border-radius: 50%; background: #3a7d5c; }.pending-note { border-top: 1rpx solid #e8eee4; margin-top: 22rpx; padding-top: 18rpx; color: #718278; font-size: 23rpx; }
+.feedback-empty { text-align: center; padding: 36rpx; }.empty-conversation { width: 76rpx; height: 60rpx; margin: 0 auto 26rpx; border: 3rpx solid #a8c99b; border-radius: 22rpx; color: #3a7d5c; font-size: 52rpx; line-height: 28rpx; }.feedback-privacy { margin: 32rpx 4rpx 0; color: #718278; font-size: 22rpx; line-height: 1.9; }

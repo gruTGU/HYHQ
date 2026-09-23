@@ -319,3 +319,27 @@ test('queued UI callbacks after hide or unload cannot mutate state, request data
     assert.equal(application.globalData.region.id, region.id);
   }
 });
+
+
+test('map and list switching preserves selection and zoom without fetching again; failed images use the list', async () => {
+  const { instance, application } = page(fixtureApi());
+  await instance.onShow(); imageReady(instance);
+  instance.selectPoint(event(instance, {}, { id: 'river' }));
+  instance.zoomMap(event(instance, {}, { action: 'in' }));
+  const selected = instance.data.selectedPoint;
+  application.api.request = () => { throw new Error('view switch must not fetch again'); };
+  instance.changeView(event(instance, {}, { mode: 'list' }));
+  assert.equal(instance.data.viewMode, 'list');
+  instance.changeView(event(instance, {}, { mode: 'map' }));
+  assert.equal(instance.data.viewMode, 'map');
+  assert.equal(instance.data.zoom, 1.5);
+  assert.equal(instance.data.selectedPoint, selected);
+  instance.changeView(event(instance, {}, { mode: 'unsupported' }));
+  assert.equal(instance.data.viewMode, 'map');
+  instance.imageFailed(event(instance));
+  assert.equal(instance.data.viewMode, 'list');
+  assert.equal(instance.data.filtered.length, 2);
+  instance.onHide();
+  instance.setData = () => { throw new Error('late view callback'); };
+  instance.changeView(event(instance, {}, { mode: 'map' }));
+});

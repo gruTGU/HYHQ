@@ -73,3 +73,24 @@ test('summary failure is separate from no-alert and simulated fallback', async (
   assert.equal(instance.data.citySummary, null);
   assert.equal(instance.data.cityLoading, false);
 });
+
+
+test('home weather artwork follows the actual condition and an unknown condition stays neutral', async () => {
+  for (const [condition, theme] of [['晴', 'sun'], ['晴转雨', 'rain'], ['雷阵雨', 'rain'], ['多云', 'cloud'], ['阴', 'cloud'], ['雨夹雪', 'snow'], ['轻雾', 'mist'], ['', 'calm']]) {
+    const instance = page({ request: async () => ({ data: { weather: { status: 'fresh', data: { temperature: 0, condition } } } }) });
+    instance._cityGeneration = 1;
+    await instance.loadCitySummary('tianjin', 1);
+    assert.equal(instance.data.weatherTheme, theme, condition || 'missing condition');
+    assert.equal(instance.data.citySummary.weather.temp_label, '0°C');
+  }
+});
+
+test('home optional detail expansion makes no request and ignores callbacks after hide', () => {
+  const instance = page({ request() { throw new Error('expansion must not request weather'); } });
+  instance.toggleAir(); instance.toggleObservations();
+  assert.equal(instance.data.airExpanded, true);
+  assert.equal(instance.data.observationExpanded, true);
+  instance.onHide();
+  instance.setData = () => { throw new Error('late UI callback'); };
+  instance.toggleAir(); instance.toggleObservations();
+});

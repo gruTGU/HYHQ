@@ -1,2 +1,4 @@
-.source { display: inline-block; border-radius: 9rpx; background: #edf2e6; color: #52643e; font-size: 20rpx; line-height: 1.8; padding: 2rpx 10rpx; font-weight: 500; }
-.simulation { background: #f5edcf; color: #77662f; }
+.source { display: inline-block; border-radius: 99rpx; background: #e7efdf; color: #506c48; font-size: 21rpx; line-height: 1.8; padding: 4rpx 13rpx; font-weight: 500; }
+.simulation { background: #f5e9d8; color: #865f35; }
+.api { background: #e3f0e9; color: #326849; }
+.dataset { background: #e6eff1; color: #476978; }

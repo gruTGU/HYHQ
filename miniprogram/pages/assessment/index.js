@@ -6,7 +6,7 @@ const pending = (job) => job && ['queued', 'running'].includes(job.status);
 
 Page({
   data: {
-    loading: false, error: '', busy: false, loggedIn: false,
+    loading: false, error: '', busy: false, loggedIn: false, helpExpanded: false, associationExpanded: false, metadataExpanded: false,
     capability: capability(null), capabilityKnown: false, capabilityError: '',
     imagePath: '', imageOrigin: '', imageReady: false, imageUnavailable: '', task: null, jobs: [],
     waterBodies: [NONE], waterIndex: 0, waterNotice: '', location: null, locating: false, locationNotice: '', nearby: null,
@@ -104,6 +104,9 @@ Page({
       }
     } finally { if (!this._destroyed && generation === this._loadGeneration) finish(this); }
   },
+  toggleHelp() { this.setData({ helpExpanded: !this.data.helpExpanded }); },
+  toggleAssociation() { this.setData({ associationExpanded: !this.data.associationExpanded }); },
+  toggleMetadata() { this.setData({ metadataExpanded: !this.data.metadataExpanded }); },
   choose() {
     if (this._destroyed || this.data.busy || !requireLogin()) return;
     const token = app().session.token();

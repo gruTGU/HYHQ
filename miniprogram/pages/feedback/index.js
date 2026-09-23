@@ -116,7 +116,7 @@ Page({
     if (!this.data.records.some((item) => item.id === id)) return;
     const token = app().session.token(), action = this._actionVersion = (this._actionVersion || 0) + 1;
     this._confirming = true; let handled = false;
-    wx.showModal({ title: '删除这条反馈', content: '反馈内容及对应答复将删除，无法恢复。', confirmText: '删除', confirmColor: '#a25e4a', success: async (result) => {
+    wx.showModal({ title: '删除这条反馈', content: '反馈内容及对应答复将删除，无法恢复。', confirmText: '删除', confirmColor: '#d97b4f', success: async (result) => {
       if (handled) return; handled = true;
       if (!this.accepted(action, token, true)) return;
       this._confirming = false; if (!result.confirm) return;

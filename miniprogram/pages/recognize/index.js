@@ -3,7 +3,7 @@ const { app, requireLogin, toast, finish, detail } = require('../../lib/page');
 const { list, task, message } = require('../../lib/format');
 const { capability } = require('../../lib/recognition');
 Page({
-  data: { loading: false, error: '', busy: false, imagePath: '', imageOrigin: '', imageUnavailable: '', task: null, jobs: [], loggedIn: false, capability: capability(null), capabilityKnown: false, capabilityError: '' },
+  data: { loading: false, error: '', busy: false, imagePath: '', imageOrigin: '', imageUnavailable: '', task: null, jobs: [], loggedIn: false, capability: capability(null), capabilityKnown: false, capabilityError: '', helpExpanded: false },
   onShow() {
     this._destroyed = false;
     selectTab(this, 2);
@@ -89,6 +89,7 @@ Page({
     } catch (error) { if (!this._destroyed && generation === this._loadGeneration) this.authError(error); }
     finally { if (!this._destroyed && generation === this._loadGeneration) finish(this); }
   },
+  toggleHelp() { this.setData({ helpExpanded: !this.data.helpExpanded }); },
   choose() {
     if (this._destroyed || this.data.busy || !requireLogin()) return;
     const sentToken = app().session.token();
@@ -131,7 +132,7 @@ Page({
       if (['queued', 'running'].includes(result.status)) {
         this._pollCount = (this._pollCount || 0) + 1;
         if (this._pollCount < 10) this._timer = setTimeout(() => this.poll(id), 3000);
-        else this.setData({ error: '任务尚未结束，可手动刷新。请确认服务端任务工作进程已经启动。' });
+        else this.setData({ error: '识别还需要一点时间，可稍后刷新结果，无需重复上传。' });
       } else await this.load();
     } catch (error) {
       if (!this._destroyed && generation === this._pollGeneration && this._visible && (!app().session.token() || app().session.token() === sentToken)) {

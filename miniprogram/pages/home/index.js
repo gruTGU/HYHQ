@@ -3,8 +3,18 @@ const { app } = require('../../lib/page');
 const { time, value, message } = require('../../lib/format');
 const { loadRegions, selectRegion } = require('../../lib/region');
 const { weatherView } = require('../../lib/weather');
+function weatherTheme(data) {
+  const condition = String(data && data.condition || '').toLowerCase();
+  const code = Number(data && data.condition_code);
+  if (/雪|snow|sleet/.test(condition) || code >= 400 && code < 500) return 'snow';
+  if (/雨|雷|rain|storm|shower/.test(condition) || code >= 300 && code < 400) return 'rain';
+  if (/雾|霾|沙|尘|fog|haze|dust/.test(condition) || code >= 500 && code < 600) return 'mist';
+  if (/阴|多云|cloud|overcast/.test(condition) || code >= 101 && code <= 104) return 'cloud';
+  if (/晴|sun|clear/.test(condition) || code === 100 || code === 150) return 'sun';
+  return 'calm';
+}
 Page({
-  data: { loading: true, error: '', regions: [], regionIndex: 0, region: null, weather: null, air: null, alerts: [], alertNotice: '', sections: [], health: null, cityLoading: true, cityError: '', cities: [], cityIndex: 0, city: null, citySummary: null, cityEnabled: false },
+  data: { loading: true, error: '', regions: [], regionIndex: 0, region: null, weather: null, air: null, alerts: [], alertNotice: '', sections: [], health: null, cityLoading: true, cityError: '', cities: [], cityIndex: 0, city: null, citySummary: null, cityEnabled: false, weatherTheme: 'calm', airExpanded: false, observationExpanded: false },
   onLoad() { this._alive = true; return this.load(); },
   onShow() {
     if (this._alive === false) return;
@@ -53,7 +63,7 @@ Page({
   async loadCitySummary(slug, generation) {
     const data = (await app().api.request('weather-data/summary/', { data: { location: slug }, timeout: 55000 })).data;
     if (!this.cityCurrent(generation)) return;
-    this.setData({ citySummary: weatherView(data || {}) });
+    this.setData({ citySummary: weatherView(data || {}), weatherTheme: weatherTheme(data && data.weather && data.weather.data) });
   },
   async changeCity(event) {
     const cityIndex = Number(event.detail.value), city = this.data.cities[cityIndex];
@@ -65,6 +75,8 @@ Page({
     catch (error) { if (this.cityCurrent(generation)) this.setData({ cityError: message(error) }); }
     finally { if (this.cityCurrent(generation)) this.setData({ cityLoading: false }); }
   },
+  toggleAir() { if (this._alive !== false && !this._hidden) this.setData({ airExpanded: !this.data.airExpanded }); },
+  toggleObservations() { if (this._alive !== false && !this._hidden) this.setData({ observationExpanded: !this.data.observationExpanded }); },
   weatherSource() { wx.setClipboardData({ data: 'https://www.qweather.com' }); },
   async loadEnvironment(id, generation) {
     const definitions = [

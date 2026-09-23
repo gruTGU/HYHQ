@@ -1,2 +1,18 @@
-.record-action { border-top: 1rpx solid #edf0e5; padding-top: 14rpx; margin-top: 16rpx; display: flex; justify-content: flex-end; }
-.record-action button { color: #9a7359; }
+.records-header { padding: 8rpx 2rpx 0; }
+.private-label { display: flex; align-items: center; margin-top: 20rpx; color: #3a7d5c; font-size: 22rpx; }
+.privacy-dot { width: 10rpx; height: 10rpx; border-radius: 50%; background: #a8c99b; margin-right: 10rpx; }
+.card { border-radius: 32rpx; background: #fff; }
+.records-empty { padding: 42rpx 36rpx 36rpx; text-align: center; }
+.empty-plant { position: relative; width: 154rpx; height: 154rpx; margin: 0 auto 28rpx; border-radius: 50%; background: #f0f4ed; }
+.plant-stem { position: absolute; left: 76rpx; top: 45rpx; width: 4rpx; height: 72rpx; border-radius: 3rpx; background: #3a7d5c; }
+.plant-leaf { position: absolute; width: 46rpx; height: 27rpx; background: #a8c99b; }.leaf-left { left: 34rpx; top: 60rpx; border-radius: 4rpx 28rpx 4rpx 28rpx; transform: rotate(18deg); }.leaf-right { left: 78rpx; top: 40rpx; border-radius: 28rpx 4rpx 28rpx 4rpx; transform: rotate(-18deg); background: #3a7d5c; }
+.plant-soil { position: absolute; left: 48rpx; top: 116rpx; width: 60rpx; height: 4rpx; border-radius: 8rpx; background: #7fb3c8; }
+.empty-title { font-size: 31rpx; font-weight: 600; color: #2c3e33; }
+.records-empty .copy { margin-top: 16rpx; line-height: 1.9; }
+.empty-action { margin-top: 32rpx; }.empty-secondary { margin: 18rpx auto 0; padding: 10rpx 24rpx; }
+.record-card { margin-top: 18rpx; padding: 26rpx 28rpx 16rpx; }
+.record-open { background: transparent; padding: 0; text-align: left; color: #2c3e33; line-height: 1.7; font-weight: 400; border-radius: 0; }
+.record-open[disabled] { opacity: 1; color: #718278; }
+.record-title { flex: 1; min-width: 0; word-break: break-all; }
+.record-action { border-top: 1rpx solid #e8eee4; padding-top: 14rpx; margin-top: 20rpx; display: flex; align-items: center; justify-content: space-between; }
+.record-date { flex: 1; min-width: 0; font-size: 21rpx; }.record-remove { flex-shrink: 0; margin-left: 12rpx; padding: 8rpx 0 8rpx 18rpx; color: #b46237; font-size: 23rpx; }

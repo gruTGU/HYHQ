@@ -377,3 +377,117 @@ test('chat textarea has no placeholder or automatic-prefill copy', () => {
   const markup = fs.readFileSync(path.join(__dirname, '../pages/llm/index.wxml'), 'utf8');
   assert.doesNotMatch(markup, /<textarea\b[^>]*\bplaceholder=/); assert.doesNotMatch(markup, /预填/);
 });
+
+test('chat reads chronologically while keeping scoped newest-first records, and hide removes both views', async () => {
+  const { page } = fixture(async (path) => path === 'llm/sessions/s1/turns/' ? { data: [turn('latest'), turn('earlier')] } : undefined);
+  await page.onShow();
+  assert.deepEqual(page.data.turns.map((row) => row.id), ['latest', 'earlier']);
+  assert.deepEqual(page.data.displayTurns.map((row) => row.id), ['earlier', 'latest']);
+  page.onHide();
+  assert.equal(page.data.turns.length, 0); assert.equal(page.data.displayTurns.length, 0);
+});
+test('failed answer can return to editing without a paid request or silently replacing a draft', async () => {
+  const { page, calls } = fixture(async (path) => path === 'llm/sessions/s1/turns/' ? { data: [turn('failed', { status: 'failed', question: '如何观察叶片？' })] } : undefined);
+  await page.onShow(); const count = calls.length;
+  page.reuseQuestion(idEvent('failed'));
+  assert.equal(page.data.question, '如何观察叶片？'); assert.equal(calls.length, count);
+  page.inputQuestion(change('尚未发出的另一个问题'));
+  page.reuseQuestion(idEvent('failed'));
+  assert.equal(page.data.question, '尚未发出的另一个问题'); assert.match(page.data.actionError, /未发送/); assert.equal(calls.length, count);
+});
+test('keyboard docking ignores invalid sizes and hidden events, and context stays outside the input', async () => {
+  const { page } = fixture(); await page.onShow();
+  assert.equal(page.data.contextExpanded, false); page.toggleContext(); assert.equal(page.data.contextExpanded, true); assert.equal(page.data.question, '');
+  page.keyboardHeightChanged({ detail: { height: 320 } }); assert.equal(page.data.keyboardHeight, 320);
+  page.keyboardHeightChanged({ detail: { height: -1 } }); assert.equal(page.data.keyboardHeight, 0);
+  page.keyboardHeightChanged({ detail: { height: 'bad' } }); assert.equal(page.data.keyboardHeight, 0);
+  page.keyboardHeightChanged({ detail: { height: 900 } }); assert.equal(page.data.keyboardHeight, 700);
+  page.inputBlur(); assert.equal(page.data.keyboardHeight, 0);
+  page.onHide(); page.keyboardHeightChanged({ detail: { height: 320 } }); assert.equal(page.data.keyboardHeight, 0);
+});
+test('delayed render cannot scroll an old account conversation, and reading older answers pauses following', async () => {
+  const { page, application } = fixture(); await page.onShow();
+  const rendered = [], scrolls = [];
+  page.setData = function (patch, callback) { Object.assign(this.data, patch); if (callback) rendered.push(callback); };
+  global.wx.pageScrollTo = (options) => scrolls.push(options);
+  page.updateTurns([turn('late')], true);
+  application.session.save({ token: 'B', user: { id: 'B' } });
+  rendered.shift()();
+  assert.equal(scrolls.length, 0); assert.equal(page.data.displayTurns.length, 0);
+  page.onPageScroll({ scrollTop: 300 }); page.onPageScroll({ scrollTop: 200 });
+  assert.equal(page._followLatest, false);
+});
+
+function composerMeasurements(page) {
+  const pending = [], scrolls = [];
+  page.setData = function (patch, callback) { Object.assign(this.data, patch); if (callback) callback(); };
+  global.wx.pageScrollTo = (options) => scrolls.push(options);
+  global.wx.createSelectorQuery = () => ({
+    in(scope) { assert.equal(scope, page); return this; },
+    select(selector) { assert.equal(selector, '.composer'); return this; },
+    boundingClientRect() { return this; },
+    exec(callback) { pending.push(callback); },
+  });
+  return { pending, scrolls };
+}
+test('composer space follows measured multiline input and error height plus the keyboard, preserving the draft', async () => {
+  const { page } = fixture(async (path, options) => options && options.method === 'POST' ? Promise.reject(new Error('连接暂时中断，'.repeat(16))) : undefined);
+  await page.onShow(); const measured = composerMeasurements(page);
+  page.measureComposer(); measured.pending.pop()([{ height: 131.5 }]);
+  assert.equal(page.data.composerHeight, 132);
+  const question = '保留这段尚未发送的问题。'.repeat(20);
+  page.inputQuestion(change(question));
+  page.keyboardHeightChanged({ detail: { height: 310 } });
+  page.composerLineChanged();
+  measured.pending.pop()([{ height: 216.1 }]);
+  assert.equal(page.data.composerHeight + page.data.keyboardHeight, 527);
+  await page.send();
+  assert.equal(page.data.question, question); assert.match(page.data.actionError, /连接暂时中断/);
+  measured.pending.pop()([{ height: 294.2 }]);
+  assert.equal(page.data.composerHeight, 295); assert.equal(page.data.composerHeight + page.data.keyboardHeight, 605);
+  assert.ok(measured.scrolls.length > 0);
+  const fs = require('node:fs'), path = require('node:path');
+  const markup = fs.readFileSync(path.join(__dirname, '../pages/llm/index.wxml'), 'utf8');
+  assert.match(markup, /height: {{composerHeight \+ keyboardHeight}}px/); assert.doesNotMatch(markup, /280rpx/);
+});
+test('older and unavailable composer measurements never replace the latest layout', async () => {
+  const { page } = fixture(); await page.onShow(); const { pending } = composerMeasurements(page);
+  page.measureComposer(); const old = pending.pop();
+  page.measureComposer(); pending.pop()([{ height: 256 }]); old([{ height: 90 }]);
+  assert.equal(page.data.composerHeight, 256);
+  for (const value of [null, { height: NaN }, { height: -1 }]) {
+    page.measureComposer(); pending.pop()([value]); assert.equal(page.data.composerHeight, 256);
+  }
+  page.setData({ loading: true }); page.measureComposer(); assert.equal(pending.length, 0);
+});
+test('composer query and layout callbacks cannot modify or scroll after unload, hide, account or session changes', async () => {
+  for (const mode of ['unload', 'hide', 'account', 'session']) {
+    const { page, application } = fixture(); await page.onShow();
+    const { pending, scrolls } = composerMeasurements(page);
+    page.measureComposer({ scroll: true, force: true }); const respond = pending.pop();
+    if (mode === 'unload') page.onUnload();
+    else if (mode === 'hide') page.onHide();
+    else if (mode === 'account') application.session.save({ token: 'B', user: { id: 'B' } });
+    else page.setData({ session: sessionView(session('s2')) });
+    page.setData = () => { throw new Error('stale composer wrote to another screen'); };
+    respond([{ height: 500 }]); assert.equal(scrolls.length, 0);
+  }
+  const { page, application } = fixture(); await page.onShow();
+  const { pending, scrolls } = composerMeasurements(page); page.measureComposer({ scroll: true });
+  let afterLayout;
+  page.setData = function (patch, callback) { Object.assign(this.data, patch); afterLayout = callback; };
+  pending.pop()([{ height: 220 }]);
+  application.session.save({ token: 'B', user: { id: 'B' } }); afterLayout();
+  assert.equal(scrolls.length, 0);
+});
+test('an unknown service status disables new sends while a measured existing composer stays recoverable', async () => {
+  let unavailable = false;
+  const { page, calls } = fixture(async (path) => { if (path === 'llm/status/' && unavailable) throw new Error('服务状态暂不可用'); });
+  await page.onShow(); unavailable = true;
+  await page.load(); assert.equal(page.data.status, null); assert.ok(page.data.session); assert.match(page.data.error, /服务状态暂不可用/);
+  const { pending } = composerMeasurements(page); page.measureComposer(); pending.pop()([{ height: 170 }]);
+  assert.equal(page.data.composerHeight, 170);
+  page.inputQuestion(change('需要保留的问题')); await page.send();
+  assert.equal(calls.some((call) => call.options && call.options.method === 'POST'), false);
+  assert.equal(page.data.question, '需要保留的问题');
+});

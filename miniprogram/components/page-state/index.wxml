@@ -1,3 +1,3 @@
-<view wx:if="{{loading}}" class="state"><view class="pulse"></view><text>正在连接生态服务…</text></view>
-<view wx:elif="{{error}}" class="state"><text class="state-title">暂时没能加载</text><text>{{error}}</text><button class="state-retry" size="mini" bindtap="retry">重新尝试</button></view>
-<view wx:elif="{{empty}}" class="state"><text class="state-title">这里还在生长</text><text>{{emptyText}}</text></view>
+<view wx:if="{{loading}}" class="state state-loading" aria-live="polite"><view class="leaf-loader" aria-hidden="true"><view class="leaf-vein"></view></view><text class="state-title">稍等片刻</text><text>正在连接生态服务…</text></view>
+<view wx:elif="{{error}}" class="state" aria-live="polite"><view class="state-symbol" aria-hidden="true">!</view><text class="state-title">暂时没能加载</text><text class="state-copy">{{error}}</text><button class="state-retry" hover-class="state-pressed" bindtap="retry">重新尝试</button></view>
+<view wx:elif="{{empty}}" class="state"><image class="state-illustration" src="/assets/illustrations/botanical-river.jpg" mode="aspectFit" aria-hidden="true" /><text class="state-title">这里还在生长</text><text class="state-copy">{{emptyText}}</text></view>

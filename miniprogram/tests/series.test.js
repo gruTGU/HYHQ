@@ -244,3 +244,39 @@ test('queued filter and retry callbacks after hide or unload neither write state
     }
   }
 });
+
+
+test('measurement screens preserve filters when collapsed and card taps select existing metrics without requests', async () => {
+  for (const mode of ['water', 'data-center']) {
+    let definition;
+    global.Page = (value) => { definition = value; };
+    const modulePath = require.resolve('../pages/' + mode + '/index');
+    delete require.cache[modulePath]; require(modulePath);
+    const { app, calls } = fixture();
+    global.wx = { stopPullDownRefresh() {} };
+    global.getApp = () => app;
+    const base = app.api.request;
+    app.api.request = async (path, options) => {
+      const response = await base(path, options);
+      if (path === 'observation-series/') response.data.series.push(payload('turbidity').series[0]);
+      return response;
+    };
+    const instance = { ...definition, data: structuredClone(definition.data) };
+    instance.setData = (patch) => Object.assign(instance.data, patch);
+    await instance.onLoad({});
+    await instance.changeRun(change(1));
+    const count = calls.length;
+    instance.toggleFilters(); instance.toggleFilters(); instance.toggleProvenance();
+    instance.selectMetricCard({ currentTarget: { dataset: { index: 1 } } });
+    assert.equal(instance.data.advancedFilters, false);
+    assert.equal(instance.data.selectedRun.id, 'old');
+    assert.equal(instance.data.metricIndex, 1);
+    assert.equal(instance.data.activeMetric.metric.code, 'turbidity');
+    instance.selectMetricCard({ currentTarget: { dataset: { index: 99 } } });
+    assert.equal(instance.data.metricIndex, 1);
+    assert.equal(calls.length, count);
+    instance.onHide(); instance.setData = () => { throw new Error('late measurement callback'); };
+    instance.toggleFilters(); instance.toggleProvenance();
+    instance.selectMetricCard({ currentTarget: { dataset: { index: 0 } } });
+  }
+});

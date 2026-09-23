@@ -1,6 +1,9 @@
-.floating-ai { position: fixed; z-index: 40; right: 20px; bottom: calc(24px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; gap: 10rpx; width: auto; min-width: 0; max-width: 300rpx; margin: 0; padding: 0 22rpx 0 12rpx; height: 86rpx; line-height: 86rpx; color: #355f4e; background: #fffefa; border: 2rpx solid #c4d4c5; border-radius: 44rpx; box-shadow: 0 8rpx 30rpx rgba(36, 74, 55, .18); }
+.floating-ai { position: fixed; z-index: 40; right: 20px; bottom: calc(24px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; gap: 10rpx; width: auto; min-width: 0; max-width: 300rpx; margin: 0; padding: 0 22rpx 0 12rpx; height: 86rpx; line-height: 86rpx; color: #326849; background: #fffefa; border: 2rpx solid #cfddc9; border-radius: 44rpx; box-shadow: 0 8rpx 30rpx rgba(44, 62, 51, .12); }
 .floating-ai::after { border: 0; }
 .above-tab { bottom: calc(80px + env(safe-area-inset-bottom)); }
 .assistant-mark { width: 110rpx; height: 50rpx; display: flex; align-items: center; justify-content: center; overflow: hidden; border-right: 1rpx solid #dbe4d7; padding-right: 10rpx; }
 .label { font-size: 25rpx; font-weight: 500; letter-spacing: 1rpx; white-space: nowrap; }
 .assistant-mark { pointer-events: none; }
+
+.floating-ai { transition: transform 120ms ease; }
+.ai-pressed { transform: scale(.97); }

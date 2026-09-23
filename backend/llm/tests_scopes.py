@@ -212,6 +212,21 @@ class ScopeBehaviorTests(PublicFixture, TestCase):
             with patch('llm.worker.provider.generate', return_value=RESPONSE):
                 process_one()
 
+    def test_public_context_distinguishes_home_weather_from_missing_live_ai_weather(self):
+        for scope, source_type, source in [
+            ('explore', 'region', self.region), ('explore', 'place', self.place),
+            ('explore', 'water', self.water), ('learn', 'content', self.content),
+            ('learn', 'route', self.route),
+        ]:
+            with self.subTest(source_type=source_type):
+                session = self.public_session(scope, source_type, source)
+                context = build_public_context(session, source)
+                self.assertIn('首页已提供部分地点的天气与预警查询', context['notice'])
+                self.assertIn('本次对话上下文不包含实时天气或预警', context['notice'])
+                self.assertNotIn('未接入真实气象预警', context['notice'])
+                self.assertNotIn('weather', context)
+                self.assertNotIn('alerts', context)
+
     def test_public_data_reloaded_after_create_and_no_client_snapshot(self):
         session = self.public_session('learn', 'content', self.content)
         Content.objects.filter(pk=self.content.pk).update(body='改稿后必须采用的新正文')

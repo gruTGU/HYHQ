@@ -1,5 +1,5 @@
 {
-  "description": "HYHQ 海晏河清 · 生态与植物识别教学演示",
+  "description": "HYHQ 海晏河清 · 生态科普、自然观察与绿色生活",
   "miniprogramRoot": "./",
   "projectname": "HYHQ",
   "appid": "touristappid",
@@ -17,11 +17,26 @@
   },
   "packOptions": {
     "ignore": [
-      { "type": "folder", "value": "tests" },
-      { "type": "file", "value": "README.md" },
-      { "type": "file", "value": "project.private.config.example.json" },
-      { "type": "file", "value": "config/local.example.js" },
-      { "type": "file", "value": "package.json" }
+      {
+        "type": "folder",
+        "value": "tests"
+      },
+      {
+        "type": "file",
+        "value": "README.md"
+      },
+      {
+        "type": "file",
+        "value": "project.private.config.example.json"
+      },
+      {
+        "type": "file",
+        "value": "config/local.example.js"
+      },
+      {
+        "type": "file",
+        "value": "package.json"
+      }
     ]
   }
 }

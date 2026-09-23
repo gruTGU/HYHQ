@@ -1,15 +1,44 @@
+.profile-page { padding-top: 0; }
+.profile-header { position: relative; overflow: hidden; margin: 0 -32rpx; padding: 30rpx 36rpx 66rpx; border-radius: 0 0 76rpx 76rpx; background: #3a7d5c; color: #fff; }
+.profile-header::after { content: ''; position: absolute; width: 220rpx; height: 220rpx; right: -82rpx; bottom: -124rpx; border: 30rpx solid rgba(168, 201, 155, .22); border-radius: 50%; pointer-events: none; }
 .profile-brand { display: flex; align-items: center; justify-content: space-between; }
-.profile-brand-mark { width: 108rpx; height: 108rpx; padding: 6rpx; border: 1rpx solid #d4e2cf; border-radius: 18rpx; background: #fff; }
-.brand-logo { display: block; width: 100%; height: 100%; }
-.login-card { border: 1rpx solid #c8dbc4; }
-.guest-mark { width: 176rpx; height: 176rpx; padding: 8rpx; margin: 6rpx auto 18rpx; border: 1rpx solid #d4e2cf; border-radius: 26rpx; background: #fff; }
-.guest-title { text-align: center; font-size: 34rpx; font-weight: 600; }
-.center { text-align: center; }
-.login-notice { font-size: 22rpx; line-height: 1.9; text-align: center; margin: 28rpx 0 8rpx; color: #738168; }
-.legal-link { color: #2e6b49; text-decoration: underline; }
-.avatar-button { width: 100rpx; height: 100rpx; line-height: 100rpx; padding: 0; font-size: 44rpx; border-radius: 28rpx; margin-right: 24rpx; background: #e6eddb; color: #6b8958; }
-.avatar { width: 100rpx; height: 100rpx; }
-.record-grid { display: flex; flex-wrap: wrap; background: #fffefa; border-radius: 24rpx; padding: 10rpx; }
-.record-grid > view { width: 25%; display: flex; flex-direction: column; align-items: center; padding: 16rpx 0; font-size: 22rpx; color: #68785d; }
-.record-symbol { font-size: 43rpx; color: #64884d; margin-bottom: 7rpx; }
-.setting-link { padding: 8rpx 0; }
+.profile-eyebrow { color: #d4e5cd; letter-spacing: 4rpx; font-size: 19rpx; }
+.profile-heading { font-size: 34rpx; font-weight: 600; margin-top: 7rpx; }
+.profile-brand-mark { flex-shrink: 0; width: 84rpx; height: 84rpx; padding: 4rpx; margin-left: 20rpx; border-radius: 22rpx; background: #fff; }
+.brand-logo { display: block; width: 100%; height: 100%; border-radius: 18rpx; }
+.profile-identity { display: flex; align-items: center; margin-top: 38rpx; }
+.profile-name { font-size: 37rpx; line-height: 1.4; font-weight: 600; word-break: break-all; }
+.profile-caption, .profile-intro { color: #e5efe0; font-size: 25rpx; margin-top: 10rpx; }
+.profile-intro { margin-top: 34rpx; line-height: 1.9; }
+.profile-test { display: inline-block; margin-top: 8rpx; border: 1rpx solid #a8c99b; padding: 2rpx 12rpx; border-radius: 20rpx; color: #e5efe0; font-size: 20rpx; }
+.profile-content { position: relative; margin-top: 28rpx; }
+.card { background: #fff; border-radius: 32rpx; }
+.login-card { padding: 34rpx; }
+.login-notice { font-size: 22rpx; line-height: 1.9; margin: 26rpx 0 8rpx; color: #718278; }
+.legal-link { color: #3a7d5c; text-decoration: underline; }
+.avatar-button { flex-shrink: 0; width: 120rpx; height: 120rpx; padding: 0; border-radius: 50%; margin: 0 24rpx 0 0; border: 6rpx solid rgba(255, 255, 255, .8); background: #e5efdf; overflow: hidden; }
+.avatar { display: block; width: 108rpx; height: 108rpx; }
+.avatar-placeholder { position: relative; width: 108rpx; height: 108rpx; }
+.avatar-head { position: absolute; left: 36rpx; top: 20rpx; width: 36rpx; height: 36rpx; background: #7ca58d; border-radius: 50%; }
+.avatar-shoulders { position: absolute; left: 21rpx; bottom: 7rpx; width: 66rpx; height: 42rpx; background: #7ca58d; border-radius: 40rpx 40rpx 14rpx 14rpx; }
+.record-grid { display: flex; flex-wrap: wrap; background: #fff; border-radius: 32rpx; padding: 18rpx 8rpx; }
+.record-entry { width: 33.333%; display: flex; flex-direction: column; align-items: center; padding: 20rpx 2rpx; border-radius: 24rpx; background: transparent; font-size: 24rpx; line-height: 1.6; color: #2c3e33; font-weight: 400; }
+.record-entry:active { background: #f0f4ed; }
+.record-icon { position: relative; width: 48rpx; height: 48rpx; margin: 0 0 16rpx; color: #3a7d5c; }
+.icon-favorite { width: 36rpx; height: 44rpx; border: 3rpx solid #3a7d5c; border-radius: 6rpx 6rpx 3rpx 3rpx; }
+.icon-favorite::after { content: ''; position: absolute; bottom: -7rpx; left: 8rpx; width: 14rpx; height: 14rpx; background: #fff; border-left: 3rpx solid #3a7d5c; border-top: 3rpx solid #3a7d5c; transform: rotate(45deg); }
+.icon-history { border: 3rpx solid #3a7d5c; border-radius: 50%; }
+.icon-history::after { content: ''; position: absolute; width: 12rpx; height: 16rpx; left: 20rpx; top: 9rpx; border-left: 3rpx solid #3a7d5c; border-bottom: 3rpx solid #3a7d5c; }
+.icon-recognition { border: 3rpx solid #3a7d5c; border-radius: 13rpx; font-size: 25rpx; font-weight: 650; line-height: 42rpx; text-align: center; }
+.icon-water { display: flex; align-items: center; }
+.icon-water::before, .icon-water::after, .icon-water view { content: ''; position: absolute; width: 46rpx; height: 12rpx; border-bottom: 3rpx solid #3a7d5c; border-radius: 50%; }
+.icon-water::before { top: 2rpx; }.icon-water view { top: 16rpx; }.icon-water::after { top: 30rpx; }
+.icon-visit { width: 36rpx; height: 44rpx; border: 3rpx solid #3a7d5c; border-radius: 50% 50% 48% 48%; }
+.icon-visit::before { content: ''; position: absolute; top: 9rpx; left: 9rpx; width: 12rpx; height: 12rpx; border: 3rpx solid #3a7d5c; border-radius: 50%; }.icon-visit::after { content: ''; position: absolute; bottom: -5rpx; left: 10rpx; width: 11rpx; height: 11rpx; background: #fff; border-right: 3rpx solid #3a7d5c; border-bottom: 3rpx solid #3a7d5c; transform: rotate(45deg); }
+.icon-chat { height: 39rpx; margin-top: 3rpx; margin-bottom: 22rpx; border: 3rpx solid #3a7d5c; border-radius: 12rpx; text-align: center; font-size: 32rpx; line-height: 21rpx; }.icon-chat::after { content: ''; position: absolute; left: 8rpx; bottom: -9rpx; width: 11rpx; height: 11rpx; background: #fff; border-right: 3rpx solid #3a7d5c; border-bottom: 3rpx solid #3a7d5c; transform: skewY(35deg); }
+.setting-button { width: 100%; padding: 13rpx 0; background: transparent; color: #2c3e33; font-size: 27rpx; line-height: 1.6; text-align: left; font-weight: 400; }
+.setting-button .chevron { transition: transform .18s; }.chevron-open { transform: rotate(90deg); }
+.profile-editor { border-top: 1rpx solid #e8eee4; margin-top: 20rpx; padding-top: 24rpx; }
+.privacy-card switch { flex-shrink: 0; margin-left: 18rpx; transform: scale(.9); transform-origin: right center; }
+.support-card { padding-top: 18rpx; padding-bottom: 18rpx; }
+.account-actions { margin-top: 30rpx; }.account-delete { margin: 22rpx auto 0; color: #b46237; padding: 12rpx 24rpx; }

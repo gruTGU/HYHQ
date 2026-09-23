@@ -1,13 +1,10 @@
-<view class="page">
-  <text class="eyebrow">OBSERVE / 河道图像</text>
+<view class="page assessment-page">
+  <text class="eyebrow">自然观察 · 河道记录</text>
   <view class="page-title">从一张照片，<view>观察身边的河流。</view></view>
-  <view class="subtitle">漂浮物候选 · 图像教学规则 · 个人记录</view>
-  <view class="scope-card section">
-    <view class="row"><text class="title">当前实验范围</text><text class="pill">仅漂浮物</text></view>
-    <view class="copy">{{capability.scope}}</view>
-    <view class="small muted gap" wx:if="{{capability.modelName}}">{{capability.modelName}} · {{capability.modelVersion}}</view>
-    <view class="copy">图像教学规则分不是官方生态等级或水质评价。检测框面积不是水面覆盖率，也不代表真实污染程度。</view>
-  </view>
+  <view class="subtitle">记录眼前的河流，留意水面的细节。</view>
+  <view class="observe-kind"><text class="kind-dot"></text><text>漂浮物实验检测</text><text class="kind-note">仅本人可见</text></view>
+  <view class="flow-steps"><text class="{{!imagePath ? 'current' : ''}}">01 选择照片</text><view></view><text class="{{imagePath && !task.result_view ? 'current' : ''}}">02 提交观察</text><view></view><text class="{{task.result_view ? 'current' : ''}}">03 查看结果</text></view>
+  <view class="scope-card section"><view class="row" bindtap="toggleHelp"><view><view class="title">这张照片能告诉我们什么</view><view class="small muted gap">仅检测漂浮物候选，不评价真实水质</view></view><text class="help-toggle">{{helpExpanded ? '收起 −' : '展开 +'}}</text></view><block wx:if="{{helpExpanded}}"><view class="copy gap">{{capability.scope}}</view><view class="small muted gap" wx:if="{{capability.modelName}}">{{capability.modelName}} · {{capability.modelVersion}}</view><view class="copy">图像教学规则分不是官方生态等级或水质评价。检测框面积不是水面覆盖率，也不代表真实污染程度。未检出也不表示水体清洁。</view></block></view>
   <view class="notice" wx:if="{{capabilityKnown && !capability.enabled}}">河道观察模型当前未启用，暂不能提交新任务；已保存的观察记录仍可查看。</view>
   <view class="error-inline" wx:if="{{capabilityError}}">{{capabilityError}}</view>
   <view class="section image-wrap" wx:if="{{imagePath}}">
@@ -16,15 +13,16 @@
       <view class="detection-box" wx:for="{{task.result_view.boxes}}" wx:key="id" style="{{item.box_style}}"><text class="box-label">{{index + 1}}</text></view>
     </view>
   </view>
-  <view class="upload-panel section" wx:else bindtap="choose"><view class="water-symbol">≈</view><view class="title">拍下或选择一张河道照片</view><view class="copy">JPEG / PNG / WebP · 最大 5MB</view></view>
+  <view class="upload-panel section" wx:else><view class="water-illustration"><view class="water-bank"></view><view class="water-stream"></view><view class="water-reed"></view><view class="water-leaf"></view></view><view class="title">为这段河流，留一张照片</view><view class="copy">尽量保持清晰，拍摄可见水面</view><button class="primary choose-water" bindtap="choose" disabled="{{busy}}">拍照 / 从相册选择</button><view class="small muted gap">JPEG / PNG / WebP · 最大 5MB</view></view>
   <view class="small muted gap" wx:if="{{imageUnavailable}}">{{imageUnavailable}}</view>
   <button class="secondary gap" wx:if="{{imagePath}}" disabled="{{busy}}" bindtap="choose">选择另一张照片</button>
-  <view wx:if="{{!loggedIn}}" class="gap"><button class="primary" bindtap="login">登录后上传观察</button><view class="small muted gap">公开模型说明无需登录即可浏览。</view></view>
+  <view wx:if="{{!loggedIn}}" class="gap"><button class="primary" bindtap="login">登录后上传观察</button><view class="small muted gap">登录后可保存照片和自己的观察记录。</view></view>
   <block wx:else>
-    <view class="card section" wx:if="{{imageOrigin !== 'history'}}">
-      <view class="title">关联水体（可选）</view>
+    <view class="card section association-card" wx:if="{{imageOrigin !== 'history'}}">
+      <view class="row" bindtap="toggleAssociation"><view><view class="title">这次观察，发生在哪里</view><view class="small muted gap">{{waterBodies[waterIndex].id ? waterBodies[waterIndex].name : '可选关联水体，不填写也能继续'}}</view></view><text class="help-toggle">{{associationExpanded ? '收起 −' : '展开 +'}}</text></view>
+      <block wx:if="{{associationExpanded}}">
       <picker range="{{waterBodies}}" range-key="name" value="{{waterIndex}}" disabled="{{busy}}" bindchange="changeWater"><view class="water-picker row"><text>{{waterBodies[waterIndex].name}}</text><text>⌄</text></view></picker>
-      <view class="small muted gap">可以手选示范水体或不关联。水体关联仅是个人观察标签，不核验真实到访。</view>
+      <view class="small muted gap">请核对水体资料和实际位置。示范水体关联仅作个人标签，不核验真实到访。</view>
       <view class="small muted gap" wx:if="{{waterNotice}}">{{waterNotice}}</view>
       <view class="divider"></view>
       <view class="copy">仅点击下方按钮时获取本次位置，用于查询同坐标系附近候选；上传时位置仅存入本人记录。拒绝定位仍可上传，不采集轨迹。</view>
@@ -32,21 +30,23 @@
       <view class="small muted gap" wx:if="{{locationNotice}}">{{locationNotice}}</view>
       <view class="nearby gap" wx:if="{{nearby}}"><view class="title">候选：{{nearby.water_body_name}}</view><view class="small muted">仅供手动确认，不代表到访认证。</view><button class="secondary gap" disabled="{{busy}}" bindtap="acceptNearby">关联这个候选水体</button></view>
       <button class="text-button gap" wx:if="{{location || locating}}" disabled="{{busy}}" bindtap="clearLocation">本次不保存位置</button>
+      </block>
+      <view class="small muted gap" wx:if="{{location && !associationExpanded}}">已附本次位置，可展开后移除。</view>
     </view>
     <view class="small muted gap">图片与观察记录仅本人可见，可随时删除。请避免上传他人隐私。<text class="privacy-link" bindtap="privacy">隐私说明</text></view>
     <button wx:if="{{imageOrigin !== 'history'}}" class="primary gap" disabled="{{busy || locating || !capabilityKnown || !capability.enabled || !imagePath || task.status === 'queued' || task.status === 'running'}}" loading="{{busy}}" bindtap="submit">{{busy ? '正在上传' : '上传并观察漂浮物'}}</button>
   </block>
-  <view class="card section" wx:if="{{task && !task.result_view}}"><view class="row"><text class="title">{{task.status_label}}</text><text class="pill">任务状态</text></view><view class="copy">{{task.error_label || (task.status === 'queued' ? '照片正在排队，请稍候。' : task.status === 'running' ? '正在分析图片，请稍候。' : '本次未产生观察结论。')}}</view><view class="small muted gap">{{task.created_label}}</view><button class="secondary gap" bindtap="refreshTask">刷新任务状态</button></view>
+  <view class="card section" wx:if="{{task && !task.result_view}}"><view class="row"><text class="title">{{task.status_label}}</text><text class="pill">观察进度</text></view><view class="copy">{{task.error_label || (task.status === 'queued' ? '照片正在排队，请稍候。' : task.status === 'running' ? '正在分析图片，请稍候。' : '本次未产生观察结论。')}}</view><view class="small muted gap">{{task.created_label}}</view><button class="secondary gap" bindtap="refreshTask">刷新观察进度</button></view>
   <block wx:if="{{task.result_view}}">
     <view class="result-banner section"><view class="title">{{task.result_view.heading}}</view><view class="rule-score" wx:if="{{task.result_view.has_score}}">{{task.result_view.score_label}}<text> / 100</text></view><view class="small" wx:if="{{task.result_view.has_score}}">图像教学规则分</view><view class="copy">{{task.result_view.explanation}}</view></view>
     <view class="card section"><view class="row"><text class="title">检测候选</text><text class="pill">{{task.result_view.detections.length}} 个</text></view><view class="detection-row" wx:for="{{task.result_view.detections}}" wx:key="id"><text>{{index + 1}} · {{item.label}}</text><text class="small muted">置信分数 {{item.confidence_label}}</text></view><view class="copy" wx:if="{{!task.result_view.detections.length}}">暂时无法确认，本次不提供分数。</view><view class="small muted gap" wx:if="{{task.result_view.detections.length}}">编号对应照片中的候选框。框按原图相对位置展示，不代表人工核实。</view></view>
     <view class="card section"><view class="title">规则解释与观察建议</view><view class="copy" wx:for="{{task.result_view.causes}}" wx:key="*this">· {{item}}</view><view class="divider"></view><view class="copy" wx:for="{{task.result_view.suggestions}}" wx:key="*this">· {{item}}</view></view>
-    <view class="card section"><view class="title">本次任务信息</view><view class="small muted gap">模型：{{task.result_view.model_name}} · {{task.result_view.model_version}}</view><view class="small muted">规则版本：{{task.result_view.rule_version}}</view><view class="small muted">提交时间：{{task.created_label}}</view><view class="small muted">关联水体：{{task.water_body.name || '未关联'}}</view><view class="small muted" wx:if="{{task.coordinate_system}}">本记录包含用户主动提供的位置 · {{task.coordinate_system}} · 仅本人可见</view></view>
+    <view class="card section"><view class="row" bindtap="toggleMetadata"><view class="title">本次观察信息</view><text class="help-toggle">{{metadataExpanded ? '收起 −' : '展开 +'}}</text></view><block wx:if="{{metadataExpanded}}"><view class="small muted gap">模型：{{task.result_view.model_name}} · {{task.result_view.model_version}}</view><view class="small muted">规则版本：{{task.result_view.rule_version}}</view><view class="small muted">提交时间：{{task.created_label}}</view><view class="small muted">关联水体：{{task.water_body.name || '未关联'}}</view><view class="small muted" wx:if="{{task.coordinate_system}}">本记录包含用户主动提供的位置 · {{task.coordinate_system}} · 仅本人可见</view></block></view>
     <view class="notice">{{task.result_view.disclaimer}}</view>
-    <view class="card section"><view class="title">继续理解这次观察</view><view class="copy">与 DeepSeek Flash 讨论观察结果，图片由你主动选择是否附带。解读不会改变检测框和教学规则分，也不能据此判断真实水质。</view><button class="secondary gap" bindtap="openAI" disabled="{{busy}}">AI 解读本次河道观察</button></view>
+    <view class="card section ai-next"><text class="ai-model">✦ DeepSeek Flash</text><view class="title gap">继续理解这次观察</view><view class="copy">与 DeepSeek Flash 讨论观察结果，图片由你主动选择是否附带。解读不会改变检测框和教学规则分，也不能据此判断真实水质。</view><button class="secondary gap" bindtap="openAI" disabled="{{busy}}">问问 AI</button></view>
   </block>
   <button class="danger gap" wx:if="{{task}}" data-id="{{task.id}}" disabled="{{busy}}" bindtap="remove">删除此记录和图片</button>
   <page-state loading="{{loading}}" error="{{error}}" bindretry="refreshTask" />
-  <view class="section" wx:if="{{loggedIn}}"><view class="section-head"><text class="section-title">最近的河道观察</text><button class="text-button" bindtap="allRecords">全部记录 ›</button></view><view class="small muted" wx:if="{{!jobs.length}}">还没有河道图像观察记录。</view><view class="card" wx:for="{{jobs}}" wx:key="id" data-id="{{item.id}}" bindtap="openJob"><view class="row"><text>{{item.result_view ? item.result_view.heading : item.status_label}}</text><text class="chevron">›</text></view><view class="copy" wx:if="{{item.error_label}}">{{item.error_label}}</view><view class="small muted gap">{{item.created_label}} · 仅本人可见</view></view></view>
+  <view class="section" wx:if="{{loggedIn}}"><view class="section-head"><text class="section-title">最近的河道观察</text><button class="text-button" bindtap="allRecords">全部记录 ›</button></view><view class="small muted" wx:if="{{!jobs.length}}">还没有河道图像观察记录。</view><view class="card history-row" wx:for="{{jobs}}" wx:key="id" data-id="{{item.id}}" bindtap="openJob"><view class="row"><text>{{item.result_view ? item.result_view.heading : item.status_label}}</text><text class="chevron">›</text></view><view class="copy" wx:if="{{item.error_label}}">{{item.error_label}}</view><view class="small muted gap">{{item.created_label}} · 仅本人可见</view></view></view>
   <view class="footer-note">观察，是认识河流的第一步</view>
 </view>

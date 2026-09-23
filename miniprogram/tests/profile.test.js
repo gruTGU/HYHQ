@@ -254,3 +254,14 @@ test('pull-to-refresh and repeated actions cannot bypass a privacy change still 
   assert.deepEqual(calls, [['me/', 'PATCH'], ['health/', undefined], ['me/', undefined]]);
   assert.equal(page.data.user.record_history, false); assert.equal(page.data.loading, false);
 });
+
+test('profile editor opens for the current account, resets abandoned nickname edits, and clears on hide', () => {
+  const { page, application } = fixture();
+  page.toggleProfileEditor(); assert.equal(page.data.editingProfile, true);
+  page.nicknameInput({ detail: { value: '未保存昵称' } }); page.toggleProfileEditor();
+  assert.equal(page.data.editingProfile, false); assert.equal(page.data.nickname, '昵称 A');
+  page.toggleProfileEditor(); page.onHide(); assert.equal(page.data.editingProfile, false);
+  page._visible = true; page.data.user = user(); page._profileToken = 'A-token';
+  application.session.save({ token: 'B-token', user: user('B') });
+  page.toggleProfileEditor(); assert.equal(page.data.user, null); assert.equal(page.data.editingProfile, false);
+});

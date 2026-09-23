@@ -1,6 +1,13 @@
-.state { padding: 48rpx 30rpx; border-radius: 28rpx; background: #fffefa; display: flex; flex-direction: column; align-items: center; color: #788478; font-size: 26rpx; text-align: center; line-height: 1.8; }
-.state-title { color: #294636; font-size: 32rpx; font-weight: 600; margin-bottom: 10rpx; }
-.state-retry { color: #246746; background: #edf3e8; margin-top: 24rpx; }
+.state { padding: 42rpx 30rpx; border-radius: 32rpx; background: #f0f4ed; display: flex; flex-direction: column; align-items: center; color: #65796c; font-size: 26rpx; text-align: center; line-height: 1.8; }
+.state-loading { background: #fffefa; }
+.state-title { color: #2c3e33; font-size: 30rpx; font-weight: 600; margin: 8rpx 0 10rpx; }
+.state-copy { max-width: 560rpx; word-break: break-word; }
+.state-illustration { width: 310rpx; height: 207rpx; margin-bottom: 6rpx; mix-blend-mode: multiply; }
+.state-symbol { width: 66rpx; height: 66rpx; border-radius: 50%; background: #f3e2d4; color: #985b3e; font-size: 34rpx; font-weight: 600; margin-bottom: 14rpx; }
+.state-retry { color: #fffefa; background: #3a7d5c; margin-top: 26rpx; padding: 0 34rpx; min-height: 84rpx; border-radius: 24rpx; font-size: 26rpx; line-height: 84rpx; transition: transform 120ms ease; }
 .state-retry::after { border: 0; }
-.pulse { width: 18rpx; height: 18rpx; border-radius: 50%; background: #91b777; margin-bottom: 22rpx; animation: breathe 1s infinite alternate; }
-@keyframes breathe { to { opacity: .25; } }
+.state-pressed { transform: scale(.97); }
+.leaf-loader { position: relative; width: 42rpx; height: 58rpx; border-radius: 80% 0 80% 0; background: #a8c99b; margin-bottom: 24rpx; animation: leaf-turn 1.6s ease-in-out infinite; }
+.leaf-vein { position: absolute; top: 9rpx; left: 21rpx; width: 2rpx; height: 42rpx; background: #3a7d5c; transform: rotate(30deg); }
+@keyframes leaf-turn { 0% { transform: rotate(-30deg); opacity: .55; } 50% { opacity: 1; } 100% { transform: rotate(330deg); opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .leaf-loader { animation: none; } }

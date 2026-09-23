@@ -1,1 +1,1 @@
-<button wx:if="{{visible}}" class="floating-ai {{tabPage ? 'above-tab' : ''}}" bindtap="open" aria-label="{{label}}"><view class="assistant-mark"><brand-icon name="assistant" size="110" /></view><text class="label">{{label}}</text></button>
+<button wx:if="{{visible}}" class="floating-ai {{tabPage ? 'above-tab' : ''}}" bindtap="open" hover-class="ai-pressed" aria-label="{{label}}"><view class="assistant-mark"><brand-icon name="assistant" size="110" /></view><text class="label">{{label}}</text></button>
