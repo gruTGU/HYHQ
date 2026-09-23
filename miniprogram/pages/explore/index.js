@@ -11,7 +11,7 @@ Page({
     maps: [], mapIndex: 0, activeMap: null, mapImage: '', imageFrames: [], mapNotice: '', imageReady: false, imageGeneration: 0,
     viewportGeneration: 0, viewportFrames: [], markers: [], selectedPoint: null, viewportWidth: 343, viewportHeight: 240.1, mapWidth: 343, mapHeight: 240.1,
     zoom: 1, zoomLabel: '100%', panX: 0, panY: 0, activeType: '', viewMode: 'map',
-    types: [{ value: '', label: '全部地点' }, { value: 'water', label: '河湖' }, { value: 'park', label: '公园' }, { value: 'campus', label: '校园' }],
+    types: [{ value: '', label: '全部地点' }, { value: 'water', label: '河湖' }, { value: 'park', label: '公园' }, { value: 'campus', label: '校园' }, { value: 'walk', label: '步道地标' }],
   },
   onShow() { if (this._destroyed) return; selectTab(this, 1); this._visible = true; return this.load(); },
   onHide() { this._visible = false; this._generation = (this._generation || 0) + 1; },

@@ -127,6 +127,7 @@ Page({
   onReachBottom() { return this.loadList(this.data.tab, true); },
   toggleFilters() { if (this.visible()) this.setData({ showFilters: !this.data.showFilters }); },
   changeTab(event) { if (this.visible() && ['contents', 'routes'].includes(event.currentTarget.dataset.tab)) this.setData({ tab: event.currentTarget.dataset.tab }); },
+  allRoutes() { return this.changeRegion({ detail: { value: 0 } }); },
   changeRegion(event) {
     if (!this.visible()) return;
     const index = Number(event.detail.value), region = this.data.regions[index];

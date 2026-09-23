@@ -1,0 +1,1830 @@
+{
+  "schema_version": 1,
+  "collected_on": "2026-09-23",
+  "regions": [
+    {
+      "slug": "tianjin-nature",
+      "name": "天津真实地点漫步",
+      "description": "依据政府与文旅部门公开资料整理的天津地点及漫步参考，涵盖河岸、公园、滨海与城市文化空间；不提供实测连续导航。"
+    },
+    {
+      "slug": "beijing-nature",
+      "name": "北京真实地点漫步",
+      "description": "依据政府、公园与文旅部门公开资料整理的北京地点及漫步参考，涵盖湿地、园林与文化街区；开放与通行以现场为准。"
+    }
+  ],
+  "places": [
+    {
+      "slug": "nature-tj-minyuan-square",
+      "region": "tianjin-nature",
+      "name": "民园广场",
+      "kind": "landmark",
+      "description": "五大道街区的公共广场，官方报道将其列为步行街区连接节点。",
+      "sources": [
+        {
+          "title": "五大道上有了步行街",
+          "url": "https://www.tj.gov.cn/sy/tjxw/202507/t20250709_6975738.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-minyuan-1920",
+      "region": "tianjin-nature",
+      "name": "民园1920街区",
+      "kind": "trail",
+      "description": "连接民园广场与五大道公园的街区，位于湖南路、洛阳道一带。",
+      "sources": [
+        {
+          "title": "五大道上有了步行街",
+          "url": "https://www.tj.gov.cn/sy/tjxw/202507/t20250709_6975738.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-wudadao-park",
+      "region": "tianjin-nature",
+      "name": "五大道公园",
+      "kind": "park",
+      "description": "官方街区改造报道提及的公园节点，与民园广场由街区相连。",
+      "sources": [
+        {
+          "title": "五大道上有了步行街",
+          "url": "https://www.tj.gov.cn/sy/tjxw/202507/t20250709_6975738.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-beining-park",
+      "region": "tianjin-nature",
+      "name": "北宁公园",
+      "kind": "park",
+      "description": "又称宁园，天津政务网报道其园区更新及休闲空间。",
+      "sources": [
+        {
+          "title": "百年宁园焕新亮相",
+          "url": "https://www.tj.gov.cn/sy/tpxw/202605/t20260506_7293099.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-zhiyuan-tower",
+      "region": "tianjin-nature",
+      "name": "致远塔",
+      "kind": "landmark",
+      "description": "位于北宁公园内，是官方园区报道所提及的标志景观。",
+      "sources": [
+        {
+          "title": "百年宁园焕新亮相",
+          "url": "https://www.tj.gov.cn/sy/tpxw/202605/t20260506_7293099.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-friendship-book-square",
+      "region": "tianjin-nature",
+      "name": "中新友好花园·书香广场",
+      "kind": "landmark",
+      "description": "中新友好花园公开介绍列出的功能分区之一。",
+      "sources": [
+        {
+          "title": "中新友好花园对外开放",
+          "url": "https://whly.tj.gov.cn/TJSWHHLYJ/gabsycs/mtjjgh/202309/t20230929_6420542.html",
+          "publisher": "天津市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-friendship-water-garden",
+      "region": "tianjin-nature",
+      "name": "中新友好花园·叠水花园",
+      "kind": "park",
+      "description": "中新友好花园介绍列出的亲水景观和功能分区。",
+      "sources": [
+        {
+          "title": "中新友好花园对外开放",
+          "url": "https://whly.tj.gov.cn/TJSWHHLYJ/gabsycs/mtjjgh/202309/t20230929_6420542.html",
+          "publisher": "天津市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-friendship-skywalk",
+      "region": "tianjin-nature",
+      "name": "中新友好花园·空中廊道",
+      "kind": "landmark",
+      "description": "中新友好花园公开介绍列出的功能分区之一。",
+      "sources": [
+        {
+          "title": "中新友好花园对外开放",
+          "url": "https://whly.tj.gov.cn/TJSWHHLYJ/gabsycs/mtjjgh/202309/t20230929_6420542.html",
+          "publisher": "天津市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-taohuayuan",
+      "region": "tianjin-nature",
+      "name": "桃花园",
+      "kind": "park",
+      "description": "桃花堤游览组织中列出的园区节点，位于北运河沿线。",
+      "sources": [
+        {
+          "title": "第35届天津运河桃花文化商贸旅游节新闻发布会",
+          "url": "https://www.tj.gov.cn/sy/xwfbh/xwfbh_210907/202603/t20260316_7262117.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-beiyangyuan",
+      "region": "tianjin-nature",
+      "name": "北洋园",
+      "kind": "park",
+      "description": "官方桃花节介绍所列北运河沿岸节点，与桃花园有游览联系。",
+      "sources": [
+        {
+          "title": "第35届天津运河桃花文化商贸旅游节新闻发布会",
+          "url": "https://www.tj.gov.cn/sy/xwfbh/xwfbh_210907/202603/t20260316_7262117.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-liulin-bay",
+      "region": "tianjin-nature",
+      "name": "柳林湾",
+      "kind": "lake",
+      "description": "柳林公园三期的湖泊，官方介绍将其作为园区核心水景。",
+      "sources": [
+        {
+          "title": "这两个公园国庆假期试开放",
+          "url": "https://www.tj.gov.cn/sy/ztzl/ztlbthree/mxgcxnhb/2025n20xmxgc/2025nmxgcjzdt/mxgcdtbd/202509/t20250929_7144887.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-liuguang-bridge",
+      "region": "tianjin-nature",
+      "name": "柳林公园·流光桥",
+      "kind": "landmark",
+      "description": "柳林湾上官方列明的桥梁之一，是园区水景观察节点。",
+      "sources": [
+        {
+          "title": "这两个公园国庆假期试开放",
+          "url": "https://www.tj.gov.cn/sy/ztzl/ztlbthree/mxgcxnhb/2025n20xmxgc/2025nmxgcjzdt/mxgcdtbd/202509/t20250929_7144887.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-yinyue-bridge",
+      "region": "tianjin-nature",
+      "name": "柳林公园·印月桥",
+      "kind": "landmark",
+      "description": "柳林公园三期介绍列明的桥梁之一。",
+      "sources": [
+        {
+          "title": "这两个公园国庆假期试开放",
+          "url": "https://www.tj.gov.cn/sy/ztzl/ztlbthree/mxgcxnhb/2025n20xmxgc/2025nmxgcjzdt/mxgcdtbd/202509/t20250929_7144887.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-jinwan-square",
+      "region": "tianjin-nature",
+      "name": "津湾广场",
+      "kind": "landmark",
+      "description": "位于海河沿岸的天津城市公共空间，官方报道介绍其更新。",
+      "sources": [
+        {
+          "title": "不止“城市封面”",
+          "url": "https://www.tj.gov.cn/sy/tjxw/202511/t20251118_7179828.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-guotu-jinwan",
+      "region": "tianjin-nature",
+      "name": "国图·津湾文创空间",
+      "kind": "landmark",
+      "description": "天津政务网津湾广场报道列出的文化空间。",
+      "sources": [
+        {
+          "title": "不止“城市封面”",
+          "url": "https://www.tj.gov.cn/sy/tjxw/202511/t20251118_7179828.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-marco-polo-square",
+      "region": "tianjin-nature",
+      "name": "马可波罗广场",
+      "kind": "landmark",
+      "description": "一宫花园历史文化街区内的广场，官方保护利用报道列明。",
+      "sources": [
+        {
+          "title": "天津历史文化名城保护规划新闻发布会",
+          "url": "https://www.tj.gov.cn/sy/xwfbh/xwfbh_210907/202602/t20260214_7247774.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-liang-qichao-residence",
+      "region": "tianjin-nature",
+      "name": "梁启超旧居",
+      "kind": "landmark",
+      "description": "一宫花园历史文化街区保护利用报道提及的历史建筑。",
+      "sources": [
+        {
+          "title": "天津历史文化名城保护规划新闻发布会",
+          "url": "https://www.tj.gov.cn/sy/xwfbh/xwfbh_210907/202602/t20260214_7247774.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-guanlan-park",
+      "region": "tianjin-nature",
+      "name": "观澜角公园",
+      "kind": "park",
+      "description": "生态城滨海公园，官方介绍明确其北与东堤公园相接。",
+      "sources": [
+        {
+          "title": "观澜角 河海交汇处看水天一色",
+          "url": "https://www.eco-city.gov.cn/m1/stcxw/20231102/49359.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-dongdi-park",
+      "region": "tianjin-nature",
+      "name": "东堤公园",
+      "kind": "park",
+      "description": "生态城滨海公共空间，与观澜角有相接关系。",
+      "sources": [
+        {
+          "title": "观澜角 河海交汇处看水天一色",
+          "url": "https://www.eco-city.gov.cn/m1/stcxw/20231102/49359.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-nanwan-park",
+      "region": "tianjin-nature",
+      "name": "南湾公园",
+      "kind": "park",
+      "description": "生态城公开报道列出的滨海公园，是海洋文旅区域节点。",
+      "sources": [
+        {
+          "title": "中新天津生态城积极打造文旅和体育消费新场景",
+          "url": "https://www.eco-city.gov.cn/p1/stcxw/20250328/58217.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-national-maritime-museum",
+      "region": "tianjin-nature",
+      "name": "国家海洋博物馆",
+      "kind": "landmark",
+      "description": "生态城海洋科普文化场馆；此节点不代表已取得入馆资格。",
+      "sources": [
+        {
+          "title": "中新天津生态城积极打造文旅和体育消费新场景",
+          "url": "https://www.eco-city.gov.cn/p1/stcxw/20250328/58217.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-yongdingzhou-park",
+      "region": "tianjin-nature",
+      "name": "永定洲公园",
+      "kind": "park",
+      "description": "生态城官方生态建设报道列出的公园串联节点。",
+      "sources": [
+        {
+          "title": "生态城持续推进生物多样性",
+          "url": "https://www.eco-city.gov.cn/stcxw/42741.jhtml",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-ecovalley-park",
+      "region": "tianjin-nature",
+      "name": "生态谷公园",
+      "kind": "park",
+      "description": "与永定洲公园、动漫公园在官方报道中并列为串联绿地。",
+      "sources": [
+        {
+          "title": "生态城持续推进生物多样性",
+          "url": "https://www.eco-city.gov.cn/stcxw/42741.jhtml",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-animation-park",
+      "region": "tianjin-nature",
+      "name": "动漫公园",
+      "kind": "park",
+      "description": "生态城公开资料列明的城市公园节点。",
+      "sources": [
+        {
+          "title": "生态城持续推进生物多样性",
+          "url": "https://www.eco-city.gov.cn/stcxw/42741.jhtml",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-shuixi-zhiqu",
+      "region": "tianjin-nature",
+      "name": "水西公园·稚趣园",
+      "kind": "park",
+      "description": "官方水西公园游园报道提到的儿童活动园区。",
+      "sources": [
+        {
+          "title": "一环十一园 链起津城美景",
+          "url": "https://whly.tj.gov.cn/TJSWHHLYJ/gabsycs/mtjjgh/202301/t20230126_6087413.html",
+          "publisher": "天津市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-shuixi-sport",
+      "region": "tianjin-nature",
+      "name": "水西公园·体育园",
+      "kind": "park",
+      "description": "官方报道提及位于稚趣园旁的体育活动园区。",
+      "sources": [
+        {
+          "title": "一环十一园 链起津城美景",
+          "url": "https://whly.tj.gov.cn/TJSWHHLYJ/gabsycs/mtjjgh/202301/t20230126_6087413.html",
+          "publisher": "天津市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-shuishang-east-lake",
+      "region": "tianjin-nature",
+      "name": "水上公园·东湖",
+      "kind": "lake",
+      "description": "水上公园官方介绍列出的三片主要湖泊之一。",
+      "sources": [
+        {
+          "title": "水上公园",
+          "url": "https://www.tj.gov.cn/sq/yztj/jqjs/202005/t20200520_2467993.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-shuishang-west-lake",
+      "region": "tianjin-nature",
+      "name": "水上公园·西湖",
+      "kind": "lake",
+      "description": "水上公园官方介绍列出的主要湖泊之一。",
+      "sources": [
+        {
+          "title": "水上公园",
+          "url": "https://www.tj.gov.cn/sq/yztj/jqjs/202005/t20200520_2467993.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-ganluxi-park",
+      "region": "tianjin-nature",
+      "name": "甘露溪公园",
+      "kind": "park",
+      "description": "生态城绿道贯通报道列出的公园节点。",
+      "sources": [
+        {
+          "title": "生态城打通6处堵点贯通优化绿道",
+          "url": "https://www.eco-city.gov.cn/p1/stcxw/20221107/47539.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-yio-park",
+      "region": "tianjin-nature",
+      "name": "遗鸥公园",
+      "kind": "park",
+      "description": "生态城绿道公开介绍中的公园节点，名称不保证观鸟结果。",
+      "sources": [
+        {
+          "title": "生态城打通6处堵点贯通优化绿道",
+          "url": "https://www.eco-city.gov.cn/p1/stcxw/20221107/47539.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-drum-tower-museum",
+      "region": "tianjin-nature",
+      "name": "天津鼓楼博物馆",
+      "kind": "landmark",
+      "description": "天津政务网实地考察报道所列文化场馆。",
+      "sources": [
+        {
+          "title": "为推动津港澳共赢发展贡献智慧和力量",
+          "url": "https://www.tj.gov.cn/sy/tjxw/202601/t20260125_7230900.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-guangdong-guildhall",
+      "region": "tianjin-nature",
+      "name": "广东会馆（天津戏剧博物馆）",
+      "kind": "landmark",
+      "description": "天津官方报道列明的戏曲文化保护与传承场所。",
+      "sources": [
+        {
+          "title": "为推动津港澳共赢发展贡献智慧和力量",
+          "url": "https://www.tj.gov.cn/sy/tjxw/202601/t20260125_7230900.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-nandi-park",
+      "region": "tianjin-nature",
+      "name": "南堤滨海步道公园",
+      "kind": "park",
+      "description": "生态城官方资料列出的已有滨水绿道所在公园。",
+      "sources": [
+        {
+          "title": "32公里绿色项链串起生态城",
+          "url": "https://www.eco-city.gov.cn/m1/stcxw/20210705/43886.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-tj-impression-seawall",
+      "region": "tianjin-nature",
+      "name": "印象海堤公园",
+      "kind": "park",
+      "description": "生态城绿道资料列明的滨水景观及慢行节点。",
+      "sources": [
+        {
+          "title": "32公里绿色项链串起生态城",
+          "url": "https://www.eco-city.gov.cn/m1/stcxw/20210705/43886.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-garden-expo-ginkgo",
+      "region": "beijing-nature",
+      "name": "北京园博园·银杏大道",
+      "kind": "trail",
+      "description": "丰台区官方园博园漫步线路列出的林荫游览节点。",
+      "sources": [
+        {
+          "title": "秋天的第一场Citywalk，从丰台出发",
+          "url": "https://www.bjft.gov.cn/xwdt/jcdt/bmdt/202609/t20260920_225387.shtml",
+          "publisher": "北京市丰台区文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-garden-expo-jinxiu",
+      "region": "beijing-nature",
+      "name": "北京园博园·锦绣谷",
+      "kind": "park",
+      "description": "园博园官方推荐游线中的景观节点。",
+      "sources": [
+        {
+          "title": "秋天的第一场Citywalk，从丰台出发",
+          "url": "https://www.bjft.gov.cn/xwdt/jcdt/bmdt/202609/t20260920_225387.shtml",
+          "publisher": "北京市丰台区文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-garden-expo-changsha",
+      "region": "beijing-nature",
+      "name": "北京园博园·长沙园",
+      "kind": "park",
+      "description": "丰台区官方园博园线路明确列出的园林展园。",
+      "sources": [
+        {
+          "title": "秋天的第一场Citywalk，从丰台出发",
+          "url": "https://www.bjft.gov.cn/xwdt/jcdt/bmdt/202609/t20260920_225387.shtml",
+          "publisher": "北京市丰台区文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-city-library",
+      "region": "beijing-nature",
+      "name": "北京城市图书馆",
+      "kind": "landmark",
+      "description": "城市副中心官方微旅行线路列明的文化设施。",
+      "sources": [
+        {
+          "title": "3条北京城市副中心Colorwalk微旅行精品线路出炉",
+          "url": "https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202606/t20260611_4696587.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-grand-canal-museum",
+      "region": "beijing-nature",
+      "name": "北京大运河博物馆",
+      "kind": "landmark",
+      "description": "城市副中心官方线路列出的文化设施，承载运河主题文化体验。",
+      "sources": [
+        {
+          "title": "3条北京城市副中心Colorwalk微旅行精品线路出炉",
+          "url": "https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202606/t20260611_4696587.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-green-heart-park",
+      "region": "beijing-nature",
+      "name": "北京城市绿心森林公园",
+      "kind": "park",
+      "description": "官方微旅行线路中的城市公园节点。",
+      "sources": [
+        {
+          "title": "3条北京城市副中心Colorwalk微旅行精品线路出炉",
+          "url": "https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202606/t20260611_4696587.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-yuhe",
+      "region": "beijing-nature",
+      "name": "玉河",
+      "kind": "river",
+      "description": "北京市文旅局中轴文化探访路线所列的水系节点。",
+      "sources": [
+        {
+          "title": "10条漫步北京核心区文化探访路",
+          "url": "https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202309/t20230928_3268643.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-wanning-bridge",
+      "region": "beijing-nature",
+      "name": "万宁桥",
+      "kind": "landmark",
+      "description": "官方中轴文化探访路中衔接玉河与什刹海的桥梁节点。",
+      "sources": [
+        {
+          "title": "10条漫步北京核心区文化探访路",
+          "url": "https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202309/t20230928_3268643.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-shichahai",
+      "region": "beijing-nature",
+      "name": "什刹海",
+      "kind": "lake",
+      "description": "北京官方文化探访路线所列的历史水域与周边游览区域。",
+      "sources": [
+        {
+          "title": "10条漫步北京核心区文化探访路",
+          "url": "https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202309/t20230928_3268643.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-wuta-temple",
+      "region": "beijing-nature",
+      "name": "五塔寺（北京石刻艺术博物馆）",
+      "kind": "landmark",
+      "description": "北京市文旅局蓝润四海路线列明的石刻文化节点。",
+      "sources": [
+        {
+          "title": "北京首次发布6条漫步北京Colorwalk线路",
+          "url": "https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202604/t20260429_4622306.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-zizhuyuan",
+      "region": "beijing-nature",
+      "name": "紫竹院公园",
+      "kind": "park",
+      "description": "北京市文旅局微旅行线路中的公园与竹景观察节点。",
+      "sources": [
+        {
+          "title": "北京首次发布6条漫步北京Colorwalk线路",
+          "url": "https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202604/t20260429_4622306.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-national-library",
+      "region": "beijing-nature",
+      "name": "中国国家图书馆",
+      "kind": "landmark",
+      "description": "北京市文旅局线路列出的阅读文化场所。",
+      "sources": [
+        {
+          "title": "北京首次发布6条漫步北京Colorwalk线路",
+          "url": "https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202604/t20260429_4622306.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-cibeian",
+      "region": "beijing-nature",
+      "name": "陶然亭公园·慈悲庵",
+      "kind": "landmark",
+      "description": "位于陶然亭公园湖心岛，首都之窗介绍的历史建筑。",
+      "sources": [
+        {
+          "title": "慈悲庵、高君宇墓（陶然亭公园）",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/202011/t20201123_2143379.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-taoranting-pavilion",
+      "region": "beijing-nature",
+      "name": "陶然亭",
+      "kind": "landmark",
+      "description": "首都之窗资料说明其与慈悲庵的空间联系，是园内文化节点。",
+      "sources": [
+        {
+          "title": "慈悲庵、高君宇墓（陶然亭公园）",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/202011/t20201123_2143379.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-olympic-aohai",
+      "region": "beijing-nature",
+      "name": "奥林匹克森林公园·奥海",
+      "kind": "lake",
+      "description": "北京市园林绿化局公园介绍列出的南园景区。",
+      "sources": [
+        {
+          "title": "奥林匹克森林公园",
+          "url": "https://yllhj.beijing.gov.cn/ggfw/bjsggml/zhgy/cyq/202206/t20220614_2740317.shtml",
+          "publisher": "北京市园林绿化局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-olympic-yangshan",
+      "region": "beijing-nature",
+      "name": "奥林匹克森林公园·仰山",
+      "kind": "park",
+      "description": "官方介绍列出的南园山体景区，与奥海同属南园。",
+      "sources": [
+        {
+          "title": "奥林匹克森林公园",
+          "url": "https://yllhj.beijing.gov.cn/ggfw/bjsggml/zhgy/cyq/202206/t20220614_2740317.shtml",
+          "publisher": "北京市园林绿化局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-beihai-tuancheng",
+      "region": "beijing-nature",
+      "name": "北海·团城",
+      "kind": "landmark",
+      "description": "首都之窗北海及团城介绍列出的历史园林组成部分。",
+      "sources": [
+        {
+          "title": "北海及团城",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/qgzdwwbhdw/bhjtc/202210/t20221027_2846104.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-beihai-qionghua",
+      "region": "beijing-nature",
+      "name": "北海·琼华岛",
+      "kind": "park",
+      "description": "北海园林的重要岛屿，官方资料介绍其树木与建筑景观。",
+      "sources": [
+        {
+          "title": "北海及团城",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/qgzdwwbhdw/bhjtc/202210/t20221027_2846104.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-yuyuantan-cherry",
+      "region": "beijing-nature",
+      "name": "玉渊潭公园·樱花园",
+      "kind": "park",
+      "description": "玉渊潭官方介绍列出的专类植物观赏区域。",
+      "sources": [
+        {
+          "title": "玉渊潭公园",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/lyjq/4A/yltgy/202210/t20221019_2839182.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-yuyuantan-wetland",
+      "region": "beijing-nature",
+      "name": "玉渊潭公园·湿地园",
+      "kind": "park",
+      "description": "玉渊潭官方介绍列出的湿地景观区域。",
+      "sources": [
+        {
+          "title": "玉渊潭公园",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/lyjq/4A/yltgy/202210/t20221019_2839182.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-tiantan-qiniandian",
+      "region": "beijing-nature",
+      "name": "天坛·祈年殿",
+      "kind": "landmark",
+      "description": "官方天坛资料列出的主要建筑与祈谷坛中心建筑。",
+      "sources": [
+        {
+          "title": "天坛",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/qgzdwwbhdw/tt/202210/t20221027_2845910.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-tiantan-danbiqiao",
+      "region": "beijing-nature",
+      "name": "天坛·丹陛桥",
+      "kind": "trail",
+      "description": "连接天坛南北两部分的甬道，官方介绍明确其空间作用。",
+      "sources": [
+        {
+          "title": "天坛",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/qgzdwwbhdw/tt/202210/t20221027_2845910.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-tiantan-huangqiongyu",
+      "region": "beijing-nature",
+      "name": "天坛·皇穹宇",
+      "kind": "landmark",
+      "description": "首都之窗天坛介绍列明的主要建筑之一。",
+      "sources": [
+        {
+          "title": "天坛",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/qgzdwwbhdw/tt/202210/t20221027_2845910.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-wenyu-niaowu",
+      "region": "beijing-nature",
+      "name": "温榆河公园·茑屋",
+      "kind": "landmark",
+      "description": "温榆河公园西园的观鸟塔，官方生态介绍明确列出。",
+      "sources": [
+        {
+          "title": "生态北京·野趣之温榆河公园",
+          "url": "https://www.beijing.gov.cn/renwen/zt/stbj/sp/yq/202305/t20230509_3091075.html",
+          "publisher": "北京市生态环境局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-wenyu-jianjia",
+      "region": "beijing-nature",
+      "name": "温榆河公园·蒹葭照水",
+      "kind": "park",
+      "description": "官方资料明确其紧邻茑屋，为人工与自然湿地结合的景观。",
+      "sources": [
+        {
+          "title": "生态北京·野趣之温榆河公园",
+          "url": "https://www.beijing.gov.cn/renwen/zt/stbj/sp/yq/202305/t20230509_3091075.html",
+          "publisher": "北京市生态环境局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-xiangshan-jingcui",
+      "region": "beijing-nature",
+      "name": "香山公园·静翠湖",
+      "kind": "lake",
+      "description": "香山官方推荐南山游线中的湖泊节点。",
+      "sources": [
+        {
+          "title": "香山游园会推荐3条路线",
+          "url": "https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202404/t20240403_3608940.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-xiangshan-cuiwei",
+      "region": "beijing-nature",
+      "name": "香山公园·翠微亭",
+      "kind": "landmark",
+      "description": "香山南山推荐线路中位于静翠湖之后的园林节点。",
+      "sources": [
+        {
+          "title": "香山游园会推荐3条路线",
+          "url": "https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202404/t20240403_3608940.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-xiangshan-shuangqing",
+      "region": "beijing-nature",
+      "name": "香山公园·双清别墅",
+      "kind": "landmark",
+      "description": "香山南山官方推荐游线列出的历史文化景点。",
+      "sources": [
+        {
+          "title": "香山游园会推荐3条路线",
+          "url": "https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202404/t20240403_3608940.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-nanyuan-1907",
+      "region": "beijing-nature",
+      "name": "南苑森林湿地公园·1907火车小站",
+      "kind": "landmark",
+      "description": "官方公园介绍列出的工业文化体验节点，以南苑铁路线为原型。",
+      "sources": [
+        {
+          "title": "南苑森林湿地公园的运营创新与城市共生",
+          "url": "https://yllhj.beijing.gov.cn/ztxx/lhysh/jj/202512/t20251222_4356701.shtml",
+          "publisher": "北京市园林绿化局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-nanyuan-yanjingtai",
+      "region": "beijing-nature",
+      "name": "南苑森林湿地公园·燕景台",
+      "kind": "landmark",
+      "description": "官方公园运营介绍列出的观景台节点。",
+      "sources": [
+        {
+          "title": "南苑森林湿地公园的运营创新与城市共生",
+          "url": "https://yllhj.beijing.gov.cn/ztxx/lhysh/jj/202512/t20251222_4356701.shtml",
+          "publisher": "北京市园林绿化局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-moshikou-bookshop",
+      "region": "beijing-nature",
+      "name": "模式口·京西书局",
+      "kind": "landmark",
+      "description": "文化和旅游部报道列出的模式口书店，由第一过街楼旧址更新。",
+      "sources": [
+        {
+          "title": "走千年古道 逛百年老街",
+          "url": "https://www.mct.gov.cn/whzx/qgwhxxlb/bj/202505/t20250523_960185.htm",
+          "publisher": "文化和旅游部",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-moshikou-longwang",
+      "region": "beijing-nature",
+      "name": "模式口·龙王庙小广场",
+      "kind": "landmark",
+      "description": "官方报道列出的老街公共休憩空间，与旧水井区域有关。",
+      "sources": [
+        {
+          "title": "走千年古道 逛百年老街",
+          "url": "https://www.mct.gov.cn/whzx/qgwhxxlb/bj/202505/t20250523_960185.htm",
+          "publisher": "文化和旅游部",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-ditan-fangze",
+      "region": "beijing-nature",
+      "name": "地坛·方泽坛",
+      "kind": "landmark",
+      "description": "首都之窗地坛介绍列出的核心古建筑。",
+      "sources": [
+        {
+          "title": "地坛",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/qgzdwwbhdw/dt/202210/t20221027_2846021.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-ditan-huangqishi",
+      "region": "beijing-nature",
+      "name": "地坛·皇祇室",
+      "kind": "landmark",
+      "description": "官方地坛简介列出的古建筑，与方泽坛同属园内文化景观。",
+      "sources": [
+        {
+          "title": "地坛",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/qgzdwwbhdw/dt/202210/t20221027_2846021.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-summer-seventeen-bridge",
+      "region": "beijing-nature",
+      "name": "颐和园·十七孔桥",
+      "kind": "landmark",
+      "description": "官方颐和园介绍明确其连接南湖岛与东堤。",
+      "sources": [
+        {
+          "title": "颐和园",
+          "url": "https://gygl.beijing.gov.cn/mlgy/mlgy_lsmy/201911/t20191129_732237.html",
+          "publisher": "北京市公园管理中心",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "nature-bj-summer-nanhu-island",
+      "region": "beijing-nature",
+      "name": "颐和园·南湖岛",
+      "kind": "park",
+      "description": "昆明湖中官方介绍列出的岛屿，与十七孔桥相连。",
+      "sources": [
+        {
+          "title": "颐和园",
+          "url": "https://gygl.beijing.gov.cn/mlgy/mlgy_lsmy/201911/t20191129_732237.html",
+          "publisher": "北京市公园管理中心",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "slug": "walk-tj-minyuan",
+      "region": "tianjin-nature",
+      "title": "五大道：从广场走进街区绿意",
+      "description": "以民园广场、民园一九二零街区和五大道公园为观察节点，留意老建筑与公共绿地怎样相互衔接。可以比较广场、街边花箱和公园树荫带给人的不同感受，把一次散步变成对城市更新的细小观察。沿途尽量走人行空间，经过街口先观察交通，拍摄建筑时尊重住户生活；不把街区活动或店铺营业视为固定安排。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-minyuan-square",
+          "note": "从广场边缘观察建筑围合与树荫分布，留意行人休憩的不同选择。"
+        },
+        {
+          "place": "nature-tj-minyuan-1920",
+          "note": "沿现场步行标识前行，看看花箱、坐凳与老建筑如何共同组织街道。"
+        },
+        {
+          "place": "nature-tj-wudadao-park",
+          "note": "在园内通行范围观察绿地与周围街巷的关系，给散步留下休息时间。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "五大道上有了步行街",
+          "url": "https://www.tj.gov.cn/sy/tjxw/202507/t20250709_6975738.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-ningyuan",
+      "region": "tianjin-nature",
+      "title": "北宁公园：老园与新景的对话",
+      "description": "把北宁公园和园内致远塔作为这次观察的两个节点，看看日常公园怎样同时容纳历史记忆与新的休闲需求。不必把游乐项目列为必选，可以从公开园路观察塔的轮廓、周围树冠与活动空间的层次，再找一处合适位置记下自己的感受。只在允许通行的区域游览，不默认塔内可进入；公园与具体项目的安排应分别核实。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-beining-park",
+          "note": "从园路观察传统园林与休闲空间的并置，注意给其他游客留出通道。"
+        },
+        {
+          "place": "nature-tj-zhiyuan-tower",
+          "note": "选择允许停留的位置欣赏塔身轮廓，不把外观观察等同于可以登塔。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "百年宁园焕新亮相",
+          "url": "https://www.tj.gov.cn/sy/tpxw/202605/t20260506_7293099.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-friendship",
+      "region": "tianjin-nature",
+      "title": "中新友好花园：认识雨水花园的思路",
+      "description": "选择书香广场、叠水花园和空中廊道作为花园漫步的观察点，把注意力放在铺装、绿地与水景的组合上。官方介绍提到园区采用海绵城市设计，可以带着雨落下来后可能去哪里的疑问慢慢看，但不要仅凭外观判断水质或设施运行效果。走在园路和廊道允许使用的部分，避开绿地养护区，水边保持适当距离。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-friendship-book-square",
+          "note": "在广场留意铺装与绿化交界，想一想休憩活动如何融入花园环境。"
+        },
+        {
+          "place": "nature-tj-friendship-water-garden",
+          "note": "从通行区域观察水景与植物的层次，不进入水池或踩踏湿地植物。"
+        },
+        {
+          "place": "nature-tj-friendship-skywalk",
+          "note": "如廊道现场允许通行，可比较视角改变后的树冠与花园空间关系。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "中新友好花园对外开放",
+          "url": "https://whly.tj.gov.cn/TJSWHHLYJ/gabsycs/mtjjgh/202309/t20230929_6420542.html",
+          "publisher": "天津市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-taohua",
+      "region": "tianjin-nature",
+      "title": "北运河桃花堤：看花之外看树与河",
+      "description": "以桃花园和北洋园为节点，沿现场允许的园路认识北运河沿岸的绿化空间。春天可以留意花与新叶，其他季节也能观察枝条、树冠和地面覆盖的变化，不必把行程限定为赶花期。记录同一处植物随季节变化，比采摘花枝更有意义。资料中的桃花节活动和单向组织属于特定时段安排，出行时应查看现场指引。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-taohuayuan",
+          "note": "把目光从花朵移到枝条与地被，记录季节线索而不折枝采摘。"
+        },
+        {
+          "place": "nature-tj-beiyangyuan",
+          "note": "按现场通行方向游览，在安全岸线观察树影与河面，不靠近水边护栏外。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "第35届天津运河桃花文化商贸旅游节新闻发布会",
+          "url": "https://www.tj.gov.cn/sy/xwfbh/xwfbh_210907/202603/t20260316_7262117.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-liulin",
+      "region": "tianjin-nature",
+      "title": "柳林湾：沿桥观察雨水与城市",
+      "description": "从柳林湾周边开始，把流光桥和印月桥作为观察水景的参照点。这里的官方建设介绍涉及雨水收集利用，适合思考城市公园如何给降雨留出空间。可比较不同位置看到的岸线、绿地与水面关系，用笔记记录问题，回家再查资料。水面清澈与否不能直接说明水质达标；遇到围挡、养护或桥面湿滑时及时调整行程。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-liulin-bay",
+          "note": "在允许停留的岸边观察水面与绿地，注意区分景观体验和水质评价。"
+        },
+        {
+          "place": "nature-tj-liuguang-bridge",
+          "note": "经过桥面时可比较两侧视野，拍照先靠边停稳，避免影响通行。"
+        },
+        {
+          "place": "nature-tj-yinyue-bridge",
+          "note": "留意桥与岸线的衔接方式，遇到维修封闭时沿现场指引返回园路。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "这两个公园国庆假期试开放",
+          "url": "https://www.tj.gov.cn/sy/ztzl/ztlbthree/mxgcxnhb/2025n20xmxgc/2025nmxgcjzdt/mxgcdtbd/202509/t20250929_7144887.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-jinwan",
+      "region": "tianjin-nature",
+      "title": "津湾广场：把河岸散步接上阅读",
+      "description": "把津湾广场和国图津湾文创空间组成一段城市阅读主题的漫步参考。先在公共空间看看建筑与海河景观的关系，再根据现场营业情况选择是否进入阅读空间，给行程留出随时停下来的余地。可以记录河岸座椅、树荫和导视怎样影响散步体验，不必追逐演出或消费。夜间出行留意照明与脚下台阶，具体文化活动以主办方公告为准。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-jinwan-square",
+          "note": "沿广场公共通行区域观察河岸空间，寻找建筑、水面和休憩设施的联系。"
+        },
+        {
+          "place": "nature-tj-guotu-jinwan",
+          "note": "先查看现场营业说明，再决定是否入内阅读；也可仅把它作为街区观察点。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "不止“城市封面”",
+          "url": "https://www.tj.gov.cn/sy/tjxw/202511/t20251118_7179828.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-yifeng",
+      "region": "tianjin-nature",
+      "title": "意风街区：广场与名人旧居外观漫步",
+      "description": "以马可波罗广场和梁启超旧居为节点，观察历史街区里的公共空间与建筑外观。适合带着门窗、屋顶和街边绿化这样的具体问题慢慢走，并把想了解的历史留给正式展陈和可靠资料。整段参考不要求进入旧居，也不包含演出安排；拍摄时避让居民和行人。若计划参观室内，应另查场馆当天开放、预约及票务信息。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-marco-polo-square",
+          "note": "观察广场怎样组织周边建筑与行人活动，不占用道路长时间拍摄。"
+        },
+        {
+          "place": "nature-tj-liang-qichao-residence",
+          "note": "从允许停留的公共位置观察旧居外观，想入内时再核实场馆安排。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "天津历史文化名城保护规划新闻发布会",
+          "url": "https://www.tj.gov.cn/sy/xwfbh/xwfbh_210907/202602/t20260214_7247774.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-guanlan",
+      "region": "tianjin-nature",
+      "title": "观澜角与东堤：海风里的岸线观察",
+      "description": "以观澜角公园和相接的东堤公园为节点，体验滨海公共空间的开阔感。可以比较海岸方向改变时的风感、光线与岸边植物姿态，用观察代替对海水颜色的简单判断。这里的漫步以岸上活动为主，不安排下水、翻越护栏或进入未开放海堤。出发前查看天气，遇到大风、雷雨和封闭提示时缩短或取消海边停留。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-guanlan-park",
+          "note": "在岸上允许停留的位置观察海面与风向，不越护栏寻找更近的拍摄点。"
+        },
+        {
+          "place": "nature-tj-dongdi-park",
+          "note": "沿现场指引感受滨海绿地景观，强风或降雨时及时结束暴露区域停留。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "观澜角 河海交汇处看水天一色",
+          "url": "https://www.eco-city.gov.cn/m1/stcxw/20231102/49359.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-nanwan",
+      "region": "tianjin-nature",
+      "title": "南湾与海博：从岸边问题走向海洋知识",
+      "description": "选择南湾公园和国家海洋博物馆作为海洋科普主题的两个节点。先在公园公共区域观察岸线、水面与人的活动，再把海洋生物、海岸保护等问题带到自己的阅读或场馆参观中。是否进入博物馆由当日参观条件决定，外观观察也能独立成行。两点之间按现有道路与现场标识选择通行方式，不把资料里的文旅项目当作已开放设施。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-nanwan-park",
+          "note": "在公园公共区域记录一个关于海岸的问题，避开未开放岸线和施工范围。"
+        },
+        {
+          "place": "nature-tj-national-maritime-museum",
+          "note": "到达后按官方参观安排决定是否入馆，把岸边观察的问题与展陈联系起来。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "中新天津生态城积极打造文旅和体育消费新场景",
+          "url": "https://www.eco-city.gov.cn/p1/stcxw/20250328/58217.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-green-valley",
+      "region": "tianjin-nature",
+      "title": "生态城绿谷：城市公园之间的绿色联系",
+      "description": "以永定洲公园、生态谷公园和动漫公园为观察节点，认识城市绿地相互联系的意义。可以留意树带是否连续、道路交叉口如何过街，以及休憩空间怎样服务周边居民。官方资料说明这些公园具有串联关系，但本参考没有对全程逐段实测；体力有限时可只选其中两个节点。把落叶和小动物留在原处，步行与骑行交会时主动减速避让。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-yongdingzhou-park",
+          "note": "从园路观察绿地和城市街道的衔接，过街时优先按信号与标线通行。"
+        },
+        {
+          "place": "nature-tj-ecovalley-park",
+          "note": "留意树木、灌丛和地面植物的层次，观察时不进入绿地内部踩踏。"
+        },
+        {
+          "place": "nature-tj-animation-park",
+          "note": "把这里作为休憩与回顾点，比较不同公园给居民提供的活动空间。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "生态城持续推进生物多样性",
+          "url": "https://www.eco-city.gov.cn/stcxw/42741.jhtml",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-shuixi",
+      "region": "tianjin-nature",
+      "title": "水西公园：亲子活动与绿色留白",
+      "description": "把水西公园里的稚趣园和体育园作为两处观察节点，讨论活动场地与自然空间如何共处。带孩子散步时，可以先约好一段安静观察时间，再按现场规则选择适合的活动，不需要把全部设施体验一遍。成人也可以关注树荫、座椅和活动边界是否让人容易停留。器材使用与年龄要求以现场为准，行程不承诺具体设备可用或场地空闲。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-shuixi-zhiqu",
+          "note": "在成人陪同下观察活动边界和植物空间，选择符合现场要求的体验。"
+        },
+        {
+          "place": "nature-tj-shuixi-sport",
+          "note": "沿外围园路看看运动与休憩空间如何安排，不穿越正在使用的运动场。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "一环十一园 链起津城美景",
+          "url": "https://whly.tj.gov.cn/TJSWHHLYJ/gabsycs/mtjjgh/202301/t20230126_6087413.html",
+          "publisher": "天津市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-shuishang",
+      "region": "tianjin-nature",
+      "title": "水上公园：东西湖畔看倒影与岸线",
+      "description": "以水上公园东湖和西湖为节点，尝试从岸上观察水面、树影与岛屿构成的园林景观。散步时可以挑选不同位置，比较开阔水面与有遮阴岸边的感受，再用自己的语言描述看到的变化。路线不包含游船、冰上或涉水活动，也不凭水色推断水质安全。到园后先辨认指示牌，按当天开放园路安排顺序，遇到湿滑台阶及时绕行。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-shuishang-east-lake",
+          "note": "在安全岸边观察倒影与水面变化，不靠近护栏外或未经开放的亲水区域。"
+        },
+        {
+          "place": "nature-tj-shuishang-west-lake",
+          "note": "比较另一片湖岸的视野与植被层次，记录差异而不把湖水外观当检测结果。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "水上公园",
+          "url": "https://www.tj.gov.cn/sq/yztj/jqjs/202005/t20200520_2467993.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-ganlu",
+      "region": "tianjin-nature",
+      "title": "甘露溪与遗鸥：慢行途中给自然留空间",
+      "description": "以甘露溪公园和遗鸥公园为节点，把一次慢行变成对城市绿道的观察。可以留意方向标识、过街位置和步行骑行空间怎样协调，也可以安静看看水岸是否有鸟类活动。地点名称不代表一定能看到某种鸟，更不能据此进入栖息地寻找。两点顺序可随现场条件调整，遇到道路施工就选择已开放段，减少声音与食物投喂对动物的干扰。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-ganluxi-park",
+          "note": "留意园内外的慢行标识与过街设施，只沿明确开放的通行空间前进。"
+        },
+        {
+          "place": "nature-tj-yio-park",
+          "note": "若见鸟类保持距离安静观察，不追逐、不投喂，也不跨越保护围挡。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "生态城打通6处堵点贯通优化绿道",
+          "url": "https://www.eco-city.gov.cn/p1/stcxw/20221107/47539.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-old-town",
+      "region": "tianjin-nature",
+      "title": "天津老城：鼓楼与戏曲建筑外观漫步",
+      "description": "以天津鼓楼博物馆和广东会馆为节点，感受老城公共空间与戏曲文化建筑的关系。可以先从允许停留的街道观察屋顶、门面和行人活动，再把感兴趣的问题带到公开展陈中核对。这是一段文化观察参考，不要求登楼或进入会馆，也不把演出列为固定内容。拍照时尊重居民日常，若需要入馆则单独查看官方开放、预约和票务安排。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-drum-tower-museum",
+          "note": "在公共通行空间观察鼓楼建筑外观，计划登楼时另行核实当天参观条件。"
+        },
+        {
+          "place": "nature-tj-guangdong-guildhall",
+          "note": "先观察允许参观的建筑空间，再阅读展陈说明，不默认现场每天都有演出。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "为推动津港澳共赢发展贡献智慧和力量",
+          "url": "https://www.tj.gov.cn/sy/tjxw/202601/t20260125_7230900.html",
+          "publisher": "天津政务网",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-tj-seawall",
+      "region": "tianjin-nature",
+      "title": "南堤与印象海堤：看懂滨水慢行空间",
+      "description": "选择南堤滨海步道公园和印象海堤公园，观察滨水绿道如何把散步、骑行与休憩活动安排在城市边缘。留意路面标识、岸边植物和不同使用者之间的距离，可以把它当成一次关于公共空间的自然笔记。资料确认这些已有绿道节点，但不意味着两点全程均已实测可走；请按现场路线安排连接，不进入施工岸线，不在海堤外侧停留。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-tj-nandi-park",
+          "note": "在允许使用的步道观察人行与骑行空间，休息拍照时避让持续通行的人。"
+        },
+        {
+          "place": "nature-tj-impression-seawall",
+          "note": "沿现场开放区域观察岸线与植物，不把规划中的连接段当作当前可走路线。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "32公里绿色项链串起生态城",
+          "url": "https://www.eco-city.gov.cn/m1/stcxw/20210705/43886.html",
+          "publisher": "中新天津生态城管委会",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-garden-expo",
+      "region": "beijing-nature",
+      "title": "北京园博园：从林荫大道看园林空间",
+      "description": "选择园博园银杏大道、锦绣谷和长沙园，沿公开推荐线路的前段认识不同园林空间。可以比较道路如何引导视线、地形如何改变景观，以及人在开阔与围合空间里的感受。这里重在慢慢观察，树叶颜色和花期随季节变化，不承诺特定景色。入园后按导览与现场开放情况选择支路，遇到闭园养护区域就返回主游线，不必完成全部节点。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-garden-expo-ginkgo",
+          "note": "沿大道观察树冠形成的空间节奏，不把资料中的秋景当作全年景象。"
+        },
+        {
+          "place": "nature-bj-garden-expo-jinxiu",
+          "note": "从开放游路观察地形与植物组合，按护栏和提示选择安全的停留位置。"
+        },
+        {
+          "place": "nature-bj-garden-expo-changsha",
+          "note": "看看园中道路如何改变观察角度，记录与开阔大道不同的游览感受。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "秋天的第一场Citywalk，从丰台出发",
+          "url": "https://www.bjft.gov.cn/xwdt/jcdt/bmdt/202609/t20260920_225387.shtml",
+          "publisher": "北京市丰台区文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-tongzhou-culture",
+      "region": "beijing-nature",
+      "title": "副中心：文化建筑与城市绿心",
+      "description": "把北京城市图书馆、北京大运河博物馆和北京城市绿心森林公园作为文化与自然相结合的观察节点。可先欣赏公共建筑的外部空间，再根据体力选择进入绿心园路，比较建筑周边与林间的光线和声音。入馆阅读、参观展览需要另查场馆规则，不作为完成漫步的条件。三点间按现场道路和指引安排连接，不承诺固定时长或无障碍全程。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-city-library",
+          "note": "先观察图书馆外部公共空间，想入内阅读时再核实当天的服务安排。"
+        },
+        {
+          "place": "nature-bj-grand-canal-museum",
+          "note": "把建筑与水文化联系起来思考，具体展览和入馆要求以馆方公告为准。"
+        },
+        {
+          "place": "nature-bj-green-heart-park",
+          "note": "进入开放园路后放慢脚步，比较林间与建筑周边的声景和遮阴感受。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "3条北京城市副中心Colorwalk微旅行精品线路出炉",
+          "url": "https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202606/t20260611_4696587.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-central-water",
+      "region": "beijing-nature",
+      "title": "中轴水脉：玉河、万宁桥与什刹海",
+      "description": "从公开文化探访线路中选取玉河、万宁桥和什刹海，关注老城水系与街巷生活的相互联系。可观察桥上桥下的视线、岸边绿化和行人停留的方式，再把看到的现象与运河历史资料对照。这里不提供沿水边连续导航，也不安排游船或水上活动。遇到道路交叉和人流密集处放慢速度，始终走开放人行区域，尊重沿线居民的生活空间。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-yuhe",
+          "note": "在开放岸边观察水与街巷的联系，不进入河道或占用居民出入通道。"
+        },
+        {
+          "place": "nature-bj-wanning-bridge",
+          "note": "在人行区域看桥梁与水系的位置关系，停留拍摄时注意身后通行人群。"
+        },
+        {
+          "place": "nature-bj-shichahai",
+          "note": "选择一处开放岸边安静观察，关注倒影与岸线而不追逐水鸟拍摄。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "10条漫步北京核心区文化探访路",
+          "url": "https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202309/t20230928_3268643.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-bamboo-books",
+      "region": "beijing-nature",
+      "title": "海淀：石刻、竹影与书香",
+      "description": "取官方蓝润四海路线中的五塔寺、紫竹院公园和中国国家图书馆作为节点，连接文化观察与公园散步。先把石刻或建筑外观中的纹样记下来，再到公园关注竹影和绿色空间，最后根据安排选择阅读或返回。馆舍参观、证件和开放条件须分别查询，不把步行参考视为入馆许可。沿途按交通信号过街，可根据体力省略室内活动。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-wuta-temple",
+          "note": "在许可范围观察石刻或建筑外观，不触摸文物，参观安排另查馆方说明。"
+        },
+        {
+          "place": "nature-bj-zizhuyuan",
+          "note": "把注意力放在竹影、林间光线与园路关系上，不折取竹枝作为纪念。"
+        },
+        {
+          "place": "nature-bj-national-library",
+          "note": "外部观察后可按馆方规则安排阅读，不将散步计划当作入馆证件替代。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "北京首次发布6条漫步北京Colorwalk线路",
+          "url": "https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202604/t20260429_4622306.html",
+          "publisher": "北京市文化和旅游局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-taoranting",
+      "region": "beijing-nature",
+      "title": "陶然亭：在湖心岛读亭与历史",
+      "description": "把慈悲庵与陶然亭作为湖心岛文化观察的两个节点，留意园林建筑与周围环境如何共同形成一处停留空间。可以先看外部格局，再根据开放条件阅读历史说明，不必记住复杂年代，也不要仅凭建筑外观猜测史实。活动以安静步行为主，经过窄道和台阶时让行；是否进入院落、看展或参加讲解，应在出发前另查场馆和公园安排。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-cibeian",
+          "note": "从许可区域认识院落与周围园景，历史内容优先依据现场展陈核对。"
+        },
+        {
+          "place": "nature-bj-taoranting-pavilion",
+          "note": "观察亭子如何提供停留与观景空间，经过狭窄位置时注意避让他人。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "慈悲庵、高君宇墓（陶然亭公园）",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/202011/t20201123_2143379.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-olympic-forest",
+      "region": "beijing-nature",
+      "title": "奥森南园：湖面与山体的视角变化",
+      "description": "选择南园的奥海和仰山，体验同一片公园在临水与稍高位置呈现出的不同面貌。先从岸边认识开阔水面，再依体力和现场条件选择向山体方向游览，不以登高为必须完成的目标。可以记录树影、风感和声音的变化，理解自然体验并不只是拍照。公园内路线很多，请依导览选择开放园路，不进入湿地植物区或跨越围护设施。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-olympic-aohai",
+          "note": "在开放岸边观察水面与周围树冠，不将水体外观解读为水质检测结论。"
+        },
+        {
+          "place": "nature-bj-olympic-yangshan",
+          "note": "依体力选择开放坡道，比较视野变化，疲劳或路滑时可提前返回。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "奥林匹克森林公园",
+          "url": "https://yllhj.beijing.gov.cn/ggfw/bjsggml/zhgy/cyq/202206/t20220614_2740317.shtml",
+          "publisher": "北京市园林绿化局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-beihai",
+      "region": "beijing-nature",
+      "title": "北海：团城与琼华岛的园林视角",
+      "description": "以团城和琼华岛为节点，认识北海园林里岛、城与水面的空间关系。可以从允许游览的位置观察建筑轮廓与树冠的组合，再用简单草图记下不同角度看到的层次。这里的历史与园林意象可作为阅读线索，不需要把全部景点一次走完。进入具体景点可能有独立管理要求，出发前核实园方信息；沿途照顾好同行者，水边不越围栏。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-beihai-tuancheng",
+          "note": "观察城台与周围空间的关系，具体参观范围按景区现场说明安排。"
+        },
+        {
+          "place": "nature-bj-beihai-qionghua",
+          "note": "沿开放游路比较树冠与建筑的高低层次，不为取景跨越护栏。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "北海及团城",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/qgzdwwbhdw/bhjtc/202210/t20221027_2846104.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-yuyuantan",
+      "region": "beijing-nature",
+      "title": "玉渊潭：从樱花园走向湿地园",
+      "description": "选取玉渊潭樱花园和湿地园，比较专类植物观赏与湿地景观给人的不同感受。没有花开的日子也能看叶形、枝条与树影，到了湿地区则把观察重点转向植物和水面的关系。请把记录留在照片或笔记里，不采摘、不投喂，也不要保证能看到特定动物。园中距离和通行安排应现场确认，季节性花讯与活动另查公园最新发布。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-yuyuantan-cherry",
+          "note": "无论是否花期，都可从园路观察树形与枝叶，不攀折或摇动花枝。"
+        },
+        {
+          "place": "nature-bj-yuyuantan-wetland",
+          "note": "在开放步道关注水与植物的交界，远距离观察动物，不进入植被内部。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "玉渊潭公园",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/lyjq/4A/yltgy/202210/t20221019_2839182.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-tiantan",
+      "region": "beijing-nature",
+      "title": "天坛：沿丹陛桥观察古建与古树",
+      "description": "以祈年殿、丹陛桥和皇穹宇为观察节点，体验天坛中轴空间的秩序与两侧树木形成的环境。可关注建筑的圆与方、道路的开合，以及步行过程中视线的变化，历史解释则以正式展陈为准。此参考不代替门票或具体景点的参观安排，也不默认每个建筑都能入内。爱护古树，不倚靠文物，遇到客流组织时按工作人员指引调整顺序。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-tiantan-qiniandian",
+          "note": "在许可区域观察建筑形态与周围空间，不把外观游览等同于可进入殿内。"
+        },
+        {
+          "place": "nature-bj-tiantan-danbiqiao",
+          "note": "沿规定游览方向体会轴线视野，停留拍摄时给往来游客留出通道。"
+        },
+        {
+          "place": "nature-bj-tiantan-huangqiongyu",
+          "note": "阅读现场说明再理解建筑用途，遵守票区管理，不触摸或刻画文物。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "天坛",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/qgzdwwbhdw/tt/202210/t20221027_2845910.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-wenyu",
+      "region": "beijing-nature",
+      "title": "温榆河西园：观鸟塔与湿地边缘",
+      "description": "把茑屋和邻近的蒹葭照水作为湿地观察的两个节点，体会高处远望与岸边平视的不同。重点不是追求拍到某种鸟，而是看看植物、水面和开放步道之间怎样保持距离，让动物也有自己的空间。可以记录一次安静停留中的声音与光线变化，不使用食物吸引动物。登塔条件、开放范围与临时维护以园方信息为准，不进入封闭自然区域。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-wenyu-niaowu",
+          "note": "如现场允许登塔，可安静远望湿地，不用喊叫或投喂吸引鸟类。"
+        },
+        {
+          "place": "nature-bj-wenyu-jianjia",
+          "note": "沿开放步道观察水生植物层次，不跨越边界寻找更靠近动物的位置。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "生态北京·野趣之温榆河公园",
+          "url": "https://www.beijing.gov.cn/renwen/zt/stbj/sp/yq/202305/t20230509_3091075.html",
+          "publisher": "北京市生态环境局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-xiangshan",
+      "region": "beijing-nature",
+      "title": "香山南线短段：湖、亭与山林记忆",
+      "description": "从官方南山推荐游线中选取静翠湖、翠微亭和双清别墅，组成可按体力调整的观察段。行走时留意湖边与山坡的植被、光线和坡度变化，再根据开放条件了解相关历史。此参考不要求登顶，也不承诺全程平缓；上坡、台阶和天气都会影响体验。穿适合步行的鞋，遇到强降雨或封闭提示立即调整，古树与文物只观看不触碰。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-xiangshan-jingcui",
+          "note": "先在允许停留的湖边观察山体与水面关系，再决定是否继续向坡路前进。"
+        },
+        {
+          "place": "nature-bj-xiangshan-cuiwei",
+          "note": "把亭周边作为观察与调整节奏的参照，停留范围依现场管理要求。"
+        },
+        {
+          "place": "nature-bj-xiangshan-shuangqing",
+          "note": "以现场展陈核对历史内容，参观院落前先确认开放和预约条件。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "香山游园会推荐3条路线",
+          "url": "https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202404/t20240403_3608940.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-nanyuan",
+      "region": "beijing-nature",
+      "title": "南苑森林湿地：从铁路记忆到眺望空间",
+      "description": "以一九零七火车小站和燕景台为观察节点，看看公园如何把工业记忆、公共休闲与自然景观放在一起。可以在小站周围记录建筑材料与植物的对比，再根据体力和开放条件选择到观景区域看看城市与绿地的关系。资料中的活动不是每日承诺，登台也并非完成漫步的必要步骤。道路、收费项目和临时管理请现场核实，观察动物时保持安静。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-nanyuan-1907",
+          "note": "观察铁路主题空间与周围绿地的组合，不把经营活动视为固定免费项目。"
+        },
+        {
+          "place": "nature-bj-nanyuan-yanjingtai",
+          "note": "先确认当天开放与登台条件，体力不足时可只观察周围园路景观。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "南苑森林湿地公园的运营创新与城市共生",
+          "url": "https://yllhj.beijing.gov.cn/ztxx/lhysh/jj/202512/t20251222_4356701.shtml",
+          "publisher": "北京市园林绿化局",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-moshikou",
+      "region": "beijing-nature",
+      "title": "模式口：古道街区里的书与公共空间",
+      "description": "选择京西书局和龙王庙小广场，把漫步重点放在老街公共生活与文化空间的关系上。可以观察建筑更新后怎样保留街巷尺度，以及居民与游客如何共享休息的地方。书店消费和入内阅读都由个人选择，不是这段行程的必要条件。沿街拍照尊重居民，不堵门、不进入私人院落；店铺经营与活动可能变化，到了现场再决定停留方式。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-moshikou-bookshop",
+          "note": "先观察书局与街道的关系，是否入内阅读或消费按个人意愿和营业情况。"
+        },
+        {
+          "place": "nature-bj-moshikou-longwang",
+          "note": "在不影响居民活动的位置短暂停留，观察小广场怎样融入日常街巷生活。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "走千年古道 逛百年老街",
+          "url": "https://www.mct.gov.cn/whzx/qgwhxxlb/bj/202505/t20250523_960185.htm",
+          "publisher": "文化和旅游部",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-ditan",
+      "region": "beijing-nature",
+      "title": "地坛：方泽坛与皇祇室的空间观察",
+      "description": "以方泽坛和皇祇室为节点，认识历史坛庙如何通过建筑与庭院组织空间。可以先观察形状、朝向与出入口，再阅读可靠说明，区分自己看到的细节和历史解释。行程强调安静步行与文化理解，不安排仪式体验，也不要求进入每座建筑。公园和具体景点可能有不同参观规则，请在出行前核实；爱护古建，不触摸、攀爬或在保护范围内奔跑。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-ditan-fangze",
+          "note": "从许可游览位置观察坛体与庭院的关系，历史含义以正式说明为准。"
+        },
+        {
+          "place": "nature-bj-ditan-huangqishi",
+          "note": "按现场参观范围观察建筑外观，不默认内室开放，不触碰文物构件。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "地坛",
+          "url": "https://www.beijing.gov.cn/renwen/rwzyd/qgzdwwbhdw/dt/202210/t20221027_2846021.html",
+          "publisher": "首都之窗",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    },
+    {
+      "slug": "walk-bj-summer-palace",
+      "region": "beijing-nature",
+      "title": "颐和园：十七孔桥与南湖岛看湖山",
+      "description": "把十七孔桥与南湖岛作为昆明湖景观观察的两个节点，体验桥上行走与岛上停留时不同的视线。可以寻找水面、远处山体和建筑轮廓之间的关系，用文字记下自己理解的园林借景。行程不包含游船，也不要求赶特定光线或季节景观。桥面人多时慢行并避免长时间占道，园区票务与具体开放安排另查官方信息，遇到风雨及时缩短停留。HYHQ依据公开地点资料整理的漫步参考，并非官方连续步行导航；临时通行以现场为准。",
+      "stops": [
+        {
+          "place": "nature-bj-summer-seventeen-bridge",
+          "note": "在人行通道上比较桥两侧的湖景，游客密集时先通行再找合适位置观察。"
+        },
+        {
+          "place": "nature-bj-summer-nanhu-island",
+          "note": "从开放位置观察湖面与远处山体，不越护栏，不把湖面活动加入岸上漫步。"
+        }
+      ],
+      "sources": [
+        {
+          "title": "颐和园",
+          "url": "https://gygl.beijing.gov.cn/mlgy/mlgy_lsmy/201911/t20191129_732237.html",
+          "publisher": "北京市公园管理中心",
+          "accessed_on": "2026-09-23"
+        }
+      ]
+    }
+  ]
+}

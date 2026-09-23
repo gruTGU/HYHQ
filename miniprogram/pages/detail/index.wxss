@@ -1,6 +1,7 @@
 .detail-page .page-title { font-size: 44rpx; line-height: 1.45; margin-top: 22rpx; }
 .detail-copy { margin: 0; font-size: 28rpx; line-height: 1.95; color: #536d59; }
 .article { display: block; line-height: 2; font-size: 29rpx; color: #2c3e33; }
+.source-reference { word-break: break-all; overflow-wrap: anywhere; white-space: pre-wrap; }
 .route-stop { position: relative; margin-top: 16rpx; display: flex; gap: 12rpx; align-items: center; background: #fffefa; padding: 24rpx; border: 2rpx solid transparent; border-radius: 26rpx; transition: transform 120ms ease; }
 .stop-index { border-radius: 50% 50% 50% 12%; height: 58rpx; width: 58rpx; flex-shrink: 0; background: #e5efdf; text-align: center; line-height: 58rpx; margin-right: 12rpx; color: #3a7d5c; font-weight: 600; }
 .stop-selected { border-color: #a8c99b; background: #edf4e7; }

@@ -1,6 +1,6 @@
 /** Static artwork coordinates are image-relative; they are never latitude/longitude. */
 const DEMO_IMAGE = '/assets/maps/demo-campus-v1.png';
-const GROUPS = { water: ['river', 'lake'], park: ['park'], campus: ['campus', 'plant', 'waste', 'trail'] };
+const GROUPS = { water: ['river', 'lake'], park: ['park'], campus: ['campus', 'plant', 'waste'], walk: ['trail', 'landmark'] };
 
 function dimensions(layout) {
   const width = layout && layout.image_width;

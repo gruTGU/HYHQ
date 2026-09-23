@@ -40,6 +40,19 @@ function event(instance, details = {}, dataset = {}) {
 function imageReady(instance) { instance.imageLoaded(event(instance, { width: instance.data.activeMap.image_width, height: instance.data.activeMap.image_height })); }
 function close(actual, expected) { assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} ~= ${expected}`); }
 
+test('real city landmarks without coordinates stay browsable without a fictional map', async () => {
+  const landmarks = ['landmark', 'trail', 'campus'].map((kind) => ({ id: kind, name: kind, kind, region: 'other', map_layout: null }));
+  const { instance } = page(fixtureApi({ 'regions/': [otherRegion], 'places/': landmarks, 'maps/': [] }), otherRegion);
+  await instance.onShow();
+  assert.equal(instance.data.viewMode, 'list');
+  assert.equal(instance.data.activeMap, null);
+  assert.equal(instance.data.markers.length, 0);
+  instance.setData({ activeType: 'walk' }); instance.filter();
+  assert.deepEqual(instance.data.filtered.map((item) => item.id), ['landmark', 'trail']);
+  instance.setData({ activeType: 'campus' }); instance.filter();
+  assert.deepEqual(instance.data.filtered.map((item) => item.id), ['campus']);
+});
+
 test('original PNG dimensions agree with its strict registered region and version', () => {
   const png = fs.readFileSync(path.join(__dirname, '../assets/maps/demo-campus-v1.png'));
   assert.equal(png.subarray(1, 4).toString(), 'PNG');

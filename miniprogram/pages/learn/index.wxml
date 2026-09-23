@@ -19,7 +19,7 @@
       <view wx:if="{{place}}" class="linked-place gap"><text>正在浏览关联地点的科普</text><button class="text-button" bindtap="clearPlace">清除地点</button></view>
       <view wx:if="{{category || plant_label || search || place}}" class="active-filters"><text class="small muted">{{category ? categories[categoryIndex].name + ' · ' : ''}}{{plant_label ? plantLabels[plantIndex].name + ' · ' : ''}}{{search ? '“' + search + '”' : '已限定内容范围'}}</text><button class="text-button reset" bindtap="resetFilters">清除筛选</button></view>
     </block>
-    <view wx:else class="copy">依次浏览沿途地点，发现绿色生活的另一面。</view>
+    <view wx:else><view class="copy">依次浏览沿途地点，发现绿色生活的另一面。</view><button wx:if="{{regionId}}" class="text-button gap" bindtap="allRoutes">浏览全部区域路线 ↗</button></view>
   </view>
   <view class="section-head results-head"><text class="section-title">{{tab === 'contents' ? '自然手记' : '慢慢走，看一看'}}</text><text class="small muted">{{tab === 'contents' ? '阅读 · 发现 · 收藏' : '管理员整理'}}</text></view>
   <block wx:if="{{tab === 'contents'}}">

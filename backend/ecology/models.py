@@ -89,6 +89,7 @@ class Place(ValidatedModel):
         WASTE = "waste", "分类投放点"
         TRAIL = "trail", "绿色步道"
         CAMPUS = "campus", "校园地点"
+        LANDMARK = "landmark", "地标与停留点"
 
     region = models.ForeignKey(Region, on_delete=models.PROTECT, related_name="places")
     slug = models.SlugField(unique=True)

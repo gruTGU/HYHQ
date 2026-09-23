@@ -38,12 +38,14 @@ async function main() {
   const checks = [];
   const health = (await app.api.request('health/')).data;
   assert.equal(health.mode, 'simulation');
+  const publicArticleCount = (await app.api.request('contents/')).meta.count;
+  assert.ok(publicArticleCount >= 8);
   const learn = page('learn'); await learn.onLoad();
   assert.equal(learn.data.contentsError, ''); assert.equal(learn.data.tagsError, '');
   assert.equal(learn.data.contents.length, 2); assert.ok(learn.data.contentsNext);
   let pages = 1;
-  while (learn.data.contentsNext) { assert.ok(pages++ < 20); await learn.moreContents(); assert.equal(learn.data.contentsMoreError, ''); }
-  assert.equal(learn.data.contents.length, 8); assert.equal(new Set(learn.data.contents.map((item) => item.id)).size, 8);
+  while (learn.data.contentsNext) { assert.ok(pages++ < publicArticleCount); await learn.moreContents(); assert.equal(learn.data.contentsMoreError, ''); }
+  assert.equal(learn.data.contents.length, publicArticleCount); assert.equal(new Set(learn.data.contents.map((item) => item.id)).size, publicArticleCount);
   const waterArticle = learn.data.contents.find((item) => item.slug === 'read-water-indicators');
   assert.ok(waterArticle.place_summary && waterArticle.source);
   const plant = learn.data.categories.findIndex((item) => item.value === 'plants'); assert.ok(plant > 0);
@@ -78,6 +80,6 @@ async function main() {
   checks.push('B02_six_ordered_stops_selection_return_and_region_list');
   assert.equal(session.token(), ''); assert.ok(requests.every((request) => request.method === 'GET'));
   checks.push('B01_B02_public_browsing_without_login_location_or_writes');
-  process.stdout.write(JSON.stringify({ status: 'passed', checks, catalogue_pages: pages, public_articles: 8, route_public_stops: 6, transport: 'real_local_http_with_wx_mock', page_size_override: 2, wechat_device_verified: false, server_deployed: false }, null, 2) + '\n');
+  process.stdout.write(JSON.stringify({ status: 'passed', checks, catalogue_pages: pages, public_articles: publicArticleCount, route_public_stops: 6, transport: 'real_local_http_with_wx_mock', page_size_override: 2, wechat_device_verified: false, server_deployed: false }, null, 2) + '\n');
 }
 main().catch((error) => { process.stderr.write(String(error.stack || error) + '\n'); process.exitCode = 1; });

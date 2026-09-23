@@ -24,6 +24,19 @@ function setup(handler, globalData = {}) {
 }
 const change = (value) => ({ detail: { value } });
 
+test('all-route shortcut removes campus filter while preserving shared region and active tab', async () => {
+  const { instance, calls, application } = setup(undefined, { region: regions[0] });
+  await instance.onLoad();
+  instance.changeTab({ currentTarget: { dataset: { tab: 'routes' } } });
+  await instance.allRoutes();
+  assert.equal(instance.data.regionId, '');
+  assert.equal(instance.data.tab, 'routes');
+  assert.equal(application.globalData.region.id, 'a');
+  assert.deepEqual(calls.filter((item) => item.path === 'routes/').at(-1).options.data, { page_size: 20 });
+  instance.onHide(); await instance.onShow();
+  assert.equal(instance.data.regionId, '');
+});
+
 test('public knowledge shows Chinese categories, plant labels, source and visible route counts', async () => {
   const { instance, calls } = setup(); await instance.onLoad();
   assert.equal(instance.data.contents[0].category_name, '植物知识');

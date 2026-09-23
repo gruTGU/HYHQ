@@ -35,12 +35,13 @@
 .article-source { color: #697d6e; font-size: 21rpx; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .read-link { font-size: 23rpx; color: #3a7d5c; font-weight: 500; flex-shrink: 0; }
 .route-card { background: linear-gradient(140deg,#fffefa,#f5f8ee); }
+.route-card .copy { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .route-heading { display: flex; align-items: center; gap: 12rpx; flex-wrap: wrap; }
 .route-mark { display: flex; align-items: center; gap: 7rpx; }
 .route-mark view { width: 9rpx; height: 9rpx; background: #a8c99b; border-radius: 50%; }
 .route-mark view:last-child { background: #3a7d5c; }
 .route-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 24rpx; padding-top: 22rpx; border-top: 1rpx dashed #cdddc5; }
 .stop-count { font-size: 23rpx; color: #52735b; }
-.source-note { margin-top: 18rpx; word-break: break-word; }
+.source-note { margin-top: 18rpx; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .list-footer { text-align: center; padding: 30rpx 0 8rpx; }
 .list-footer .error-inline { margin: 0 0 16rpx; }
