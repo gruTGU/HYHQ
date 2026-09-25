@@ -40,6 +40,19 @@
   <block wx:if="{{task.result_view}}">
     <view class="result-banner section"><view class="title">{{task.result_view.heading}}</view><view class="rule-score" wx:if="{{task.result_view.has_score}}">{{task.result_view.score_label}}<text> / 100</text></view><view class="small" wx:if="{{task.result_view.has_score}}">图像教学规则分</view><view class="copy">{{task.result_view.explanation}}</view></view>
     <view class="card section"><view class="row"><text class="title">检测候选</text><text class="pill">{{task.result_view.detections.length}} 个</text></view><view class="detection-row" wx:for="{{task.result_view.detections}}" wx:key="id"><text>{{index + 1}} · {{item.label}}</text><text class="small muted">置信分数 {{item.confidence_label}}</text></view><view class="copy" wx:if="{{!task.result_view.detections.length}}">暂时无法确认，本次不提供分数。</view><view class="small muted gap" wx:if="{{task.result_view.detections.length}}">编号对应照片中的候选框。框按原图相对位置展示，不代表人工核实。</view></view>
+    <view class="card section" wx:if="{{task.summary_view}}">
+      <view class="title">画面观察摘要</view>
+      <block wx:if="{{task.summary_view.ready}}">
+        <view class="observation-metrics gap"><view><text class="observation-number">{{task.summary_view.count}}</text><view class="small muted">有效候选框</view></view><view><text class="observation-number">{{task.summary_view.area}}</text><view class="small muted">框并集占整图</view></view></view>
+        <view class="small muted gap">重叠框的面积只算一次。这是图片中的框面积，不是水面覆盖率；框数也不代表实际物体数或密度。</view>
+        <view class="divider"></view><view class="title">候选框位于画面哪里</view>
+        <view class="observation-grid gap"><view class="observation-cell {{item.active ? 'observation-cell-active' : ''}}" wx:for="{{task.summary_view.grid}}" wx:key="key"><text>{{item.label}}</text><text class="observation-cell-count">{{item.count}}</text></view></view>
+        <view class="small muted gap">按框中心在原图九宫格中计数，跨格框只记一次。上、下、左、右是照片方向，不是地图方位或污染分布。</view>
+        <view class="small muted gap">置信分数范围 {{task.summary_view.confidence}}，不是正确概率。</view>
+        <view class="small muted gap" wx:if="{{task.summary_view.excluded}}">另有 {{task.summary_view.excluded}} 条超出当前范围或数据不完整的候选，未计入本摘要。</view>
+      </block>
+      <view class="copy" wx:else>{{task.summary_view.message}}</view>
+    </view>
     <view class="card section"><view class="title">规则解释与观察建议</view><view class="copy" wx:for="{{task.result_view.causes}}" wx:key="*this">· {{item}}</view><view class="divider"></view><view class="copy" wx:for="{{task.result_view.suggestions}}" wx:key="*this">· {{item}}</view></view>
     <view class="card section"><view class="row" bindtap="toggleMetadata"><view class="title">本次观察信息</view><text class="help-toggle">{{metadataExpanded ? '收起 −' : '展开 +'}}</text></view><block wx:if="{{metadataExpanded}}"><view class="small muted gap">模型：{{task.result_view.model_name}} · {{task.result_view.model_version}}</view><view class="small muted">规则版本：{{task.result_view.rule_version}}</view><view class="small muted">提交时间：{{task.created_label}}</view><view class="small muted">关联水体：{{task.water_body.name || '未关联'}}</view><view class="small muted" wx:if="{{task.coordinate_system}}">本记录包含用户主动提供的位置 · {{task.coordinate_system}} · 仅本人可见</view></block></view>
     <view class="notice">{{task.result_view.disclaimer}}</view>

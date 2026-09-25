@@ -1,6 +1,7 @@
 .journal-hero { position: relative; min-height: 240rpx; padding: 8rpx 0 18rpx; overflow: hidden; }
 .journal-intro { position: relative; z-index: 1; width: 65%; }
 .journal-art { position: absolute; width: 330rpx; height: 245rpx; right: -50rpx; top: 4rpx; mix-blend-mode: multiply; opacity: .83; border-radius: 40% 0 0 40%; }
+.learn-page .knowledge-entry { width: 100%; min-height: 88rpx; margin-top: 24rpx; padding: 22rpx 24rpx; font-size: 26rpx; line-height: 1.6; }
 .tabs { display: flex; padding: 8rpx; background: #e2ecdc; border-radius: 28rpx; margin-top: 20rpx; margin-bottom: 24rpx; }
 .tab { flex: 1; min-width: 0; border-radius: 22rpx; background: transparent; line-height: 84rpx; font-size: 28rpx; color: #65796c; }
 .tab.selected { color: #326849; background: #fffefa; font-weight: 600; box-shadow: 0 4rpx 14rpx rgba(44,62,51,.05); }

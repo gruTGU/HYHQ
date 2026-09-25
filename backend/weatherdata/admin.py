@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from common.admin_audit import AuditAdminMixin
 from common.audit import audit_admin
 
-from .models import WeatherCache, WeatherLocation, WeatherMonth, WeatherRequest
+from .models import WeatherCache, WeatherLocation, WeatherMonth, WeatherRequest, WeatherReminder, WeatherReminderAttempt
 from .services import get_component
 
 
@@ -57,3 +57,16 @@ class RequestAdmin(ImmutableAdmin):
 class CacheAdmin(ImmutableAdmin):
     list_display = ['location', 'kind', 'point', 'fetched_at', 'expires_at', 'last_reason']
     list_filter = ['kind', 'last_reason']
+
+
+@admin.register(WeatherReminder)
+class ReminderAdmin(ImmutableAdmin):
+    list_display = ['id', 'location', 'target_date', 'scheduled_for', 'state', 'attempts', 'last_code']
+    list_filter = ['state', 'location']
+    exclude = ['template_id', 'config_fingerprint']
+
+
+@admin.register(WeatherReminderAttempt)
+class ReminderAttemptAdmin(ImmutableAdmin):
+    list_display = ['reminder', 'number', 'started_at', 'completed_at', 'outcome']
+    list_filter = ['outcome']

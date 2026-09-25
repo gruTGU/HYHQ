@@ -4,6 +4,7 @@
     <view class="journal-intro"><view class="page-title">读懂自然，<view>再走近一点。</view></view><view class="subtitle">把生态知识，带进日常。</view></view>
     <image class="journal-art" src="/assets/illustrations/botanical-river.jpg" mode="aspectFill" aria-hidden="true" />
   </view>
+  <button class="secondary section knowledge-entry" hover-class="pressable" bindtap="openSearch">资料检索 · 从原文里找答案 ↗</button>
   <view class="tabs section"><button class="tab {{tab === 'contents' ? 'selected' : ''}}" data-tab="contents" bindtap="changeTab" hover-class="pressable">科普手记</button><button class="tab {{tab === 'routes' ? 'selected' : ''}}" data-tab="routes" bindtap="changeTab" hover-class="pressable">漫步路线</button></view>
   <view class="card filters">
     <view class="filter-top"><picker class="region-picker" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion"><view class="region-selector"><text class="region-leaf" aria-hidden="true"></text><text>{{regions[regionIndex].name}}</text><text class="picker-chevron">⌄</text></view></picker><button wx:if="{{tab === 'contents'}}" class="text-button filter-toggle" bindtap="toggleFilters" aria-expanded="{{showFilters}}">{{showFilters ? '收起筛选' : '分类筛选'}}<text wx:if="{{category || plant_label || place}}" class="filter-dot"></text></button></view>

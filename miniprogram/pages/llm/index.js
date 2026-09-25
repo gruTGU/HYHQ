@@ -4,7 +4,7 @@ const { assessmentTask } = require('../../lib/assessment');
 const { loadAll, selectRegion } = require('../../lib/region');
 const { DISCLAIMER, SOURCE_LABELS, SCOPE_LABELS, publicSource, modelLabel, pending, turnView, sessionView, readPage, requestId } = require('../../lib/llm');
 Page({
-  data: { loading: true, busy: false, loggedIn: false, error: '', actionError: '', unavailable: false, status: null, modelLabel: 'DeepSeek Flash', scopeLabel: '识别解读', session: null, source: null, sourceLoading: false, sourceError: '', sourceKind: '', isRecognition: true, includeImage: false, question: '', questionCount: 0, turns: [], next: '', loadingMore: false, moreError: '', polling: false, pollNotice: '', hasPending: false, displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, disclaimer: DISCLAIMER },
+  data: { weatherLocations: [{ slug: '', name: '不附加天气资料' }], weatherIndex: 0, weatherError: '', loading: true, busy: false, loggedIn: false, error: '', actionError: '', unavailable: false, status: null, modelLabel: 'DeepSeek Flash', scopeLabel: '识别解读', session: null, source: null, sourceLoading: false, sourceError: '', sourceKind: '', isRecognition: true, includeImage: false, question: '', questionCount: 0, turns: [], next: '', loadingMore: false, moreError: '', polling: false, pollNotice: '', hasPending: false, displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, disclaimer: DISCLAIMER },
   onLoad(options) {
     this._alive = true; this._scope = 'recognition'; this._followLatest = true;
     if (options && options.sessionId) this._sessionId = options.sessionId;
@@ -68,6 +68,7 @@ Page({
         const source = await this.loadPublicSource();
         if (!this.current(generation, token)) return;
         this.setData({ source, sourceKind: this._scope, isRecognition: false, scopeLabel: SCOPE_LABELS[this._scope] });
+        await this.loadWeatherChoices(generation, token);
       } else {
         const endpoint = this._sourceKind === 'recognition' ? 'recognition-jobs/' : 'assessment-jobs/';
         const result = await app().api.request(endpoint + encodeURIComponent(this._sourceId) + '/');
@@ -78,6 +79,29 @@ Page({
       }
     } catch (error) { if (this.current(generation, token)) this.handleError(error); }
     finally { if (this.current(generation, token)) { this.setData({ loading: false }, () => { if (this.current(generation, token)) this.measureComposer({ scroll: true }); }); wx.stopPullDownRefresh(); } }
+  },
+  async loadWeatherChoices(generation, token) {
+    this.setData({ weatherError: '' });
+    try {
+      const response = await app().api.request('weather-data/locations/');
+      if (!this.current(generation, token)) return;
+      if (!response.data || !Array.isArray(response.data.items)) throw new Error('天气地点暂不可用');
+      const weatherLocations = [{ slug: '', name: '不附加天气资料' }].concat(response.data.items.filter((item) => typeof item.slug === 'string' && typeof item.name === 'string'));
+      const previous = this.data.weatherLocations[this.data.weatherIndex];
+      const weatherIndex = Math.max(0, weatherLocations.findIndex((item) => item.slug === (previous && previous.slug || '')));
+      this.setData({ weatherLocations, weatherIndex });
+    } catch (error) { if (this.current(generation, token)) this.setData({ weatherError: '天气地点暂不可用，本次可仅围绕页面资料对话。', weatherLocations: [{ slug: '', name: '不附加天气资料' }], weatherIndex: 0 }); }
+  },
+  chooseWeather(event) {
+    const weatherIndex = Number(event.detail.value);
+    if (this.canAct() && !this._sessionId && this.data.weatherLocations[weatherIndex]) this.setData({ weatherIndex });
+  },
+  openWeather() { if (this.canAct()) wx.navigateTo({ url: '/pages/weather/index' }); },
+  openCitation(event) {
+    if (!this.canAct()) return;
+    const { turn, id, kind } = event.currentTarget.dataset;
+    const row = this.data.turns.find((item) => item.id === turn);
+    if (row && (row.citations || []).some((item) => item.id === id && item.kind === kind) && ['content', 'route', 'place'].includes(kind)) wx.navigateTo({ url: '/pages/detail/index?kind=' + kind + '&id=' + encodeURIComponent(id) });
   },
   async loadPublicSource(type = this._sourceType, id = this._sourceId) {
     let item;
@@ -202,7 +226,11 @@ Page({
       try {
         const data = { scope: this._scope, include_image: includeImage };
         if (this._scope === 'recognition') data[this._sourceKind === 'recognition' ? 'recognition_job_id' : 'assessment_job_id'] = this._sourceId;
-        else Object.assign(data, { source_type: this._sourceType, source_id: this._sourceId });
+        else {
+          Object.assign(data, { source_type: this._sourceType, source_id: this._sourceId });
+          const weather = this.data.weatherLocations[this.data.weatherIndex];
+          if (weather && weather.slug) data.weather_location = weather.slug;
+        }
         const response = await app().api.request('llm/sessions/', { method: 'POST', data });
         const session = sessionView(response.data);
         // Remember a created session across hide, but never for another login.

@@ -11,8 +11,10 @@ from ecology.models import Metric, Place
 from ecology.series import public_stations, select_provenance
 from knowledge.models import Content, Route
 from .sources import reference
+from weatherdata.context import build_public_weather_context
 
 MAX_PUBLIC_CONTEXT_BYTES = 10000
+MAX_WEATHER_CONTEXT_BYTES = 3500
 
 
 def clip(value, limit):
@@ -22,6 +24,30 @@ def clip(value, limit):
 def excerpt(field, value, limit):
     text = str(value or '')
     return {field: clip(text, limit), field + '_truncated': len(text.encode('utf-8')) > limit}
+
+
+def bounded_weather_context(slug):
+    weather = build_public_weather_context(slug)
+    if weather.get('location'):
+        location = weather['location']
+        weather['location'] = {'slug': location.get('slug', ''), 'name': clip(location.get('name'), 240),
+                               **excerpt('scope_note', location.get('scope_note'), 600)}
+    components = weather.get('components', {})
+    while len(json.dumps(weather, ensure_ascii=False).encode()) > MAX_WEATHER_CONTEXT_BYTES:
+        candidates = [(len(json.dumps(value, ensure_ascii=False).encode()), key) for key, value in components.items()
+                      if value.get('reason') != 'context_budget_exceeded']
+        if not candidates:
+            break
+        _, key = max(candidates)
+        previous = components[key]
+        # Attribution must remain complete when using a supplier's data. Omit the
+        # entire component instead of cutting attribution or observation values.
+        components[key] = {name: previous.get(name) for name in ('fetched_at', 'expires_at', 'observed_at')}
+        components[key].update(status='unavailable', data=None, source_label='和风天气',
+                               reason='context_budget_exceeded', notice='该气象资料及完整归因超出对话上下文容量，请在天气页查看。')
+        weather['material_omitted'] = True
+    weather['status'] = 'available' if any(value.get('status') in ('fresh', 'empty') for value in components.values()) else 'unavailable'
+    return weather
 
 
 def region_card(region):
@@ -82,7 +108,8 @@ def measurement_samples(stations):
 def build_public_context(session, source):
     source_type, _ = reference(session)
     context = {'scope': session.scope, 'source_type': source_type, 'image_supplied_this_turn': False,
-               'notice': '本次对话只使用当前页面及关联公开资料；预设路线不提供实时导航。平台首页已提供部分地点的天气与预警查询，但本次对话上下文不包含实时天气或预警，不能据此回答当前天气或是否存在预警。实际出行请在首页选择支持地点并核对更新时间，必要时查询官方气象渠道。'}
+               'notice': '本次对话使用当前页面及关联公开资料。天气仅来自用户明确选定真实地点的缓存，以各项来源、观测时间和有效期为准；未选择、过期或不可用时必须明确说明。这里不会联网搜索或主动刷新气象接口，预设路线不提供实时导航。',
+               'weather': bounded_weather_context(getattr(session, 'weather_location', ''))}
     articles = Content.objects.filter(status='published').filter(Q(place__isnull=True) | Q(place__is_published=True)).select_related('place')
     if source_type == 'region':
         context['current_page'] = region_card(source)

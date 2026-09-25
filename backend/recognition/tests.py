@@ -305,7 +305,7 @@ class RegistryWorkerTests(FixtureMixin, TestCase):
 
     def test_health_contract_and_missing_artifact(self):
         data = APIClient().get('/api/v1/health/').json()['data']
-        self.assertEqual(data['version'], 'm3')
+        self.assertEqual(data['version'], 'm5')
         self.assertTrue(data['features']['recognition'])
         self.assertFalse(data['features']['llm'])
         self.assertEqual(len(data['recognition']['labels']), 5)

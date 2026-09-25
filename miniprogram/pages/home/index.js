@@ -77,6 +77,7 @@ Page({
   },
   toggleAir() { if (this._alive !== false && !this._hidden) this.setData({ airExpanded: !this.data.airExpanded }); },
   toggleObservations() { if (this._alive !== false && !this._hidden) this.setData({ observationExpanded: !this.data.observationExpanded }); },
+  openWeather() { wx.navigateTo({ url: '/pages/weather/index' }); },
   weatherSource() { wx.setClipboardData({ data: 'https://www.qweather.com' }); },
   async loadEnvironment(id, generation) {
     const definitions = [

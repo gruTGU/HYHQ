@@ -1,0 +1,20 @@
+.comments-page { padding-bottom:calc(60rpx + env(safe-area-inset-bottom)); }
+.records-nav { display:flex;justify-content:flex-end;gap:16rpx;margin:16rpx 0; }
+.records-nav button { margin:0; }
+.comment-form,.comment-record,.report-form,.closed-state,.empty-record { margin-top:24rpx; }
+textarea { box-sizing:border-box;width:100%;min-height:190rpx;margin-top:24rpx;padding:24rpx;border-radius:24rpx;background:#f0f4ed;color:#2c3e33;line-height:1.7;font-size:28rpx; }
+.count { text-align:right;margin:12rpx 0; }
+.form-hint { color:#68796c;font-size:23rpx;line-height:1.8; }
+.record-head { display:flex;align-items:center;justify-content:space-between;gap:16rpx;flex-wrap:wrap; }
+.record-author { font-size:27rpx;font-weight:600;color:#2c3e33; }
+.status-chip { padding:8rpx 14rpx;border-radius:20rpx;background:#f2ece4;color:#966746;font-size:21rpx; }
+.status-chip.approved { background:#e7f0e4;color:#3a7d5c; }
+.record-body { margin:24rpx 0;color:#2c3e33;line-height:1.85;white-space:pre-wrap;word-break:break-all;font-size:28rpx; }
+.record-foot { display:flex;gap:16rpx;align-items:center;justify-content:space-between; }
+.record-foot button { margin:0;font-size:24rpx; }
+.report-content { margin:28rpx auto; }
+.reason-select { margin:20rpx 0;padding:20rpx 24rpx;background:#f0f4ed;border-radius:20rpx;display:flex;justify-content:space-between;gap:16rpx;font-size:27rpx; }
+.reason-select text { font-size:23rpx;color:#68796c; }
+.closed-state,.empty-record { text-align:center;padding:42rpx 30rpx; }
+.leaf-mark { width:66rpx;height:44rpx;border-radius:100% 0 100% 0;background:#a8c99b;transform:rotate(-24deg);margin:6rpx auto 28rpx; }
+.error-inline,.notice { white-space:pre-wrap;word-break:break-all; }

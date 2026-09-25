@@ -25,6 +25,15 @@ test('JavaScript parses without any transpiler and fresh checkout configuration 
   assert.equal(require('../project.config.json').setting.urlCheck, true);
 });
 
+test('WXML conditional branches bind expressions instead of truthy literal strings', () => {
+  for (const file of files(root).filter((file) => file.endsWith('.wxml'))) {
+    const content = fs.readFileSync(file, 'utf8');
+    for (const match of content.matchAll(/\bwx:(?:if|elif)="([^"]*)"/g)) {
+      assert.match(match[1], /^{{[\s\S]+}}$/, `${file}: ${match[0]} must bind its condition; a nonempty literal is always true`);
+    }
+  }
+});
+
 test('WXML uses known native/custom tags with balanced nesting and bound handlers', () => {
   const native = new Set(['view', 'text', 'button', 'input', 'textarea', 'image', 'block', 'picker', 'scroll-view', 'checkbox', 'checkbox-group', 'label', 'switch', 'movable-area', 'movable-view', 'canvas', 'rich-text']);
   const globals = Object.keys(require('../app.json').usingComponents || {});
@@ -53,7 +62,7 @@ test('WXML uses known native/custom tags with balanced nesting and bound handler
       else if (!tag.endsWith('/>')) stack.push(match[2]);
     }
     assert.equal(stack.length, 0, `${file}: all tags close`);
-    for (const match of content.matchAll(/\b(?:bind|catch)\w+="([A-Za-z]\w*)"/g)) {
+    for (const match of content.matchAll(/\b(?:bind|catch):?\w+="([A-Za-z]\w*)"/g)) {
       assert.equal(typeof handlers[match[1]], 'function', `${file}: handler ${match[1]} exists`);
     }
   }

@@ -163,6 +163,7 @@ Page({
     const items = kind === 'content' ? this.data.contents : kind === 'route' ? this.data.routes : [];
     if (items.some((item) => item.id === id)) detail(kind, id);
   },
+  openSearch() { if (this.visible()) wx.navigateTo({ url: '/pages/knowledge-search/index' }); },
   openAI() {
     if (!this.visible() || this.data.regionError) return;
     const regions = this.data.regions.filter((item) => item.id);

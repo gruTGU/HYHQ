@@ -8,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const source = path.join(root, 'miniprogram');
 const destination = path.join(root, 'miniprogram-preview');
 const marker = path.join(destination, '.hyhq-generated-preview');
+console.log('生成前请先在微信开发者工具中关闭 miniprogram-preview 项目：本工具会重建整个预览目录。');
 if (fs.existsSync(destination)) {
   if (!fs.existsSync(marker)) throw new Error('预览目录不是本工具生成的目录，已停止以保护文件。');
   fs.rmSync(destination, { recursive: true, force: true });
@@ -40,3 +41,4 @@ fs.writeFileSync(path.join(destination, 'project.private.config.json'), JSON.str
 console.log('本地预览目录：' + destination);
 console.log('仅连接 127.0.0.1:8000；开发登录关闭；不可将此目录上传或提交审核。');
 console.log('生产目录 miniprogram 的 HTTPS 地址、域名校验与私有配置未修改。');
+console.log('若生成时预览项目仍在工具中打开，请生成后使用「项目 → 重新打开」；仅编译或清缓存可能无法恢复 App 注册。');

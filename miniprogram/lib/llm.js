@@ -10,14 +10,16 @@ const STATES = { queued: '等待解读', running: '正在解读', succeeded: '�
 function pending(turn) { return turn && ['queued', 'running'].includes(turn.status); }
 function turnView(turn) {
   if (!turn || typeof turn.id !== 'string' || !turn.id || !STATES[turn.status]) throw new Error('AI 解读返回格式不正确，请刷新核对。');
-  return Object.assign({}, turn, { status_label: STATES[turn.status], created_label: time(turn.created_at), finished_label: turn.finished_at ? time(turn.finished_at) : '', image_label: pending(turn) ? '图像使用情况待处理完成后确认' : turn.used_image ? '本轮使用了原图与文字结果' : '本轮仅使用文字结果与对话', model_label: modelLabel(turn.model), answer: typeof turn.answer === 'string' ? turn.answer : '' });
+  return Object.assign({}, turn, { citations: Array.isArray(turn.citations) ? turn.citations.filter((item) => item && ['content', 'route', 'place'].includes(item.kind) && typeof item.id === 'string' && typeof item.title === 'string').slice(0, 8) : [], status_label: STATES[turn.status], created_label: time(turn.created_at), finished_label: turn.finished_at ? time(turn.finished_at) : '', image_label: pending(turn) ? '图像使用情况待处理完成后确认' : turn.used_image ? '本轮使用了原图与文字结果' : '本轮仅使用文字结果与对话', model_label: modelLabel(turn.model), answer: typeof turn.answer === 'string' ? turn.answer : '' });
 }
 function sessionView(session) {
   if (!session || typeof session.id !== 'string' || !session.id || !['recognition', 'assessment', 'explore', 'learn'].includes(session.kind)) throw new Error('AI 会话返回格式不正确，请刷新核对。');
   const scope = session.scope || (['recognition', 'assessment'].includes(session.kind) ? 'recognition' : session.kind);
   if (!SCOPE_LABELS[scope] || (['explore', 'learn'].includes(scope) && !publicSource(scope, session.source_type, session.source_id))) throw new Error('AI 会话来源不正确，请刷新核对。');
   const context = session.context_summary;
-  return Object.assign({}, session, { scope, is_recognition: scope === 'recognition', created_label: time(session.created_at), expires_label: time(session.expires_at), kind_label: session.kind === 'recognition' ? '花卉识别' : session.kind === 'assessment' ? '河道观察' : SCOPE_LABELS[scope], source_label: SOURCE_LABELS[session.source_type] || '原识别结果', context_text: typeof context === 'string' ? context : context ? JSON.stringify(context, null, 2) : '资料摘要暂不可用。' });
+  const weather = session.weather_context;
+  const weatherLabel = !session.weather_location ? '未附加天气资料' : weather && weather.location ? weather.location.name + (weather.status === 'available' ? ' · 仅使用有效缓存，详见回答中的时间' : ' · 缓存过期或不可用') : '所选天气地点不可用';
+  return Object.assign({}, session, { weatherLabel, scope, is_recognition: scope === 'recognition', created_label: time(session.created_at), expires_label: time(session.expires_at), kind_label: session.kind === 'recognition' ? '花卉识别' : session.kind === 'assessment' ? '河道观察' : SCOPE_LABELS[scope], source_label: SOURCE_LABELS[session.source_type] || '原识别结果', context_text: typeof context === 'string' ? context : context ? JSON.stringify(context, null, 2) : '资料摘要暂不可用。' });
 }
 function pageKey(path, endpoint) {
   if (typeof path !== 'string' || /[\s\\#]/.test(path)) throw new Error('AI 记录分页地址无效，请刷新重试。');

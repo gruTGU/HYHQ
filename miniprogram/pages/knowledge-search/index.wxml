@@ -1,0 +1,15 @@
+<view class="page search-page">
+  <text class="eyebrow">REFERENCE / 有据可查</text><view class="page-title">从资料里找答案</view><view class="subtitle">检索科普手记、漫步路线和公开地点。</view>
+  <view class="card section">
+    <view class="search-row"><input value="{{input}}" maxlength="100" placeholder="如：湿地 鸟类（空格分隔关键词）" confirm-type="search" bindinput="input" bindconfirm="search" /><button class="primary" bindtap="search" loading="{{loading}}">检索</button></view>
+    <view class="filter-grid gap"><picker range="{{categories}}" range-key="name" value="{{categoryIndex}}" data-field="categoryIndex" bindchange="filter"><view class="selector">{{categories[categoryIndex].name}} ⌄</view></picker><picker range="{{plantLabels}}" range-key="name" value="{{plantIndex}}" data-field="plantIndex" bindchange="filter"><view class="selector">{{plantLabels[plantIndex].name}} ⌄</view></picker></view>
+    <picker class="gap" range="{{places}}" range-key="name" value="{{placeIndex}}" data-field="placeIndex" bindchange="filter"><view class="selector">{{places[placeIndex].name}} ⌄</view></picker>
+    <view class="small muted gap">分类与植物标签用于科普手记；地点可关联手记、路线及地点介绍。</view>
+    <view wx:if="{{filtersError}}" class="error-inline">{{filtersError}}，仍可输入关键词。<button class="text-button" bindtap="loadFilters">重试筛选项</button></view>
+  </view>
+  <page-state loading="{{loading}}" error="{{error}}" bindretry="retry" />
+  <view wx:if="{{!searched}}" class="notice">输入关键词后，展示匹配资料的原文片段与来源。这里不会联网搜索，也不会凭空补全答案。</view>
+  <view wx:if="{{answer && !loading}}" class="notice"><view class="title">{{answer}}</view><view class="small muted gap">{{notice}}</view></view>
+  <view class="card section" wx:for="{{results}}" wx:key="key"><view class="row"><text class="pill">{{item.kindLabel}}</text><text wx:if="{{item.is_demo}}" class="pill">科普模拟资料</text></view><view class="title gap">{{item.title}}</view><text class="excerpt" selectable>{{item.excerpt || '暂无正文片段，请打开资料核对。'}}</text><view class="small muted gap source">来源：{{item.source}}</view><view class="small muted gap">资料更新 {{item.dateLabel}}{{item.region_name ? ' · ' + item.region_name : ''}}</view><button class="text-button gap" data-key="{{item.key}}" bindtap="open">核对完整资料 ↗</button></view>
+  <button wx:if="{{hasMore && !loading}}" class="secondary section" bindtap="more" loading="{{moreLoading}}" disabled="{{moreLoading}}">加载更多来源</button>
+</view>

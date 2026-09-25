@@ -75,6 +75,7 @@ class LLMSession(models.Model):
     context_summary = models.TextField()
     consent_version = models.CharField(max_length=32, blank=True, default='')
     include_image = models.BooleanField(default=False)
+    weather_location = models.SlugField(max_length=50, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(db_index=True)
 
@@ -129,6 +130,7 @@ class LLMTurn(models.Model):
     question = models.CharField(max_length=500)
     answer = models.TextField(blank=True)
     context_revision = models.CharField(max_length=64, blank=True, default='')
+    citations = models.JSONField(default=list, blank=True)
     status = models.CharField(max_length=16, default='queued', choices=[(x, x) for x in ['queued', 'running', 'succeeded', 'failed']])
     error_code = models.CharField(max_length=80, blank=True)
     message = models.CharField(max_length=200, blank=True)

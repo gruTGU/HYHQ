@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from weatherdata.models import WeatherLocation, WeatherMonth, WeatherRequest
-from weatherdata.services import BEIJING, summary
+from weatherdata.services import BEIJING, get_component, summary
 
 
 class Command(BaseCommand):
@@ -14,6 +14,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--location', required=True)
         parser.add_argument('--fetch', action='store_true')
+        parser.add_argument('--forecast', action='store_true', help='仅检查三日预报；需权益确认且受同一预算约束')
 
     def handle(self, *args, **options):
         location = WeatherLocation.objects.filter(slug=options['location'], is_active=True).first()
@@ -24,8 +25,13 @@ class Command(BaseCommand):
         rolling = WeatherRequest.objects.filter(reserved_at__gte=now-timedelta(days=31)).count()
         self.stdout.write(f'月预占 {month.reserved if month else 0}；近 31 天预占 {rolling}；本部署封顶 {settings.QWEATHER_MONTHLY_LIMIT}。')
         if options['fetch']:
+            if options['forecast']:
+                result = get_component(location, 'forecast')
+                self.stdout.write(f'forecast: {result["status"]}; {result["reason"] or "ok"}')
+                return
             result = summary(location)
             for kind in ('weather', 'air', 'alerts'):
                 self.stdout.write(f'{kind}: {result[kind]["status"]}; {result[kind]["reason"] or "ok"}')
         else:
-            self.stdout.write('预览：最多 3 次上游请求，每种服务分别计次；缓存命中、预算/冷却阻断不出站。')
+            maximum = 1 if options['forecast'] else 3
+            self.stdout.write(f'预览：最多 {maximum} 次上游请求，每种服务分别计次；缓存命中、预算/冷却阻断不出站。')

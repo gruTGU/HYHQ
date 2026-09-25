@@ -221,10 +221,11 @@ class ScopeBehaviorTests(PublicFixture, TestCase):
             with self.subTest(source_type=source_type):
                 session = self.public_session(scope, source_type, source)
                 context = build_public_context(session, source)
-                self.assertIn('首页已提供部分地点的天气与预警查询', context['notice'])
-                self.assertIn('本次对话上下文不包含实时天气或预警', context['notice'])
+                self.assertIn('不会联网搜索或主动刷新气象接口', context['notice'])
+                self.assertEqual(context['weather']['status'], 'unavailable')
+                self.assertEqual(context['weather']['reason'], 'weather_location_required')
                 self.assertNotIn('未接入真实气象预警', context['notice'])
-                self.assertNotIn('weather', context)
+                self.assertTrue(context['weather']['cache_only'])
                 self.assertNotIn('alerts', context)
 
     def test_public_data_reloaded_after_create_and_no_client_snapshot(self):

@@ -1,6 +1,8 @@
 const { app, requireLogin, toast, finish } = require('../../lib/page');
 const { list, message } = require('../../lib/format');
-const { capability, assessmentTask } = require('../../lib/assessment');
+const { capability, assessmentTask: baseAssessmentTask } = require('../../lib/assessment');
+const { summaryView } = require('./summary');
+const assessmentTask = (job) => Object.assign(baseAssessmentTask(job), { summary_view: summaryView(job) });
 const NONE = { id: '', name: '不关联水体（可直接上传）' };
 const pending = (job) => job && ['queued', 'running'].includes(job.status);
 

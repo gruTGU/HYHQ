@@ -7,12 +7,14 @@ through the live HTTP server. DeepSeek responses are explicitly synthetic.
 import base64
 import io
 import json
+import socket
 import tempfile
 import uuid
 from datetime import timedelta
 from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
 from unittest.mock import patch
+from unittest import skipUnless
 
 from django.core.cache import cache
 from django.test import LiveServerTestCase, override_settings
@@ -26,6 +28,16 @@ from llm.worker import process_one
 from recognition.models import RecognitionJob
 
 
+def localhost_listener_available():
+    try:
+        with socket.socket() as listener:
+            listener.bind(('127.0.0.1', 0))
+    except PermissionError:
+        return False
+    return True
+
+
+@skipUnless(localhost_listener_available(), '当前沙箱禁止监听本地端口；真实 HTTP 流程需在允许本地套接字的环境补验。')
 @override_settings(ENV='development', DEBUG=True, ALLOW_DEV_AUTH=True, LLM_ENABLED=True,
                    DEEPSEEK_API_KEY='synthetic-never-sent', DEEPSEEK_MODEL='deepseek-flash')
 class LLMLocalHTTPTests(LiveServerTestCase):

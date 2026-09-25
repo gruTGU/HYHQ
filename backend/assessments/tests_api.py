@@ -198,3 +198,26 @@ class AssessmentApiTests(AssessmentFixture, TestCase):
         self.assertEqual(data['image_width'], 100)
         self.assertNotIn('artifact', data['model'])
         self.assertNotIn('model_snapshot', data)
+
+    def test_observation_summary_is_private_expiring_and_does_not_rewrite_history(self):
+        detections = [{'class_id': 9, 'eval_category': 'floating_debris', 'confidence': .8, 'bbox': [0, 0, 50, 40]}]
+        job = AssessmentJob.objects.create(owner=self.user, asset=self.asset(), status='succeeded',
+            detections=detections, image_width=100, image_height=80, score=85, rule_version='historical-v1',
+            expires_at=timezone.now() + timedelta(days=1))
+        detail = f'/api/v1/assessment-jobs/{job.pk}/'
+        self.assertEqual(APIClient().get(detail).status_code, 401)
+        other = APIClient()
+        token, _ = issue_session(self.other)
+        other.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        self.assertEqual(other.get(detail).status_code, 404)
+        data = self.api.get(detail).json()['data']
+        self.assertEqual(data['observation_summary']['candidate_count'], 1)
+        self.assertEqual(data['observation_summary']['box_area_ratio'], .25)
+        self.assertEqual(self.api.get('/api/v1/assessment-jobs/').json()['data'][0]['observation_summary'], data['observation_summary'])
+        job.refresh_from_db()
+        self.assertEqual(job.detections, detections)
+        self.assertEqual(job.rule_version, 'historical-v1')
+        self.assertEqual(job.score, 85)
+        AssessmentJob.objects.filter(pk=job.pk).update(expires_at=timezone.now() - timedelta(seconds=1))
+        self.assertEqual(self.api.get(detail).status_code, 404)
+        self.assertEqual(self.api.get('/api/v1/assessment-jobs/').json()['data'], [])

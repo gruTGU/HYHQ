@@ -61,3 +61,5 @@
 .composer-label { gap: 14rpx; align-items: flex-start; line-height: 1.6; }
 .composer-label text:first-child { min-width: 0; flex: 1; }
 .composer-label text:last-child { flex-shrink: 0; }
+
+.weather-choice { border-top: 1rpx solid #dce5d8; padding-top: 24rpx; }.weather-selector { padding: 20rpx; background: #f0f4ed; border-radius: 16rpx; margin: 16rpx 0; }.citation-list { border-top: 1rpx solid #e2e9df; margin-top: 24rpx; padding-top: 20rpx; }.citation-button { text-align: left; white-space: normal; line-height: 1.6; margin-top: 12rpx; }

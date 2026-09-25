@@ -6,6 +6,7 @@ from ecology.models import WaterBody
 from .geo import public_stations
 from .models import AssessmentJob
 from .rules import LIMITATION, SCORE_NAME
+from .summary import observation_summary
 
 
 class CoordinateInput(serializers.Serializer):
@@ -57,6 +58,10 @@ class JobSerializer(serializers.ModelSerializer):
     limitation = serializers.SerializerMethodField()
     model_name = serializers.SerializerMethodField()
     model = serializers.SerializerMethodField()
+    observation_summary = serializers.SerializerMethodField()
+
+    def get_observation_summary(self, obj):
+        return observation_summary(obj)
 
     def get_water_body(self, obj):
         if obj.water_body_id and obj.water_body.place.is_published and obj.water_body.place.kind in {'river', 'lake'}:
@@ -84,6 +89,6 @@ class JobSerializer(serializers.ModelSerializer):
     class Meta:
         model = AssessmentJob
         fields = ('id', 'asset_id', 'status', 'detections', 'image_width', 'image_height', 'score', 'score_name', 'grade', 'causes', 'issues',
-                  'decision', 'reason', 'limitation', 'error_code', 'message', 'model_version', 'model_name', 'model', 'rule_version',
+                  'decision', 'reason', 'limitation', 'error_code', 'message', 'model_version', 'model_name', 'model', 'rule_version', 'observation_summary',
                   'water_body', 'station', 'latitude', 'longitude', 'coordinate_system',
                   'created_at', 'started_at', 'finished_at', 'duration_ms', 'expires_at')

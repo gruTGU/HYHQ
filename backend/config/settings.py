@@ -44,7 +44,7 @@ else:
 INSTALLED_APPS = [
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles',
-    'rest_framework', 'common', 'accounts', 'ecology', 'knowledge', 'assets', 'recognition', 'activity', 'assessments', 'llm', 'weatherdata',
+    'rest_framework', 'common', 'accounts', 'ecology', 'knowledge', 'assets', 'recognition', 'activity', 'assessments', 'llm', 'weatherdata', 'community', 'narration',
 ]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware', 'common.middleware.RequestLogMiddleware',
@@ -149,3 +149,18 @@ LOGGING = {
     'root': {'handlers': ['console'], 'level': 'INFO'},
     'loggers': {'django.server': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False}},
 }
+
+# Optional capabilities stay closed until account entitlements are verified.
+COMMUNITY_ENABLED = os.getenv('COMMUNITY_ENABLED', '0') == '1'
+QWEATHER_FORECAST_ENABLED = os.getenv('QWEATHER_FORECAST_ENABLED', '0') == '1'
+QWEATHER_FORECAST_ENTITLEMENT_CONFIRMED = os.getenv('QWEATHER_FORECAST_ENTITLEMENT_CONFIRMED', '0') == '1'
+QWEATHER_FORECAST_TTL_SECONDS = int(os.getenv('QWEATHER_FORECAST_TTL_SECONDS', '21600'))
+WEATHER_SUBSCRIPTIONS_ENABLED = os.getenv('WEATHER_SUBSCRIPTIONS_ENABLED', '0') == '1'
+WEATHER_SUBSCRIPTIONS_CAPABILITY_CONFIRMED = os.getenv('WEATHER_SUBSCRIPTIONS_CAPABILITY_CONFIRMED', '0') == '1'
+WEATHER_SUBSCRIPTION_TEMPLATE_ID = os.getenv('WEATHER_SUBSCRIPTION_TEMPLATE_ID', '').strip()
+# JSON maps the four supported values to approved WeChat template keys.
+import json as _json
+try:
+    WEATHER_SUBSCRIPTION_FIELDS = _json.loads(os.getenv('WEATHER_SUBSCRIPTION_FIELDS', '{}'))
+except (TypeError, ValueError):
+    raise ImproperlyConfigured('WEATHER_SUBSCRIPTION_FIELDS must be valid JSON') from None

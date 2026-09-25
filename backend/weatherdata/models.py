@@ -3,10 +3,12 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.conf import settings
 from django.db import models
 
 
-KINDS = [('weather', '当前天气'), ('air', '当前空气质量'), ('alerts', '当前天气预警')]
+CURRENT_KINDS = [('weather', '当前天气'), ('air', '当前空气质量'), ('alerts', '当前天气预警')]
+KINDS = [*CURRENT_KINDS, ('forecast', '每日天气预报')]
 
 
 class WeatherLocation(models.Model):
@@ -88,3 +90,52 @@ class WeatherCache(models.Model):
         constraints = [models.UniqueConstraint(fields=['location', 'kind', 'point'], name='weather_cache_unique_point')]
         verbose_name = '天气持久缓存'
         verbose_name_plural = verbose_name
+
+
+REMINDER_STATES = [(key, label) for key, label in (
+    ('prepared', '待主动授权'), ('pending', '已安排'), ('sending', '发送中'), ('retry', '等待重试'),
+    ('sent', '已发送'), ('cancelled', '已取消'), ('expired', '已过期'), ('failed', '发送失败'),
+    ('unknown', '发送结果待核实'))]
+
+
+class WeatherReminder(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='weather_reminders')
+    location = models.ForeignKey(WeatherLocation, on_delete=models.PROTECT)
+    point = models.CharField(max_length=30)
+    template_id = models.CharField(max_length=128)
+    config_fingerprint = models.CharField(max_length=64)
+    target_date = models.DateField()
+    scheduled_for = models.DateTimeField(db_index=True)
+    expires_at = models.DateTimeField()
+    consent_expires_at = models.DateTimeField()
+    consented_at = models.DateTimeField(null=True, blank=True)
+    state = models.CharField(max_length=12, choices=REMINDER_STATES, default='prepared', db_index=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    next_attempt_at = models.DateTimeField(null=True, blank=True)
+    attempt_started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    last_code = models.CharField(max_length=40, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = '一次天气提醒'
+        verbose_name_plural = verbose_name
+        constraints = [models.UniqueConstraint(fields=['user', 'target_date'],
+            condition=models.Q(state__in=['prepared', 'pending', 'sending', 'retry']),
+            name='weather_one_active_reminder_per_day')]
+
+
+class WeatherReminderAttempt(models.Model):
+    reminder = models.ForeignKey(WeatherReminder, on_delete=models.CASCADE, related_name='delivery_attempts')
+    number = models.PositiveSmallIntegerField()
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    outcome = models.CharField(max_length=40, default='started')
+
+    class Meta:
+        ordering = ['-started_at']
+        verbose_name = '天气提醒发送记录'
+        verbose_name_plural = verbose_name
+        constraints = [models.UniqueConstraint(fields=['reminder', 'number'], name='weather_unique_delivery_attempt')]

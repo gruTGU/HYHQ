@@ -4,8 +4,9 @@
 
 ## 可用接口
 
-- `GET /api/v1/weather-data/locations/`：返回 `{items, enabled}`；地点包含 `slug/name/latitude/longitude/coordinate_system/scope_note`。
+- `GET /api/v1/weather-data/locations/`：返回 `{items, enabled, forecast_enabled}`；地点包含 `slug/name/latitude/longitude/coordinate_system/scope_note`。
 - `GET /api/v1/weather-data/summary/?location=beijing`：返回地点及 `weather/air/alerts`。仅允许一个 `location` 参数，禁止客户端坐标、任意 URL、类别或强制刷新参数。
+- `GET /api/v1/weather-data/<slug>/forecast/`：独立三日预报；功能及权益确认开关默认关闭，不随首页 summary 自动调用。
 
 仍沿用项目的 `{data, request_id}` JSON 外层。每个组件包括：
 
@@ -42,6 +43,7 @@
 1. `/weather/v1/current/{latitude}/{longitude}`
 2. `/airquality/v1/current/{latitude}/{longitude}`
 3. `/weatheralert/v1/current/{latitude}/{longitude}`
+4. `/weather/v1/daily/{latitude}/{longitude}?lang=zh&days=3`（仅预报及权益确认开关同时开启时允许）
 
 热带气旋、海洋、辐照没有连接器或公开请求入口。客户端无法指定路径。使用标准库 HTTPS，无重定向、代理环境继承或重试；响应及 gzip 解压均限制 256 KiB，错误不保存原始正文。
 
@@ -55,6 +57,12 @@ python manage.py weather_refresh --location beijing --fetch
 ```
 
 地点配置与默认刷新预览均不发送外部请求。`--fetch` 才会按三类缓存策略取数。后台“真实天气与请求预算”可维护地点、核对只读账本及缓存；配置改动和维护检查进入业务审计。禁用再启用不会删除历史账本。修改坐标建立新的缓存键，不再把旧坐标数据发布为新地点数据。
+
+## 三日预报、AI 上下文与一次提醒
+
+预报使用独立 6 小时缓存，仍共享原有持久预算。`weather_refresh --forecast` 仅预览，额外加 `--fetch` 才可能出站。AI 的 `build_public_weather_context` 只读明确地点的缓存，过期数值不传给模型，不增加天气调用。
+
+一次性提醒必须经用户点击并获得微信授权；能力、模板和凭据门禁默认关闭。`weather_reminders` 只预览，额外加 `--send` 才可能发送。worker 只用新鲜缓存，不刷新天气；结果不明的消息不自动重发。配置、接口、迁移、待核实项与隔离测试见 [M5 天气预报与订阅实现](../../docs/M5天气预报与订阅实现.md)。
 
 ## 已核对官方文档（2026-09-21）
 

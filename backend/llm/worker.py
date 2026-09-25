@@ -50,7 +50,7 @@ def _claim():
 
 
 @transaction.atomic
-def _before_dispatch(turn_id, used_image, context_revision=''):
+def _before_dispatch(turn_id, used_image, context_revision='', citations=None):
     config = get_config(locked=True)
     turn = LLMTurn.objects.select_related('session', 'ledger').filter(pk=turn_id, status='running').first()
     if not turn or turn.ledger.status != 'running':
@@ -63,7 +63,7 @@ def _before_dispatch(turn_id, used_image, context_revision=''):
     if turn.session.scope != 'recognition':
         if not context_revision or revision_for(build_public_context(turn.session, job)) != context_revision:
             raise ServiceError('页面资料已更新，请重新提问以使用最新公开内容。', 'LLM_CONTEXT_CHANGED', 409)
-        LLMTurn.objects.filter(pk=turn.pk, status='running').update(context_revision=context_revision)
+        LLMTurn.objects.filter(pk=turn.pk, status='running').update(context_revision=context_revision, citations=citations or [])
     if turn.ledger.lease_until <= timezone.now():
         raise ServiceError('解读准备超时，请稍后重试。', 'LLM_WORKER_TIMEOUT', 409)
     UsageLedger.objects.filter(pk=turn.ledger_id, status='running').update(dispatched=True, used_image=used_image,
@@ -112,7 +112,7 @@ def process_one():
     entry = turn.ledger
     try:
         messages, used_image = build_messages(turn)
-        _before_dispatch(turn.pk, used_image, turn.context_revision)
+        _before_dispatch(turn.pk, used_image, turn.context_revision, turn.citations)
         response = provider.generate(messages, max_tokens=entry.max_output_tokens,
                                      timeout=entry.timeout_seconds, user_id=str(entry.pk))
     except provider.ProviderError as exc:

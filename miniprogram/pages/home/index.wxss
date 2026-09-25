@@ -48,6 +48,7 @@
 .pollutants { display: flex; flex-wrap: wrap; gap: 14rpx; border-top: 1rpx solid #e0e8d9; padding-top: 18rpx; margin-top: 20rpx; }
 .pollutant { width: calc(50% - 7rpx); background: #fffefa; border-radius: 14rpx; padding: 12rpx 16rpx; font-size: 24rpx; }
 .source-copy { margin-top: 10rpx; font-size: 18rpx; color: #798576; overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.6; }
+.home-page .weather-entry { width: 100%; min-height: 88rpx; margin-top: 24rpx; padding: 22rpx 24rpx; font-size: 26rpx; line-height: 1.6; }
 .source-link { margin-top: 20rpx; padding: 16rpx 0 0; border-top: 1rpx solid #e6ebe1; text-align: left; font-size: 20rpx; color: #4c7559; background: transparent; line-height: 1.8; border-radius: 0; }
 .source-link text { float: right; color: #7b8977; font-size: 19rpx; }
 .alert-empty { display: flex; align-items: center; margin-top: 22rpx; padding: 15rpx 18rpx; border-radius: 18rpx; background: #edf4e7; color: #5c7355; font-size: 22rpx; }

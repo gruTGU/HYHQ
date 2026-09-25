@@ -1,4 +1,4 @@
-"""Exactly three fixed QWeather v1 endpoints; never a general purpose proxy."""
+"""Fixed QWeather v1 allowlist; no cyclone, marine or radiation endpoints."""
 import http.client
 import json
 import math
@@ -9,11 +9,14 @@ import time
 import zlib
 
 from django.conf import settings
+from django.utils.dateparse import parse_datetime
+from django.utils import timezone
 
 PATHS = {
     'weather': '/weather/v1/current/',
     'air': '/airquality/v1/current/',
     'alerts': '/weatheralert/v1/current/',
+    'forecast': '/weather/v1/daily/',
 }
 HOST_PATTERN = re.compile(r'\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.){1,3}qweatherapi\.com\Z')
 MAX_BYTES = 256 * 1024
@@ -54,6 +57,48 @@ def texts(value):
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ProviderError('invalid_response')
     return [clean_text(item, 32000, complete=True) for item in value]
+
+
+def forecast_days(body):
+    days = body.get('days')
+    if not isinstance(days, list) or not 1 <= len(days) <= 3:
+        raise ProviderError('invalid_response')
+    normalized = []
+    previous_end = None
+    for raw in days:
+        raw = obj(raw)
+        try:
+            start = parse_datetime(raw.get('forecastStartTime', ''))
+            end = parse_datetime(raw.get('forecastEndTime', ''))
+        except (TypeError, ValueError):
+            raise ProviderError('invalid_response') from None
+        if (not start or not end or timezone.is_naive(start) or timezone.is_naive(end) or end <= start
+                or (previous_end and start < previous_end)):
+            raise ProviderError('invalid_response')
+        previous_end = end
+        low, high = obj(raw.get('temperatureMin')), obj(raw.get('temperatureMax'))
+        if (number(low.get('value')) is None or number(high.get('value')) is None
+                or low['value'] > high['value'] or low.get('unit') != high.get('unit')
+                or low.get('unit') not in ('°C', '°F')):
+            raise ProviderError('invalid_response')
+        entry = {'starts_at': start.isoformat(), 'ends_at': end.isoformat(),
+                 'temperature_min': low['value'], 'temperature_max': high['value'], 'temperature_unit': low['unit']}
+        for period in ('daytime', 'nighttime'):
+            part = obj(raw.get(period))
+            condition = obj(part.get('condition'))
+            if not isinstance(condition.get('text'), str) or not condition['text'].strip():
+                raise ProviderError('invalid_response')
+            rain = obj(part.get('precipitation'))
+            probability = number(rain.get('probability'))
+            if probability is not None and not 0 <= probability <= 1:
+                raise ProviderError('invalid_response')
+            entry[period] = {'condition': clean_text(condition['text'], 80),
+                'condition_code': clean_text(condition.get('code'), 10),
+                'precipitation_probability_percent': round(probability * 100) if probability is not None else None,
+                'wind_speed': number(obj(obj(part.get('wind')).get('speed')).get('value')),
+                'wind_unit': clean_text(obj(obj(part.get('wind')).get('speed')).get('unit'), 20)}
+        normalized.append(entry)
+    return normalized
 
 
 def normalize(kind, body):
@@ -104,6 +149,8 @@ def normalize(kind, body):
                 'category': clean_text(preferred.get('category'), 100), 'index_name': clean_text(preferred.get('name'), 80),
                 'index_code': clean_text(preferred.get('code'), 30), 'primary_pollutant': clean_text(obj(preferred.get('primaryPollutant')).get('name'), 80),
                 'pollutants': pollutants, 'advice': clean_text(obj(obj(preferred.get('health')).get('advice')).get('generalPopulation'), 1500)}
+    elif kind == 'forecast':
+        data = {'days': forecast_days(body)}
     elif kind == 'alerts':
         entries = body.get('alerts')
         zero = metadata.get('zeroResult')
@@ -131,6 +178,10 @@ def normalize(kind, body):
 def fetch(kind, point):
     if kind not in PATHS:
         raise ProviderError('unsupported_kind')
+    if kind == 'forecast':
+        from .configuration import forecast_enabled
+        if not forecast_enabled():
+            raise ProviderError('forecast_disabled')
     if not configured() or not re.fullmatch(r'-?\d{1,2}\.\d{2}/-?\d{1,3}\.\d{2}', point):
         raise ProviderError('not_configured')
     latitude, longitude = map(float, point.split('/'))
@@ -140,7 +191,8 @@ def fetch(kind, point):
     connection = http.client.HTTPSConnection(settings.QWEATHER_API_HOST, timeout=timeout, context=ssl.create_default_context())
     try:
         deadline = time.monotonic() + timeout * 3
-        connection.request('GET', PATHS[kind] + point + '?lang=zh', headers={
+        query = '?lang=zh&days=3' if kind == 'forecast' else '?lang=zh'
+        connection.request('GET', PATHS[kind] + point + query, headers={
             'X-QW-Api-Key': settings.QWEATHER_API_KEY,
             'Accept': 'application/json', 'Accept-Encoding': 'gzip', 'User-Agent': 'HYHQ-Weather/1.0',
         })

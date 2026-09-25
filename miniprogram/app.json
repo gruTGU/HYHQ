@@ -13,7 +13,10 @@
     "pages/data-center/index",
     "pages/feedback/index",
     "pages/llm/index",
-    "pages/llm-history/index"
+    "pages/llm-history/index",
+    "pages/knowledge-search/index",
+    "pages/comments/index",
+    "pages/weather/index"
   ],
   "window": {
     "navigationBarTitleText": "HYHQ 海晏河清",

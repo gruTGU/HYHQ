@@ -4,7 +4,7 @@ const { list, time, value, message } = require('../../lib/format');
 const { loadAll } = require('../../lib/region');
 const { routeView } = require('../../lib/route-view');
 Page({
-  data: { loading: true, error: '', item: null, kind: '', busy: false, favoriteId: '', stations: [], stationIndex: 0, observations: [], observationError: '', observationLoading: false, recordError: '', relatedContents: [], relatedCount: 0, relatedLoading: false, relatedError: '', routeStops: [], stopIndex: 0, activeStop: null },
+  data: { communityEnabled: false, loading: true, error: '', item: null, kind: '', busy: false, favoriteId: '', stations: [], stationIndex: 0, observations: [], observationError: '', observationLoading: false, recordError: '', relatedContents: [], relatedCount: 0, relatedLoading: false, relatedError: '', routeStops: [], stopIndex: 0, activeStop: null },
   onLoad(options) {
     this._alive = true;
     const paths = { place: 'places/', content: 'contents/', route: 'routes/' };
@@ -29,7 +29,7 @@ Page({
     this._hidden = false;
     const generation = this._generation = (this._generation || 0) + 1;
     const token = this._identity = app().session.token();
-    this.setData({ loading: true, error: '', recordError: '', favoriteId: '', busy: false, stations: [], observations: [], observationError: '', observationLoading: false, relatedContents: [], relatedCount: 0, relatedLoading: false, relatedError: '', routeStops: [], stopIndex: 0, activeStop: null });
+    this.setData({ communityEnabled: false, loading: true, error: '', recordError: '', favoriteId: '', busy: false, stations: [], observations: [], observationError: '', observationLoading: false, relatedContents: [], relatedCount: 0, relatedLoading: false, relatedError: '', routeStops: [], stopIndex: 0, activeStop: null });
     try {
       const item = (await app().api.request(this._path)).data;
       if (!this.current(generation)) return;
@@ -40,6 +40,7 @@ Page({
         this.setData(selection);
       }
       wx.setNavigationBarTitle({ title: item.name || item.title || '生态资料' });
+      this.loadCommunity(generation);
       if (this.data.kind === 'place') await Promise.all([this.loadStations(generation), this.loadRelatedContents()]);
       if (this.data.kind !== 'route' && token && this.sameSession(generation, token)) {
         try {
@@ -60,6 +61,15 @@ Page({
         this.setData({ loading: false }); wx.stopPullDownRefresh();
       }
     }
+  },
+  async loadCommunity(generation) {
+    try {
+      const response = await app().api.request('community/status/');
+      if (this.current(generation)) this.setData({ communityEnabled: !!(response.data && response.data.enabled === true) });
+    } catch (_) { if (this.current(generation)) this.setData({ communityEnabled: false }); }
+  },
+  openComments() {
+    if (this.current(this._generation) && this.data.communityEnabled && this.data.item) wx.navigateTo({ url: '/pages/comments/index?kind=' + this.data.kind + '&id=' + encodeURIComponent(this._id) });
   },
   target() { return this.data.kind === 'place' ? { place_id: this._id } : { content_id: this._id }; },
   matches(record) {

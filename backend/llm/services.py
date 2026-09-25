@@ -144,7 +144,13 @@ def create_session(owner, data):
         title = SCOPE_NAMES[scope] + '助手'
         summary = ('结合当前公开地点、水体与标明来源的环境资料，帮助理解生态导览。' if scope == 'explore'
                    else '结合当前已发布的科普文章和预设路线，帮助理解知识与安排学习顺序。')
+    weather_location = data.get('weather_location', '')
+    if weather_location:
+        from weatherdata.models import WeatherLocation
+        if scope == 'recognition' or not WeatherLocation.objects.filter(slug=weather_location, is_active=True).exists():
+            raise ServiceError('请选择平台支持的真实天气地点。', 'WEATHER_LOCATION_INVALID', 400)
     session = LLMSession(owner=owner, **{field: source}, scope=scope, kind=kind, title=title, context_summary=summary,
+                         weather_location=weather_location,
                          consent_version=data.get('consent_version', ''), include_image=data.get('include_image', False),
                          expires_at=expires)
     if session.include_image and not image_available(session, source, now):
@@ -162,7 +168,8 @@ def _settle_locked(entry, *, success=False, code='', usage=None, ambiguous=False
     """Terminal ledger entries are immutable; late/stale workers cannot settle twice."""
     if entry.status not in ACTIVE:
         return False
-    valid_usage = usage if isinstance(usage, dict) and all(type(usage.get(k)) is int and usage[k] >= 0 for k in ('prompt_tokens', 'completion_tokens', 'total_tokens')) else None
+    from .provider import _usage
+    valid_usage = _usage(usage)
     entry.status = 'succeeded' if success else 'failed'
     entry.error_code = code
     entry.usage = valid_usage or {}

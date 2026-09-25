@@ -1,0 +1,175 @@
+{
+  "date": "2026-09-24",
+  "base_commit": "2083f3c",
+  "backend": {
+    "database": "isolated PostgreSQL 17.9",
+    "total": 517,
+    "passed": 517,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0,
+    "skipped_tests": [],
+    "tests_by_app": {
+      "accounts": 4,
+      "activity": 27,
+      "assessments": 67,
+      "assets": 4,
+      "common": 55,
+      "community": 31,
+      "ecology": 73,
+      "knowledge": 43,
+      "llm": 94,
+      "narration": 13,
+      "recognition": 25,
+      "weatherdata": 80
+    }
+  },
+  "miniprogram": {
+    "total": 331,
+    "passed": 331,
+    "failed": 0,
+    "native_wxml": 26,
+    "native_wxss": 27
+  },
+  "django_check": "pass",
+  "migration_drift": "none",
+  "diff_check": "pass",
+  "credential_scan": "no actual credentials found in Git-visible text files",
+  "real_provider_calls": {
+    "deepseek_requests": 2,
+    "deepseek_succeeded": 2,
+    "deepseek_retry_count": 0,
+    "total_tokens": 3869,
+    "actual_usage_matched": true,
+    "invoice_verified": false,
+    "qweather_requests_added": 1,
+    "wechat_safety_checks": 0,
+    "wechat_subscription_sends": 0
+  },
+  "existing_local_postgresql_migrated": true,
+  "local_http_verified_this_batch": true,
+  "github_commit_or_push": false,
+  "server_deployment": false,
+  "permission_interactions": false,
+  "initial_restricted_environment": {
+    "backend": {
+      "database": "isolated SQLite in-memory",
+      "total": 511,
+      "passed": 497,
+      "skipped": 14,
+      "errors": 0,
+      "failures": 0,
+      "skipped_tests": [
+        {
+          "test": "accounts.tests_privacy_races.ConcurrentPrivacyDeletionTests.test_deletion_serializes_before_cascade_collection_when_private_records_are_committing",
+          "reason": "'Requires real PostgreSQL row locks and deferred foreign keys'"
+        },
+        {
+          "test": "accounts.tests_privacy_races.ConcurrentPrivacyDeletionTests.test_profile_write_keeps_owner_locked_until_audit_is_recorded",
+          "reason": "'Requires real PostgreSQL row locks and deferred foreign keys'"
+        },
+        {
+          "test": "common.tests_assessment_integration.ConcurrentAssessmentQueueTests.test_different_users_and_task_types_cannot_overfill_one_slot",
+          "reason": "'This regression verifies PostgreSQL row locking.'"
+        },
+        {
+          "test": "common.tests_llm_http.LLMLocalHTTPTests.test_real_http_image_chat_five_turns_idempotency_ownership_and_deletion",
+          "reason": "'当前沙箱禁止监听本地端口；真实 HTTP 流程需在允许本地套接字的环境补验。'"
+        },
+        {
+          "test": "common.tests_llm_http.LLMLocalHTTPTests.test_real_http_source_deleted_during_reply_keeps_cost_but_no_private_result",
+          "reason": "'当前沙箱禁止监听本地端口；真实 HTTP 流程需在允许本地套接字的环境补验。'"
+        },
+        {
+          "test": "ecology.tests_maintenance.MaintenanceConcurrencyTests.test_generator_holds_source_lock_through_observation_write",
+          "reason": "'Row-lock concurrency is verified with PostgreSQL'"
+        },
+        {
+          "test": "ecology.tests_maintenance.MaintenanceConcurrencyTests.test_generator_rechecks_region_after_waiting_for_shared_lock",
+          "reason": "'Row-lock concurrency is verified with PostgreSQL'"
+        },
+        {
+          "test": "ecology.tests_maintenance.MaintenanceConcurrencyTests.test_generator_waits_for_maintenance_lock_and_invalidates_older_preview",
+          "reason": "'Row-lock concurrency is verified with PostgreSQL'"
+        },
+        {
+          "test": "ecology.tests_maintenance.MaintenanceConcurrencyTests.test_only_one_concurrent_execution_consumes_preview",
+          "reason": "'Row-lock concurrency is verified with PostgreSQL'"
+        },
+        {
+          "test": "llm.tests.ConcurrencyTests.test_parallel_last_available_round_admits_exactly_one",
+          "reason": "'PostgreSQL row locking is required for concurrency checks'"
+        },
+        {
+          "test": "llm.tests.ConcurrencyTests.test_parallel_workers_claim_at_most_global_concurrency",
+          "reason": "'PostgreSQL row locking is required for concurrency checks'"
+        },
+        {
+          "test": "llm.tests_scopes.ScopeConcurrencyTests.test_parallel_last_round_of_explore_cannot_overdraw_or_charge_learn",
+          "reason": "'Requires PostgreSQL row locks'"
+        },
+        {
+          "test": "weatherdata.tests.WeatherConcurrencyTests.test_last_budget_slot_is_reserved_once_across_database_connections",
+          "reason": "'Production quota lock requires PostgreSQL'"
+        },
+        {
+          "test": "weatherdata.tests.WeatherConcurrencyTests.test_singleflight_same_location_kind_has_one_reservation",
+          "reason": "'Production cache lock requires PostgreSQL'"
+        }
+      ],
+      "tests_by_app": {
+        "accounts": 4,
+        "activity": 27,
+        "assessments": 67,
+        "assets": 4,
+        "common": 55,
+        "community": 28,
+        "ecology": 73,
+        "knowledge": 43,
+        "llm": 94,
+        "narration": 13,
+        "recognition": 25,
+        "weatherdata": 77
+      }
+    },
+    "miniprogram": {
+      "total": 331,
+      "passed": 331,
+      "failed": 0,
+      "native_wxml": 26,
+      "native_wxss": 27
+    },
+    "existing_local_postgresql_migrated": false,
+    "local_http_verified_this_batch": false,
+    "real_provider_calls": false
+  },
+  "local_http_admin_checks": {
+    "total": 66,
+    "passed": 66
+  },
+  "backup_archive_verified": true,
+  "business_data_preserved_after_migration": true,
+  "wechat_developer_tools_ui_verified": true,
+  "real_wechat_login_verified": false,
+  "phone_verified": false,
+  "live_deepseek_checks": {
+    "total": 26,
+    "passed": 26
+  },
+  "cpu_model_inferences": {
+    "flower": 1,
+    "river": 1,
+    "passed": 2
+  },
+  "local_final_state": {
+    "weather_requests_before": 42,
+    "weather_requests_after": 43,
+    "llm_ledger_before": 14,
+    "llm_ledger_after": 16,
+    "gateway_config_unchanged": true,
+    "content": 38,
+    "routes": 31,
+    "places": 82,
+    "env_mode": "0o600"
+  }
+}

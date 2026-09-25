@@ -491,3 +491,29 @@ test('an unknown service status disables new sends while a measured existing com
   assert.equal(calls.some((call) => call.options && call.options.method === 'POST'), false);
   assert.equal(page.data.question, '需要保留的问题');
 });
+
+test('public chat selects weather explicitly, never refreshes weather and does not auto-fill the question', async () => {
+  const { page, calls, application } = fixture(async (path) => path === 'weather-data/locations/' ? { data: { items: [{ slug: 'tianjin-city', name: '天津市' }], enabled: true } } : undefined, { scope: 'learn', source_type: 'content', source_id: 'c1' });
+  application.globalData.weatherLocation = 'tianjin-city';
+  await page.onShow(); assert.equal(page.data.weatherIndex, 0); assert.equal(page.data.question, '');
+  page.chooseWeather(change(1)); await page.createSession();
+  const post = calls.find((item) => item.path === 'llm/sessions/' && item.options.method === 'POST');
+  assert.equal(post.options.data.weather_location, 'tianjin-city');
+  assert.equal(calls.some((item) => item.path.includes('summary/') || item.path.includes('forecast/')), false);
+  assert.equal(page.data.question, '');
+});
+test('weather directory failure degrades to page-only chat and existing sessions explain unavailable weather', async () => {
+  const { page, calls } = fixture(async (path) => { if (path === 'weather-data/locations/') throw new Error('暂时不可用'); }, { scope: 'explore', source_type: 'place', source_id: 'p1' });
+  await page.onShow(); assert.match(page.data.weatherError, /仅围绕页面/); await page.createSession();
+  assert.equal('weather_location' in calls.find((item) => item.path === 'llm/sessions/' && item.options.method === 'POST').options.data, false);
+  const view = sessionView(session('s', { kind: 'learn', scope: 'learn', source_type: 'content', source_id: 'c1', weather_location: 'tianjin', weather_context: { location: { name: '天津市' }, status: 'unavailable' } }));
+  assert.match(view.weatherLabel, /过期或不可用/);
+});
+test('source buttons navigate only to server-provided references attached to that turn', async () => {
+  const { page, navigation } = fixture(); await page.onShow();
+  page.data.turns = [turn('t', { status: 'succeeded', citations: [{ kind: 'content', id: 'c1', title: '公开科普' }] })];
+  page.openCitation({ currentTarget: { dataset: { turn: 't', kind: 'content', id: 'fake' } } });
+  page.openCitation({ currentTarget: { dataset: { turn: 't', kind: 'content', id: 'c1' } } });
+  assert.deepEqual(navigation, ['/pages/detail/index?kind=content&id=c1']);
+  page.onHide(); page.openCitation({ currentTarget: { dataset: { turn: 't', kind: 'content', id: 'c1' } } }); assert.equal(navigation.length, 1);
+});

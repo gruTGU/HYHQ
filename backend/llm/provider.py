@@ -146,7 +146,15 @@ def _usage(value):
         return None
     if value['prompt_tokens'] + value['completion_tokens'] != value['total_tokens']:
         return None
-    return {key: value[key] for key in keys}
+    result = {key: value[key] for key in keys}
+    cache_keys = ('prompt_cache_hit_tokens', 'prompt_cache_miss_tokens')
+    if any(key in value for key in cache_keys):
+        if any(type(value.get(key)) is not int or not 0 <= value[key] <= value['prompt_tokens'] for key in cache_keys):
+            return None
+        if sum(value[key] for key in cache_keys) != value['prompt_tokens']:
+            return None
+        result.update({key: value[key] for key in cache_keys})
+    return result
 
 
 def _decode_response(raw, max_tokens):

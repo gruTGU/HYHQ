@@ -1,0 +1,6 @@
+<view class="narration-card" wx:if="{{narration}}">
+  <view class="narration-heading"><text>听一段讲解</text><text class="narration-tag">语音导览</text></view>
+  <view class="narration-note">{{narration.title}} · 点击后播放，离开页面自动停止</view>
+  <view class="narration-controls"><button class="narration-play" bindtap="toggle" loading="{{loading}}" disabled="{{loading}}" hover-class="narration-pressed">{{error ? '重试播放' : playing ? '暂停' : paused ? '继续播放' : '播放讲解'}}</button><button class="narration-stop" bindtap="stop" wx:if="{{playing || paused || loading}}">停止</button><text class="narration-time">{{elapsed}} / {{duration}}</text></view>
+  <view class="narration-error" wx:if="{{error}}">{{error}}</view>
+</view>

@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createSession } = require('../lib/session');
 const { capability, resultView } = require('../lib/assessment');
+const { summaryView } = require('../pages/assessment/summary');
 
 const health = { features: { assessment: true }, assessment: { enabled: true, model_name: 'IWHR prototype', model_version: 'iwhr-1', rule_version: 'rules-1' } };
 const detection = { class_id: 9, label: '漂浮物', eval_category: 'floating_debris', confidence: .91, bbox: [200, 100, 600, 300], area_ratio: .04 };
@@ -303,4 +304,48 @@ test('assessment record rows link to the independent page and retain uncertain s
   global.wx.navigateTo = (value) => { navigation = value.url; };
   instance.open({ currentTarget: { dataset: { id: 'job' } } });
   assert.equal(navigation, '/pages/assessment/index?jobId=job');
+});
+
+function observationSummary() {
+  return { schema_version: 1, status: 'ready', candidate_count: 2, excluded_count: 0, box_area_ratio: .15,
+    confidence: { min: .4, max: .8, mean: .6 },
+    grid: Array.from({ length: 9 }, (_, index) => ({ key: String(index), count: index === 4 ? 2 : 0 })) };
+}
+
+test('observation summary displays image-only area, confidence and nine original-image cells', () => {
+  const view = summaryView({ ...succeeded, observation_summary: observationSummary() });
+  assert.equal(view.ready, true);
+  assert.equal(view.count, 2);
+  assert.equal(view.area, '15.00%');
+  assert.equal(view.confidence, '0.400 – 0.800');
+  assert.equal(view.grid[4].label, '中央');
+  assert.equal(view.grid[4].count, 2);
+  assert.equal(view.grid[4].active, true);
+  assert.equal(view.grid[0].active, false);
+  assert.equal(summaryView({ ...succeeded, observation_summary: { ...observationSummary(), box_area_ratio: .00000001 } }).area, '< 0.01%');
+});
+
+test('inconsistent, legacy, unknown and empty summaries never display plausible zero metrics', () => {
+  const valid = observationSummary();
+  for (const summary of [null, { ...valid, schema_version: 2 }, { ...valid, candidate_count: 0 },
+    { ...valid, confidence: { min: .8, max: .4, mean: .6 } }, { ...valid, box_area_ratio: Infinity },
+    { ...valid, grid: valid.grid.slice(1) }, { ...valid, candidate_count: 3 },
+    { ...valid, grid: valid.grid.map((item) => ({ ...item, key: '0' })) },
+    { ...valid, excluded_count: -1 }, { ...valid, status: 'unavailable', reason: 'NO_SUPPORTED_DETECTIONS' }]) {
+    const view = summaryView({ ...succeeded, observation_summary: summary });
+    assert.equal(view.ready, false);
+    assert.equal(view.area, undefined);
+    assert.match(view.message, /不能|不完整/);
+  }
+  assert.equal(summaryView({ ...succeeded, status: 'running', observation_summary: valid }), null);
+});
+
+test('private history loads the observation summary through the normal identity guards', async () => {
+  const job = { ...succeeded, observation_summary: observationSummary() };
+  const instance = page(application({ request: async () => ({ data: job }), download: async () => '/tmp/private-summary.jpg' }));
+  await instance.selectJob('job');
+  assert.equal(instance.data.task.summary_view.count, 2);
+  assert.equal(instance.data.task.summary_view.grid.length, 9);
+  instance.clearPrivate();
+  assert.equal(instance.data.task, null);
 });

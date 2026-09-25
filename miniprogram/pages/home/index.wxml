@@ -42,6 +42,7 @@
       <view class="source-copy" wx:if="{{citySummary.alerts.sources}}">来源：{{citySummary.alerts.sources}}</view>
       <view class="source-copy" wx:if="{{citySummary.alerts.attribution}}">{{citySummary.alerts.attribution}}</view>
     </block>
+    <button class="secondary gap weather-entry" hover-class="pressable" bindtap="openWeather">天气预报与出行提醒 ↗</button>
     <button class="source-link" hover-class="pressable" bindtap="weatherSource">和风天气 QWeather <text>复制来源链接 ↗</text></button>
   </view>
 

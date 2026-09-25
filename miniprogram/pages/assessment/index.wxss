@@ -30,3 +30,10 @@
 .ai-next { background: linear-gradient(135deg, #fdfefb, #e8f0e5); }
 .ai-model { color: #3a7d5c; font-size: 22rpx; letter-spacing: .6rpx; }
 .history-row { border-left: 5rpx solid #a8c99b; }
+.observation-metrics { display: flex; text-align: center; }
+.observation-metrics > view { flex: 1; padding: 18rpx 8rpx; }
+.observation-number { color: #3a7d5c; font-size: 44rpx; font-weight: 600; }
+.observation-grid { display: flex; flex-wrap: wrap; border-top: 1rpx solid #d8e3d1; border-left: 1rpx solid #d8e3d1; }
+.observation-cell { box-sizing: border-box; width: 33.333333%; min-height: 110rpx; padding: 14rpx; border-right: 1rpx solid #d8e3d1; border-bottom: 1rpx solid #d8e3d1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #758575; font-size: 23rpx; }
+.observation-cell-active { background: #eaf2e7; color: #3a7d5c; }
+.observation-cell-count { font-size: 30rpx; margin-top: 8rpx; font-weight: 600; }

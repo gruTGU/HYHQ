@@ -1,0 +1,12 @@
+.narration-card { margin-top: 24rpx; padding: 28rpx; border-radius: 32rpx; background: #fff; color: #2c3e33; }
+.narration-heading { display: flex; align-items: center; justify-content: space-between; font-size: 30rpx; font-weight: 600; }
+.narration-tag { padding: 6rpx 14rpx; background: #eaf2e7; color: #3a7d5c; font-size: 21rpx; border-radius: 20rpx; font-weight: 400; }
+.narration-note { margin-top: 16rpx; color: #758575; font-size: 24rpx; line-height: 1.7; }
+.narration-controls { display: flex; flex-wrap: wrap; align-items: center; margin-top: 20rpx; }
+.narration-play, .narration-stop { margin: 0 16rpx 0 0; padding: 0 22rpx; font-size: 25rpx; line-height: 2.5; border-radius: 24rpx; }
+.narration-play { color: #fff; background: #3a7d5c; }
+.narration-stop { color: #3a7d5c; background: #f0f4ed; }
+.narration-play::after, .narration-stop::after { border: none; }
+.narration-pressed { transform: scale(.97); }
+.narration-time { color: #758575; font-size: 23rpx; }
+.narration-error { margin-top: 16rpx; color: #b45c35; font-size: 24rpx; line-height: 1.6; }

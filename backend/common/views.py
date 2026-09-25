@@ -18,7 +18,7 @@ def health(request):
     assessment = assessment_status()
     return Response({'status': 'ok', 'mode': settings.DATA_MODE, 'dev_auth_enabled': settings.ALLOW_DEV_AUTH,
                      'features': {'recognition': recognition['enabled'], 'assessment': assessment['enabled'], 'llm': llm_enabled()},
-                     'recognition': recognition, 'assessment': assessment, 'version': 'm3'})
+                     'recognition': recognition, 'assessment': assessment, 'version': 'm5'})
 
 
 def not_found(request, exception=None):

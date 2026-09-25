@@ -6,7 +6,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from . import provider
-from .models import KINDS, WeatherCache, WeatherGate, WeatherLocation, WeatherMonth, WeatherRequest
+from .models import CURRENT_KINDS, KINDS, WeatherCache, WeatherGate, WeatherLocation, WeatherMonth, WeatherRequest
 
 BEIJING = ZoneInfo('Asia/Shanghai')
 
@@ -35,11 +35,17 @@ def public_cache(cache, reason='', now=None):
 
 def reserve(location, kind, now):
     """Reserve before sending. Crashes/failures retain spend; no refunds or resets."""
+    if kind not in dict(KINDS):
+        raise ValueError('Unsupported weather component')
     point = point_for(location)
     with transaction.atomic():
         WeatherGate.objects.get_or_create(pk=1)
         gate = WeatherGate.objects.select_for_update().get(pk=1)
         cache, _ = WeatherCache.objects.get_or_create(location=location, kind=kind, point=point)
+        if kind == 'forecast':
+            from .configuration import forecast_enabled
+            if not forecast_enabled():
+                return cache, None, 'forecast_disabled'
         if cache.payload is not None and cache.expires_at and cache.expires_at > now:
             return cache, None, ''
         if not provider.configured():
@@ -71,7 +77,7 @@ def reserve(location, kind, now):
 
 def get_component(location, kind):
     if kind not in dict(KINDS):
-        raise ValueError('Only weather, air and alerts are supported')
+        raise ValueError('Unsupported weather component')
     cache, reservation, reason = reserve(location, kind, timezone.now())
     if reservation is None:
         return public_cache(cache, reason)
@@ -100,7 +106,9 @@ def get_component(location, kind):
         else:
             cache.payload = payload
             cache.fetched_at = now
-            cache.expires_at = now + timedelta(seconds=max(60, settings.QWEATHER_CACHE_SECONDS[kind]))
+            from .configuration import forecast_ttl
+            ttl = forecast_ttl() if kind == 'forecast' else max(60, settings.QWEATHER_CACHE_SECONDS[kind])
+            cache.expires_at = now + timedelta(seconds=ttl)
             cache.retry_at = None
             cache.last_reason = ''
         cache.save()
@@ -114,4 +122,4 @@ def get_component(location, kind):
 
 def summary(location):
     return {'location': location_data(location), 'source_label': '和风天气', 'source_kind': 'api',
-            **{kind: get_component(location, kind) for kind, _ in KINDS}}
+            **{kind: get_component(location, kind) for kind, _ in CURRENT_KINDS}}
