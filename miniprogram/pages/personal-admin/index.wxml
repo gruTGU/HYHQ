@@ -1,0 +1,35 @@
+<view class="page">
+  <view class="title">平台管理</view><view class="copy">仅授权管理员可访问，关键操作保留记录。</view>
+  <page-state loading="{{loading}}" error="{{error}}" bindretry="load" />
+  <block wx:if="{{allowed}}">
+    <view class="admin-tabs"><button data-tab="stats" bindtap="tab">概览</button><button data-tab="contents" bindtap="tab">科普</button><button data-tab="routes" bindtap="tab">路线</button><button data-tab="places" bindtap="tab">地点</button><button data-tab="feedback" bindtap="tab">反馈</button><button data-tab="audit" bindtap="tab">审计</button><button data-tab="maintenance" bindtap="tab">维护</button></view>
+    <view wx:if="{{notice}}" class="admin-notice">{{notice}}</view>
+    <block wx:if="{{tab === 'stats'}}">
+      <view class="copy">统计时间：{{asOf}}</view>
+      <view wx:for="{{metricGroups}}" wx:key="title" class="card section"><view class="title">{{item.title}}</view><view class="admin-grid"><view wx:for="{{item.items}}" wx:for-item="metric" wx:key="label" class="admin-cell"><view class="admin-value">{{metric.value}}</view><view class="copy">{{metric.label}}</view></view></view></view>
+      <view class="copy admin-note">{{countingNote}}</view>
+    </block>
+    <view wx:if="{{editor}}" class="card admin-editor section">
+      <view class="title">编辑资料</view><view class="copy">{{editor.deleted ? '已撤下，核对后可重新发布' : editor.published ? '已发布' : '草稿'}}</view>
+      <input value="{{editor.title}}" maxlength="{{tab === 'places' ? 120 : 180}}" data-field="title" bindinput="field" placeholder="标题或名称" />
+      <textarea value="{{editor.summary}}" maxlength="{{tab === 'contents' ? 3000 : 20000}}" data-field="summary" bindinput="field" placeholder="摘要或简介" />
+      <textarea wx:if="{{tab === 'contents'}}" value="{{editor.body}}" maxlength="20000" data-field="body" bindinput="field" placeholder="正文" />
+      <textarea value="{{editor.source}}" maxlength="500" data-field="source" bindinput="field" placeholder="可核对的公开来源" />
+      <view class="admin-actions"><button class="primary" disabled="{{busy || editor.deleted}}" bindtap="save">保存</button><button wx:if="{{!editor.published}}" class="secondary" disabled="{{busy}}" data-publish="true" bindtap="save">核对并发布</button><button wx:if="{{!editor.deleted}}" class="secondary" disabled="{{busy}}" bindtap="withdraw">撤下</button></view>
+    </view>
+    <view wx:for="{{rows}}" wx:key="id" class="card section admin-row">
+      <view class="admin-row-heading"><view class="title">{{item.title_label}}</view><text class="admin-status">{{item.status_label}}</text></view><view class="copy">{{item.time_label}}</view>
+      <view wx:if="{{tab === 'feedback'}}" class="admin-body">{{item.body}}</view><view wx:if="{{item.reply}}" class="admin-notice">答复：{{item.reply}}</view>
+      <view wx:if="{{item.detail_label}}" class="copy admin-note">{{item.detail_label}}</view><view wx:if="{{item.fields_label}}" class="copy">变更字段：{{item.fields_label}}</view>
+      <button wx:if="{{tab === 'contents' || tab === 'routes' || tab === 'places'}}" class="secondary" data-id="{{item.id}}" disabled="{{busy}}" bindtap="edit">查看与编辑</button><button wx:if="{{tab === 'feedback'}}" class="secondary" data-id="{{item.id}}" disabled="{{busy}}" bindtap="resolveFeedback">{{item.status === 'resolved' ? '更新答复' : '处理反馈'}}</button>
+    </view>
+    <block wx:if="{{tab === 'maintenance' && maintenance}}">
+      <view class="card section"><view class="title">到期私人数据维护</view><view class="admin-grid"><view wx:for="{{maintenance.policy_cards}}" wx:key="label" class="admin-cell"><view class="admin-value">{{item.value}}</view><view class="copy">{{item.label}}</view></view></view><view class="copy">头像保留至替换或账号注销。维护按固定隐私规则执行，每批数量有限，可连续执行；{{maintenance.policy.automatic_schedule_enabled ? '已收到平台自动维护的成功执行记录。' : '尚无已验证的自动维护执行记录，请手动检查。'}}</view><view wx:if="{{maintenance.timer_label}}" class="copy">上次平台自动维护：{{maintenance.timer_label}}</view><picker range="{{maintenance.kind_options}}" range-key="label" value="{{maintenance.kind_index}}" disabled="{{busy}}" bindchange="maintenanceKind"><view class="admin-picker">维护类型：{{maintenance.kind_options[maintenance.kind_index].label}}</view></picker><view class="admin-labeled"><text>本批检查条数</text><input type="number" value="{{maintenance.limit}}" maxlength="2" bindinput="maintenanceLimit" /></view><button class="secondary" disabled="{{busy || maintenance.running}}" bindtap="runMaintenance">{{maintenance.running ? '已有维护任务执行中' : '执行一批到期维护'}}</button></view>
+      <view wx:if="{{retention}}" class="card section"><view class="title">科普模拟数据保留策略</view><view class="copy">满足保留天数之外，仍会保留每来源/场景及每站最新批次；真实来源不参与此维护。</view><view class="admin-labeled"><text>至少保留天数</text><input type="number" value="{{retention.retain_days}}" data-field="retain_days" bindinput="retentionField" maxlength="4" /></view><view class="admin-labeled"><text>每来源/场景保留批次</text><input type="number" value="{{retention.keep_successful}}" data-field="keep_successful" bindinput="retentionField" maxlength="3" /></view><button class="secondary" disabled="{{busy}}" bindtap="saveRetention">保存保留策略</button><button class="secondary gap" disabled="{{busy}}" bindtap="previewCleanup">预览模拟批次维护</button></view>
+      <view wx:if="{{cleanup}}" class="card section"><view class="title">本次维护预览</view><view class="admin-grid"><view class="admin-cell"><view class="admin-value">{{cleanup.selected_run_count}}</view><view class="copy">将撤下的批次</view></view><view class="admin-cell"><view class="admin-value">{{cleanup.selected_observation_count}}</view><view class="copy">关联模拟观测</view></view></view><view class="copy">{{cleanup.notice}}</view><view wx:if="{{!cleanup.selected_run_count}}" class="admin-notice">当前没有符合条件的模拟批次。</view><view wx:for="{{cleanup.candidates}}" wx:key="id" class="admin-preview"><view>{{item.source}} · {{item.scenario}}</view><view class="copy">{{item.observation_count}} 条模拟观测</view></view><button wx:if="{{cleanup.selected_run_count}}" class="secondary gap" disabled="{{busy}}" bindtap="cleanup">执行已预览的维护</button><view wx:if="{{cleanup.has_more}}" class="copy">还有更多符合条件的批次，完成后可继续预览。</view></view>
+      <view wx:if="{{maintenance.recent.length}}" class="card section"><view class="title">近期维护记录</view><view wx:for="{{maintenance.recent}}" wx:key="finished_at" class="admin-preview"><view>{{item.kind_label}} · {{item.aborted ? '未完整执行' : '本批完成'}}</view><view class="copy">检查 {{item.scanned}} · 清理 {{item.removed}} · 失败 {{item.failed}}</view><view class="copy">{{item.time_label}}</view></view></view>
+    </block>
+    <view wx:if="{{!rows.length && tab !== 'stats' && tab !== 'maintenance' && !busy}}" class="copy admin-note">暂无记录</view>
+    <button wx:if="{{next}}" class="secondary" bindtap="more" disabled="{{busy}}">加载更多</button>
+  </block>
+</view>

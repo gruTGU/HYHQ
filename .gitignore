@@ -38,3 +38,6 @@ inference/**/*.log
 # Generated cloud project; environment-specific settings are supplied privately.
 /miniprogram-cloud/
 /.hyhq-cloud-build-*/
+/miniprogram-personal/
+/.hyhq-personal-build-*/
+cloudfunctions/*/deployment.local.json

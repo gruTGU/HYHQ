@@ -1,0 +1,152 @@
+{
+  "model_name": "flowers-efficientnet-b0",
+  "model_version": "v1",
+  "artifact": "flowers-efficientnet-b0-v1.onnx",
+  "sha256": "01d132fd6fc189adf636060adbe633de57343977d124590e944150f3084fac8f",
+  "labels": [
+    {
+      "id": "daisy",
+      "name": "雏菊类花卉",
+      "knowledge_slug": "flower-daisy"
+    },
+    {
+      "id": "dandelion",
+      "name": "蒲公英类花卉",
+      "knowledge_slug": "flower-dandelion"
+    },
+    {
+      "id": "roses",
+      "name": "蔷薇属花卉",
+      "knowledge_slug": "flower-roses"
+    },
+    {
+      "id": "sunflowers",
+      "name": "向日葵类花卉",
+      "knowledge_slug": "flower-sunflowers"
+    },
+    {
+      "id": "tulips",
+      "name": "郁金香类花卉",
+      "knowledge_slug": "flower-tulips"
+    }
+  ],
+  "preprocessing": {
+    "resize_shorter": 256,
+    "crop_size": 224,
+    "interpolation": "bilinear",
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "threshold": 0.0,
+  "scope": "仅五类公开花卉图片分类原型，不是通用植物或物种鉴定服务；校园实拍与非目标开放集未验证。",
+  "license": "Photos CC-BY-2.0; pretrained weights: see model report",
+  "source_url": "https://www.tensorflow.org/tutorials/load_data/images",
+  "evaluation": {
+    "validation": {
+      "samples": 551,
+      "accuracy": 0.9437386569872959,
+      "macro_f1": 0.9425640598103395,
+      "confusion_matrix_true_rows_predicted_columns": [
+        [
+          92,
+          2,
+          0,
+          0,
+          1
+        ],
+        [
+          2,
+          129,
+          1,
+          2,
+          1
+        ],
+        [
+          2,
+          0,
+          88,
+          2,
+          4
+        ],
+        [
+          0,
+          2,
+          2,
+          101,
+          0
+        ],
+        [
+          2,
+          0,
+          7,
+          1,
+          110
+        ]
+      ],
+      "threshold": 0.0,
+      "accepted_samples": 551,
+      "coverage": 1.0,
+      "accepted_accuracy": 0.9437386569872959
+    },
+    "test": {
+      "samples": 550,
+      "accuracy": 0.9218181818181819,
+      "macro_f1": 0.9200204041621538,
+      "confusion_matrix_true_rows_predicted_columns": [
+        [
+          88,
+          4,
+          2,
+          1,
+          0
+        ],
+        [
+          1,
+          130,
+          0,
+          3,
+          1
+        ],
+        [
+          0,
+          0,
+          88,
+          1,
+          7
+        ],
+        [
+          2,
+          1,
+          5,
+          94,
+          2
+        ],
+        [
+          2,
+          1,
+          9,
+          1,
+          107
+        ]
+      ],
+      "threshold": 0.0,
+      "accepted_samples": 550,
+      "coverage": 1.0,
+      "accepted_accuracy": 0.9218181818181819
+    },
+    "split_sha256": "c24a8a232251234377db113078b740a954865ace841626f99491b21009afd2ef",
+    "pretrained": {
+      "url": "https://download.pytorch.org/models/efficientnet_b0_rwightman-7f5810bc.pth",
+      "sha256": "7f5810bc96def8f7552d5b7e68d53c4786f81167d28291b21c0d90e1fca14934"
+    },
+    "report": "inference/reports/efficientnet_b0-test.json"
+  }
+}

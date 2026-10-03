@@ -2,7 +2,7 @@ Page({
   data: { privacy: true, cloudMode: false },
   onLoad(options) {
     const config = getApp().config || {};
-    this.setData({ cloudMode: config.transport === 'cloud' });
+    this.setData({ cloudMode: ['cloud', 'cloud-function'].includes(config.transport) });
     this.showDocument(options.kind !== 'terms');
   },
   showDocument(privacy) {

@@ -16,7 +16,8 @@
     "pages/llm-history/index",
     "pages/knowledge-search/index",
     "pages/comments/index",
-    "pages/weather/index"
+    "pages/weather/index",
+    "pages/personal-admin/index"
   ],
   "window": {
     "navigationBarTitleText": "HYHQ 海晏河清",

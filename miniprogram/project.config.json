@@ -40,6 +40,10 @@
       {
         "type": "file",
         "value": "config/cloud.example.js"
+      },
+      {
+        "type": "file",
+        "value": "config/personal.example.js"
       }
     ]
   }

@@ -1,9 +1,13 @@
-// Domain-free WeChat container transport. No fallback to HTTP or public file URLs.
+// Domain-free WeChat container / native function transport. No fallback to HTTP or public file URLs.
 const CHUNK_BYTES = 196608;
 const MAX_UPLOAD = 5 * 1024 * 1024;
 const MAX_DOWNLOAD = 8 * 1024 * 1024;
 const CACHE_BYTES = 16 * 1024 * 1024;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+// Only fixed route words and controlled error names may reach diagnostics.
+// IDs, arbitrary path segments, queries, bodies and raw SDK messages never do.
+const DIAGNOSTIC_ROUTES = new Set('api v1 health regions places water-bodies stations contents routes search me auth wechat logout cloud-files uploads chunks complete download recognition-jobs assessment-jobs llm sessions turns status weather-data overview forecast favorites history checkins comments reports narrations audio content management maintenance settings privacy subscriptions capabilities'.split(' '));
+const DIAGNOSTIC_ERRORS = new Set('TIMEOUT NETWORK_ERROR INVALID_RESPONSE HTTP_ERROR AUTH_REQUIRED SESSION_CHANGED CANCELLED CLOUD_CONFIG_REQUIRED CLOUD_UNAVAILABLE CLOUD_INIT_FAILED INVALID_REQUEST DAILY_LIMIT LLM_DISABLED SOURCE_UNAVAILABLE NOT_FOUND METHOD_NOT_ALLOWED VALIDATION_ERROR INTERNAL_ERROR TOO_MANY_REQUESTS RATE_LIMITED RECOGNITION_LIMIT FUNCTION_NOT_FOUND FUNCTIONS_EXECUTE_FAIL'.split(' '));
 function uuid() {
   // Only an upload idempotency / local filename identifier, never an authentication token.
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -13,13 +17,30 @@ function uuid() {
 
 function createCloudClient(platform, config, session, apiError) {
   const cloud = config.cloud || {};
+  const functionMode = config.transport === 'cloud-function';
   const cache = new Map();
   let initialized;
   let fs;
+  let diagnosticCounter = 0;
   const originalOrigin = String(config.baseURL || '').match(/^https?:\/\/[^/?#]+/i);
   const revision = () => typeof session.revision === 'function' ? session.revision() : 0;
   const problem = (code, message) => apiError(code, message);
   const expired = () => problem('SESSION_CHANGED', '登录状态已变化，请重新操作');
+  function diagnostic(method, target) {
+    if (config.cloudDiagnostics !== true) return () => {};
+    const started = Date.now(), request = ++diagnosticCounter;
+    const safePath = target.split('?')[0].split('/').map(part => !part || DIAGNOSTIC_ROUTES.has(part) ? part : ':id').join('/');
+    let recorded = false;
+    return (error, phase, sdkError) => {
+      if (recorded) return;
+      recorded = true;
+      let code = error ? (DIAGNOSTIC_ERRORS.has(error.code) ? error.code : 'UNKNOWN_ERROR') : null;
+      const sdkCode = sdkError && sdkError.errCode;
+      if (typeof sdkCode === 'number' && Number.isSafeInteger(sdkCode) && Math.abs(sdkCode) <= 100000000) code = 'SDK_' + sdkCode;
+      const event = { local_request: request, method, path: safePath, duration_ms: Math.max(0, Date.now() - started), outcome: error ? 'error' : 'success', error_code: code, phase };
+      try { if (typeof console !== 'undefined' && typeof console.info === 'function') console.info('[HYHQ cloud]', event); } catch (ignore) { /* Diagnostics must never alter request behavior. */ }
+    };
+  }
   function pathOf(value) {
     if (typeof value !== 'string' || !value || value.length > 4096 || /[\\\s#]/.test(value) || value.startsWith('//')) throw problem('UNSAFE_FILE_URL', '接口或文件地址无效，已停止访问');
     let path = value;
@@ -33,8 +54,10 @@ function createCloudClient(platform, config, session, apiError) {
     return path;
   }
   function ready() {
-    if (!/^[a-z0-9][a-z0-9_-]{0,99}$/i.test(cloud.env || '') || !/^[a-z][a-z0-9-]{0,62}$/i.test(cloud.service || '')) return Promise.reject(problem('CLOUD_CONFIG_REQUIRED', '云服务尚未配置，请填写云环境 ID 和服务名称'));
-    if (!platform.cloud || typeof platform.cloud.init !== 'function' || typeof platform.cloud.callContainer !== 'function') return Promise.reject(problem('CLOUD_UNAVAILABLE', '当前微信版本不支持云调用，请更新微信后重试'));
+    const targetConfigured = functionMode ? /^[a-z][a-z0-9_-]{0,59}$/i.test(cloud.function || '') : /^[a-z][a-z0-9-]{0,62}$/i.test(cloud.service || '');
+    if (!/^[a-z0-9][a-z0-9_-]{0,99}$/i.test(cloud.env || '') || !targetConfigured) return Promise.reject(problem('CLOUD_CONFIG_REQUIRED', functionMode ? '云服务尚未配置，请填写云环境 ID 和函数名称' : '云服务尚未配置，请填写云环境 ID 和服务名称'));
+    const cloudMethod = functionMode ? 'callFunction' : 'callContainer';
+    if (!platform.cloud || typeof platform.cloud.init !== 'function' || typeof platform.cloud[cloudMethod] !== 'function') return Promise.reject(problem('CLOUD_UNAVAILABLE', '当前微信版本不支持云调用，请更新微信后重试'));
     if (!initialized) {
       initialized = new Promise((resolve, reject) => {
         const timeout = Math.min(Math.max(Number(config.timeout) || 15000, 1), 60000);
@@ -136,45 +159,68 @@ function createCloudClient(platform, config, session, apiError) {
       if (query.length) target = pathOf(target + (target.includes('?') ? '&' : '?') + query.join('&'));
       body = undefined;
     }
-    if (!cleanup) context.check();
-    await ready();
-    if (!cleanup) context.check();
-    const timeout = Math.min(Math.max(Number(opts.timeout || config.timeout) || 15000, 1), 60000);
+    const diagnose = diagnostic(method, target);
+    try {
+      if (!cleanup) context.check();
+      await ready();
+      if (!cleanup) context.check();
+    } catch (error) {
+      diagnose(error, error && error.code === 'TIMEOUT' ? 'clientDeadline' : error && error.code === 'SESSION_CHANGED' ? 'sessionChanged' : 'cloudInit');
+      throw error;
+    }
+    // Native functions execute the claimed job inside this GET. Container mode
+    // only polls a separate worker and retains its normal short request timeout.
+    const executesTask = functionMode && method === 'GET' && /^\/api\/v1\/(?:llm\/turns|recognition-jobs|assessment-jobs)\/[a-f0-9-]{36}\/$/i.test(target.split('?')[0]);
+    const fetchesWeather = functionMode && method === 'GET' && /^\/api\/v1\/weather-data\//.test(target);
+    const defaultTimeout = executesTask ? 60000 : fetchesWeather ? 30000 : config.timeout;
+    const timeout = Math.min(Math.max(Number(opts.timeout || defaultTimeout) || 15000, 1), 60000);
     return new Promise((resolve, reject) => {
       let done = false;
       let task;
       let timer;
-      function settle(error, value) {
+      function settle(error, value, phase, sdkError) {
         if (done) return;
         done = true;
         clearTimeout(timer);
         context.pending.delete(abort);
+        diagnose(error, phase || 'response', sdkError);
         error ? reject(error) : resolve(value);
       }
-      function abort(error) {
-        settle(error);
+      function abort(error, phase) {
+        settle(error, undefined, phase || (error && error.code === 'SESSION_CHANGED' ? 'sessionChanged' : 'cancelled'));
         if (task && typeof task.abort === 'function') { try { task.abort(); } catch (ignore) { /* Logical cancellation already applied. */ } }
       }
       if (!cleanup) context.pending.add(abort);
-      timer = setTimeout(() => abort(problem('TIMEOUT', '请求超时，请稍后重试')), timeout);
+      timer = setTimeout(() => abort(problem('TIMEOUT', '请求超时，请稍后重试'), 'clientDeadline'), timeout);
       function success(response) {
         if (done) return; // Late callbacks must not clear a new session or resolve a cancelled call.
         try {
           if (!cleanup) context.check();
-          settle(null, unwrap(response, context, cleanup));
-        } catch (error) { settle(error); }
+          let result = functionMode ? response && response.result : response;
+          if (functionMode && typeof result === 'string') { try { result = JSON.parse(result); } catch (error) { result = null; } }
+          settle(null, unwrap(result, context, cleanup));
+        } catch (error) { settle(error, undefined, error && error.code === 'SESSION_CHANGED' ? 'sessionChanged' : 'response'); }
       }
+      function sdkFailure(error) { settle(networkError(error), undefined, 'SDKfailure', error); }
       const parameters = {
         config: { env: cloud.env }, path: target,
         method, data: body,
         header: Object.assign({ 'content-type': 'application/json', 'X-WX-SERVICE': cloud.service }, context.token ? { Authorization: 'Bearer ' + context.token } : {}),
         timeout, followRedirect: false, dataType: 'json', responseType: 'text',
-        success, fail: (error) => settle(networkError(error)),
+        success, fail: sdkFailure,
       };
       try {
-        task = platform.cloud.callContainer(parameters);
-        if (task && typeof task.then === 'function') task.then(success, (error) => settle(networkError(error)));
-      } catch (error) { settle(networkError(error)); }
+        if (functionMode) {
+          // Cloud SDK supplies the trusted caller identity. Never send client-provided
+          // openid/appid or URL redirects; only the existing business token crosses this bridge.
+          task = platform.cloud.callFunction({
+            name: cloud.function, config: { env: cloud.env },
+            data: { method, path: target, body: body === undefined ? null : body, headers: context.token ? { Authorization: 'Bearer ' + context.token } : {} },
+            success, fail: parameters.fail,
+          });
+        } else task = platform.cloud.callContainer(parameters);
+        if (task && typeof task.then === 'function') task.then(success, sdkFailure);
+      } catch (error) { sdkFailure(error); }
     });
   }
   function fileCall(method, options) {

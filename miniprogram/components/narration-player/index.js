@@ -112,7 +112,7 @@ Component({
         if (!audio) {
           let source;
           const application = getApp();
-          if (application.config.transport === 'cloud') {
+          if (['cloud', 'cloud-function'].includes(application.config.transport)) {
             const download = application.api.download(narration.audio_path);
             this._download = download;
             this._downloadTimer = setTimeout(() => {

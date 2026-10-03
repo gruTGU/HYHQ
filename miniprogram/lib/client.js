@@ -7,7 +7,7 @@ function apiError(code, message, status, requestId, details) {
 
 /** Dependency-injected wx transport; shared by requests, uploads and private downloads. */
 function createClient(platform, config, session) {
-  if (config.transport === 'cloud') return require('./cloud-client').createCloudClient(platform, config, session, apiError);
+  if (config.transport === 'cloud' || config.transport === 'cloud-function') return require('./cloud-client').createCloudClient(platform, config, session, apiError);
   if (config.transport && config.transport !== 'http') throw apiError('TRANSPORT_UNSUPPORTED', '服务连接方式配置无效');
   const baseURL = config.baseURL.replace(/\/+$/, '');
   const origin = baseURL.match(/^https?:\/\/[^/]+/i);

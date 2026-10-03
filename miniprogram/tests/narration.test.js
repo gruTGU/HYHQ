@@ -302,3 +302,11 @@ test('cloud audio download has an overall deadline and cannot play after deadlin
   assert.equal(timers.latest().delay, 60000); timers.latest().callback(); await playing;
   assert.equal(aborts, 1); assert.equal(audios.length, 0); assert.match(instance.data.error, /超时.*重试/); assert.equal(instance.data.loading, false);
 });
+
+test('personal-plan narration also downloads privately before native playback', async () => {
+  const local = '/private/hyhq-cloud-' + ID + '.wav', downloads = [], released = [];
+  const { instance, definition, audios } = fixture(undefined, { config: { transport: 'cloud-function' }, api: { download: async (path) => { downloads.push(path); return local; }, releaseFile: (path) => released.push(path) } });
+  definition.lifetimes.attached.call(instance); await flush(); await instance.toggle();
+  assert.deepEqual(downloads, [metadata().audio_path]); assert.equal(audios[0].src, local);
+  definition.pageLifetimes.hide.call(instance); assert.deepEqual(released, [local]);
+});

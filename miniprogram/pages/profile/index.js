@@ -2,7 +2,7 @@ const { selectTab } = require('../../lib/tab-bar');
 const { app, toast } = require('../../lib/page');
 const { message } = require('../../lib/format');
 Page({
-  data: { loading: true, error: '', busy: false, user: null, nickname: '', avatar: '', avatarNotice: '', devAvailable: false, authMode: '', editingProfile: false },
+  data: { loading: true, error: '', busy: false, user: null, nickname: '', avatar: '', avatarNotice: '', devAvailable: false, authMode: '', editingProfile: false, canManage: false },
   async onShow() {
     selectTab(this, 4);
     this._visible = true;
@@ -17,7 +17,7 @@ Page({
   onHide() {
     this._visible = false;
     this._invalidate();
-    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', loading: false, busy: false, editingProfile: false });
+    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', loading: false, busy: false, editingProfile: false, canManage: false });
   },
   onUnload() { this._destroyed = true; this._invalidate(); },
   _active() { return !this._destroyed && this._visible !== false; },
@@ -29,7 +29,7 @@ Page({
   },
   _clearPrivate(error = '') {
     this._profileToken = '';
-    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', editingProfile: false, error });
+    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', editingProfile: false, canManage: false, error });
   },
   _start(busy = false) {
     this._confirming = false;
@@ -103,6 +103,10 @@ Page({
     app().session.updateUser(user);
     this._profileToken = operation.token;
     this.setData({ user, nickname: user.nickname || '', avatar: '', avatarNotice: '', authMode: (app().session.get() || {}).auth_mode || '' });
+    if (app().config.transport === 'cloud-function') {
+      try { const access = (await app().api.request('personal-admin/status/')).data; if (this._current(operation)) this.setData({ canManage: access.enabled === true }); }
+      catch (_) { if (this._current(operation)) this.setData({ canManage: false }); }
+    }
     const url = user.avatar_url || fallbackAvatar;
     if (url) {
       try {
@@ -186,6 +190,7 @@ Page({
   },
   legal(event) { if (this._active()) wx.navigateTo({ url: '/pages/legal/index?kind=' + (event.currentTarget.dataset.kind === 'terms' ? 'terms' : 'privacy') }); },
   feedback() { if (this._active()) wx.navigateTo({ url: '/pages/feedback/index' }); },
+  management() { if (this._canChange() && this.data.canManage) wx.navigateTo({ url: '/pages/personal-admin/index' }); },
   aiHistory() { if (this._active()) wx.navigateTo({ url: '/pages/llm-history/index' }); },
   logout() { return this._confirmRemoval(false); },
   deleteAccount() { return this._confirmRemoval(true); },

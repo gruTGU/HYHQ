@@ -1,17 +1,41 @@
 # HYHQ 海晏河清智慧平台 · 独立云迁移版
 
-面向校园及周边河湖、公园的微信小程序，提供生态资料浏览、自然观察、科普学习、漫步路线和 AI 辅助解读。项目采用原生微信小程序、Django 后端和 PostgreSQL，生态模拟、真实天气及图像观察结果分别标明来源与适用范围。
+面向校园及周边河湖、公园的微信小程序，提供生态资料浏览、自然观察、科普学习、漫步路线和 AI 辅助解读。**本分支正在迁移至微信云开发个人版：Node.js 云函数、文档数据库、私有云存储。** 原 Django/PostgreSQL 自建版与此前云托管方案保留独立，不会自动替换北京服务器。
 
 **当前分支：`codex/wechat-cloud-20261003`，基于 M5 快照 `6901985`。** 2026-10-03 按用户要求复制为独立云迁移版本，原自建版目录及分支继续保留。下方 M5 历史验证不代表本分支已部署云端或已上架。
 
-云版实施范围及条件见 [C00–C05 计划](docs/云迁移实施计划.md)：微信云调用、分块图片/音频通道、PostgreSQL、私有持久挂载和受控后台执行。传统 HTTP 模式保留，切换由配置显式决定。真实云环境、微信身份和挂载验证单独记录。
+当前实施范围见 [PN01–PN09 个人版原生迁移](docs/微信个人版原生迁移计划.md)。用户已明确只用已购个人版；[C00–C05 计划](docs/云迁移实施计划.md)仅保留之前容器路线的开发记录。传统 HTTP、云托管、原生云函数分别配置，不自动回退。
 
 - 功能与使用入口：[最新版功能介绍与使用说明](docs/最新版功能介绍与使用说明.md)
 - 当前任务状态：[开发目标 TODO](docs/开发目标TODO.md) · [云迁移计划 C00–C05](docs/云迁移实施计划.md) · [自建版计划 S01–S09](docs/自建服务器后续开发计划.md)
-- 当前验证：[云迁移本地验证记录](docs/verification/云迁移本地验证记录.md)；历史证据：[M5 本地增强验证记录](docs/verification/M5本地增强验证记录.md)
-- 架构决策（2026-10-03）：自建版与云版分别保存，复用 Django / PostgreSQL 业务模型；[可行性评估](docs/微信云开发迁移可行性.md)与本期边界已有更新，不自动替换北京部署。
+- 当前验证：[个人版本地与云端验收](docs/verification/个人版原生迁移本地验证.md)；容器历史：[云迁移本地验证记录](docs/verification/云迁移本地验证记录.md)；历史证据：[M5 本地增强验证记录](docs/verification/M5本地增强验证记录.md)
+- 架构决策（2026-10-03）：自建版与云版分别保存，个人版复用页面和业务协议、重写后端持久化；[个人版计划](docs/微信个人版原生迁移计划.md)记录已验证项目与待完成条件。
 
-## 云版本：本轮交付与使用
+## 个人版：开发与验证
+
+**真实环境进展（2026-10-03）：** `hyhqApi` 已部署到已购个人版，开发者工具通过云函数读取了首页、地点、河湖趋势、路线和资料检索，维护定时入口也已执行。真实账号、业务图片、云端模型、外部 AI/天气、管理操作和手机仍待验收，不能作为“全部功能可用”交付。原项目、北京服务器未变更。
+
+原生函数源码位于 `cloudfunctions/hyhqApi/`，对应测试位于 `cloud-native/tests/`。已迁入公开资料、个人记录、身份绑定、分片图片、天气预算、AI 网关、两个 CPU 识别模型和管理维护模块。本地测试通过不代表云端或手机已通过，真实部署结果另记入验收记录。
+
+```sh
+npm ci --prefix cloudfunctions/hyhqApi --ignore-scripts
+node --test cloud-native/tests/*.test.js
+node --test miniprogram/tests/*.test.js
+node scripts/prepare-personal-miniprogram.mjs --env ENV_ID --appid WECHAT_APP_ID
+node scripts/package-personal-function.mjs --env ENV_ID --appid WECHAT_APP_ID \
+  --flower-file-id FLOWER_CLOUD_FILE_ID --river-file-id RIVER_CLOUD_FILE_ID \
+  --output miniprogram-personal/cloudfunctions/hyhqApi --maintenance true
+```
+
+本地测试使用当前操作系统的依赖。部署脚本另外生成 Linux x64 CPU 依赖；不能把 macOS 原生库上传，也不能用云端自动安装替代打包检查。先把本副本 `.runtime/cloud-migration/models/` 中两份固定模型上传到同环境私有存储，再提供其 File ID 打包；模型权重不进入 Git，也不占函数上传包。服务端下载后检查大小与 SHA，不接受任意模型或外部地址。见[模型私有存储与部署包](docs/verification/个人版模型私有存储与部署包.md)。真实模型对照需要额外指定模型和已生成的对照样本路径，普通测试会明确跳过该项。
+
+微信开发者工具打开生成的 `miniprogram-personal/` 项目，选择已购环境。在数据库创建 `hyhq_data` 并设置所有用户不可直接读写；存储同样仅服务端可访问。云函数采用 Node.js 20.19，初始内存 512MB、超时 60 秒，关闭云端依赖安装。实际包体限制、Linux 执行、身份与权限必须云端另验。
+
+API Key 仅放云函数环境变量；代码和前端不包含 Key。天气和 LLM 默认关闭，管理端默认关闭并要求显式管理员名单。天气新增环境初始请求预算为 0，跨本机、北京、个人版总分配不得超过每月 3 万次。不自动升级套餐，不开按量付费。
+
+详细验收拆分：[个人版原生迁移计划](docs/微信个人版原生迁移计划.md)。以下为先前容器方案记录。
+
+## 云托管容器方案：已保存的本地成果
 
 **本地开发完成，真实云部署未验收。** 后端 **597/597**、前端 **371/371**，微信 **26 WXML / 27 WXSS** 编译通过；分片上传、私有下载、授权音频、两个真实 CPU 模型及历史数据库迁移均完成隔离验证。没有调用 DeepSeek/和风，没有变更北京服务器。
 
@@ -32,7 +56,9 @@ node scripts/prepare-cloud-miniprogram.mjs --env ENV_ID --service SERVICE_NAME -
 
 部署与恢复步骤：[云部署说明](deploy/cloud/README.md)；逐项状态：[C00–C05 实施计划](docs/云迁移实施计划.md)。下面的“新环境本地启动”适用于保留的 HTTP 开发方式。
 
-## 功能与使用方式
+## 既有自建版功能与使用方式
+
+以下是保留的自建版能力清单；云版已部署和未验收项以上方 PN 记录为准，尤其真实天气、AI 和 Django 管理后台不因代码迁移自动启用。
 
 底部有 **首页、生态导览、AI 识别、科普智游、我的** 五个入口，使用统一绿色导航、品牌图标与森系卡片界面。
 
@@ -74,6 +100,8 @@ DeepSeek 三个板块各自按北京时间限制每账号每天五个成功回�
 真实 API Key、微信 AppSecret、数据库密码只放在 Git 忽略的 `backend/.env` 或服务器受限环境文件中，不能进入小程序、README、日志或源码。仓库只提供空密钥示例；数据库、用户图片、授权音频、SSH 密钥和模型权重不随 Git 分发。
 
 ## 技术栈与目录
+
+个人版新增 Node.js 20 云函数（`cloudfunctions/hyhqApi/`）、文档库/私有云存储、原生回归（`cloud-native/tests/`）和独立打包脚本。以下 Django 技术栈保留用于原自建版与容器历史方案。
 
 - 后端：Python 3.12、Django 5.2 / DRF、PostgreSQL 17；既有北京基线验证过 Python 3.13。依赖锁定在 `backend/requirements.txt`。
 - 小程序：原生 JavaScript / WXML / WXSS，基础库基线 `3.7.12`，内置固定版本 Markdown 解析器，无需 npm 安装或构建。测试使用 Node.js 20+。
