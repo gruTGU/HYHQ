@@ -1,0 +1,36 @@
+# Isolated disposable rehearsal ONLY. Use a unique project name; no existing DB.
+# Requires explicitly created .runtime/cloud-test.env with disposable credentials.
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: hyhq_cloud_rehearsal
+      POSTGRES_USER: hyhq_cloud_rehearsal
+      POSTGRES_PASSWORD: ${CLOUD_TEST_DB_PASSWORD:?set disposable password}
+    volumes:
+      - postgres-test:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U hyhq_cloud_rehearsal -d hyhq_cloud_rehearsal']
+      interval: 3s
+      timeout: 3s
+      retries: 15
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/cloud/Dockerfile
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+    env_file: ../../.runtime/cloud-test.env
+    environment:
+      DATABASE_URL: postgresql://hyhq_cloud_rehearsal:${CLOUD_TEST_DB_PASSWORD:?set disposable password}@postgres:5432/hyhq_cloud_rehearsal?sslmode=disable
+    ports:
+      - '127.0.0.1:18080:8000'
+    volumes:
+      - ../../.runtime/cloud-test-volume:/mnt/hyhq
+    depends_on:
+      postgres:
+        condition: service_healthy
+    stop_grace_period: 20s
+    restart: 'no'
+volumes:
+  postgres-test:

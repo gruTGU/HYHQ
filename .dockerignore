@@ -16,3 +16,8 @@ miniprogram/project.private.config.json
 *.pt
 *.gguf
 *.safetensors
+*.pth
+*.pem
+*.key
+miniprogram-preview
+miniprogram-cloud

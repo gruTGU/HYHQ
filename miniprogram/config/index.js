@@ -1,5 +1,6 @@
 /** No secrets belong in this file or any mini-program source. */
 const defaults = {
+  transport: 'http', // Cloud builds are generated separately; production HTTP remains the default.
   baseURL: 'https://greatdata.asia/api/v1',
   development: false,
   timeout: 15000,

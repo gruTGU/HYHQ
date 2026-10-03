@@ -1,9 +1,9 @@
 """Explicit development settings; production fails closed on missing secrets."""
 import os
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
 
 from django.core.exceptions import ImproperlyConfigured
+from .database import postgres_database
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env_file = BASE_DIR / '.env'
@@ -33,18 +33,12 @@ if ENV == 'production':
 if USE_SQLITE:
     DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'var' / 'dev.sqlite3', 'OPTIONS': {'timeout': 20}}}
 else:
-    url = urlparse(os.getenv('DATABASE_URL', 'postgresql://hyhq:hyhq-dev-only@127.0.0.1:5432/hyhq'))
-    if url.scheme not in {'postgres', 'postgresql'} or not url.path.strip('/'):
-        raise ImproperlyConfigured('Invalid PostgreSQL DATABASE_URL')
-    options = {}
-    if 'sslmode' in parse_qs(url.query):
-        options['sslmode'] = parse_qs(url.query)['sslmode'][0]
-    DATABASES = {'default': {'ENGINE': 'django.db.backends.postgresql', 'NAME': unquote(url.path.lstrip('/')), 'USER': unquote(url.username or ''), 'PASSWORD': unquote(url.password or ''), 'HOST': url.hostname or '127.0.0.1', 'PORT': url.port or 5432, 'CONN_MAX_AGE': 60, 'OPTIONS': options}}
+    DATABASES = {'default': postgres_database(os.getenv('DATABASE_URL', 'postgresql://hyhq:hyhq-dev-only@127.0.0.1:5432/hyhq'))}
 
 INSTALLED_APPS = [
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles',
-    'rest_framework', 'common', 'accounts', 'ecology', 'knowledge', 'assets', 'recognition', 'activity', 'assessments', 'llm', 'weatherdata', 'community', 'narration',
+    'rest_framework', 'common', 'accounts', 'ecology', 'knowledge', 'assets', 'recognition', 'activity', 'assessments', 'llm', 'weatherdata', 'community', 'narration', 'cloudtransfer', 'cloudruntime',
 ]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware', 'common.middleware.RequestLogMiddleware',
@@ -64,7 +58,7 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-MEDIA_ROOT = BASE_DIR / 'var' / 'private'
+MEDIA_ROOT = Path(os.getenv('HYHQ_MEDIA_ROOT', str(BASE_DIR / 'var' / 'private'))).resolve()
 MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
 # No public MEDIA_URL route: all user files pass through the ownership-checked API.
 SESSION_COOKIE_HTTPONLY = True
@@ -136,7 +130,7 @@ RECOGNITION_RUN_TIMEOUT_SECONDS = int(os.getenv('HYHQ_RECOGNITION_TIMEOUT_SECOND
 if not 1 <= RECOGNITION_RUN_TIMEOUT_SECONDS <= 60:
     raise ImproperlyConfigured('HYHQ_RECOGNITION_TIMEOUT_SECONDS must be between 1 and 60')
 RECOGNITION_MODEL_ROOT = Path(os.getenv('HYHQ_MODEL_ROOT', str(BASE_DIR.parent / 'inference' / 'artifacts'))).resolve()
-RECOGNITION_LOCK_PATH = BASE_DIR / 'var' / 'recognition.lock'
+RECOGNITION_LOCK_PATH = Path(os.getenv('HYHQ_RECOGNITION_LOCK_PATH', str(BASE_DIR / 'var' / 'recognition.lock'))).resolve()
 ASSESSMENT_MODEL_ROOT = Path(os.getenv('HYHQ_ASSESSMENT_MODEL_ROOT', str(RECOGNITION_MODEL_ROOT))).resolve()
 ASSESSMENT_RUN_TIMEOUT_SECONDS = int(os.getenv('HYHQ_ASSESSMENT_TIMEOUT_SECONDS', '10'))
 if not 1 <= ASSESSMENT_RUN_TIMEOUT_SECONDS <= 60:
@@ -149,6 +143,9 @@ LOGGING = {
     'root': {'handlers': ['console'], 'level': 'INFO'},
     'loggers': {'django.server': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False}},
 }
+
+# Cloud transfer is opt-in; existing HTTP deployments retain their behavior.
+CLOUD_TRANSFER_ENABLED = os.getenv('CLOUD_TRANSFER_ENABLED', '0') == '1'
 
 # Optional capabilities stay closed until account entitlements are verified.
 COMMUNITY_ENABLED = os.getenv('COMMUNITY_ENABLED', '0') == '1'

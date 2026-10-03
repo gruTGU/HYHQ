@@ -11,6 +11,8 @@ class Command(BaseCommand):
         parser.add_argument('--once', action='store_true')
 
     def handle(self, *args, **options):
+        from cloudruntime.guards import require_supervised_worker
+        require_supervised_worker()
         try:
             while True:
                 processed = process_one()

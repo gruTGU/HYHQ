@@ -34,3 +34,7 @@ inference/**/*.log
 
 # Generated local-only WeChat preview; never upload as release
 /miniprogram-preview/
+
+# Generated cloud project; environment-specific settings are supplied privately.
+/miniprogram-cloud/
+/.hyhq-cloud-build-*/

@@ -1,5 +1,6 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STARTUP_TIMEOUT_MS = 20000;
+const CLOUD_DOWNLOAD_TIMEOUT_MS = 60000;
 function clock(value) {
   const seconds = typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
   return Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
@@ -44,12 +45,20 @@ Component({
     },
     release() {
       this.clearStartup();
+      const download = this._download;
+      this._download = null;
+      if (this._downloadTimer !== undefined && this._downloadTimer !== null) clearTimeout(this._downloadTimer);
+      this._downloadTimer = null;
+      if (download && typeof download.abort === 'function') download.abort();
+      const localPath = this._localAudioPath;
+      this._localAudioPath = null;
       const audio = this._audio;
       this._audio = null;
       if (audio) {
         try { audio.stop(); } catch (error) { /* The platform may already have destroyed it. */ }
         try { audio.destroy(); } catch (error) { /* No retained player can resume in the background. */ }
       }
+      if (localPath && getApp().api.releaseFile) getApp().api.releaseFile(localPath);
     },
     current(generation) { return this._alive && this._visible && generation === this._generation; },
     async metadata() {
@@ -97,11 +106,40 @@ Component({
           this.setData({ elapsed: '0:00', duration: '0:00' });
         }
         this.setData({ narration });
-        // Create a fresh instance after an error/stop; source URLs always remain on our API origin.
+        // HTTP streams from our API; cloud mode downloads through the authenticated container
+        // channel and plays a local file, so no download-domain exemption is required.
         let audio = this._audio;
         if (!audio) {
-          const origin = getApp().config.baseURL.match(/^(https?:\/\/[^/]+)\/api\/v1\/?$/i);
-          if (!origin) throw new Error('Invalid API origin');
+          let source;
+          const application = getApp();
+          if (application.config.transport === 'cloud') {
+            const download = application.api.download(narration.audio_path);
+            this._download = download;
+            this._downloadTimer = setTimeout(() => {
+              if (this.current(generation) && this._download === download) {
+                this._generation = (this._generation || 0) + 1;
+                this.failPlayback('语音下载超时，请检查网络后点重试。');
+              }
+            }, CLOUD_DOWNLOAD_TIMEOUT_MS);
+            try { source = await download; }
+            finally {
+              if (this._download === download) {
+                this._download = null;
+                clearTimeout(this._downloadTimer);
+                this._downloadTimer = null;
+              }
+            }
+            if (!this.current(generation)) {
+              if (application.api.releaseFile) application.api.releaseFile(source);
+              return;
+            }
+            if (!wx.env || typeof source !== 'string' || !source.startsWith(wx.env.USER_DATA_PATH + '/hyhq-cloud-')) throw new Error('Invalid cloud audio path');
+            this._localAudioPath = source;
+          } else {
+            const origin = application.config.baseURL.match(/^(https?:\/\/[^/]+)\/api\/v1\/?$/i);
+            if (!origin) throw new Error('Invalid API origin');
+            source = origin[1] + narration.audio_path;
+          }
           audio = wx.createInnerAudioContext();
           this._audio = audio;
           audio.autoplay = false;
@@ -113,7 +151,7 @@ Component({
           audio.onEnded(() => { if (active()) { this.release(); this.setData({ playing: false, paused: false, loading: false, elapsed: '0:00' }); } });
           audio.onError(() => { if (active()) this.failPlayback(); });
           audio.onTimeUpdate(() => { if (active()) this.setData({ elapsed: clock(audio.currentTime), duration: clock(audio.duration) }); });
-          audio.src = origin[1] + narration.audio_path;
+          audio.src = source;
         }
         if (!this.current(generation) || this._audio !== audio) return;
         this.armStartup(audio, generation);

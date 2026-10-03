@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-03",
+  "branch": "codex/wechat-cloud-20261003",
+  "base_commit": "690198521d831b8cb76c482d19664a5e72e6c3ec",
+  "backend": {
+    "tests": 597,
+    "passed": 597,
+    "skipped": 0,
+    "database": "isolated local PostgreSQL"
+  },
+  "frontend": {
+    "tests": 371,
+    "passed": 371,
+    "skipped": 0
+  },
+  "native_compile": {
+    "wxml": 26,
+    "wxss": 27,
+    "passed": true
+  },
+  "local_bridge": {
+    "environment": "local HTTP bridge; not WeChat cloud SDK",
+    "checks": [
+      "real_http_health_dev_auth_disabled",
+      "relative_pagination_followed",
+      "guest_private_api_rejected",
+      "multi_chunk_upload_and_avatar_link",
+      "private_image_download_jpeg",
+      "account_switch_clears_private_cache",
+      "cross_account_image_denied",
+      "flower_cloud_upload_real_cpu_result_private_delete",
+      "river_cloud_upload_real_cpu_result_private_delete",
+      "public_audio_multichunk_exact_bytes",
+      "cloud_identity_headers_do_not_authenticate",
+      "foreign_origin_download_blocked_before_network",
+      "account_delete_revokes_session"
+    ],
+    "requests": 47,
+    "modelResults": [
+      {
+        "kind": "flower",
+        "status": "succeeded",
+        "durationMs": 299
+      },
+      {
+        "kind": "river",
+        "status": "succeeded",
+        "durationMs": 393
+      }
+    ],
+    "status": "passed",
+    "external_provider_calls": 0,
+    "actual_cloud_sdk": false,
+    "actual_cloud_mount": false
+  },
+  "restore": {
+    "source_backup": "existing pre-M5 local backup (read only)",
+    "old_tables": 48,
+    "new_tables": 61,
+    "checked_business_tables": 45,
+    "business_tables_preserved": true,
+    "includes_old_private_files": false
+  },
+  "isolation": {
+    "checked_source_files": 557,
+    "changed_source_files": 0,
+    "original_head_unchanged": true,
+    "original_branch": "codex/m5-verified-snapshot-20260925"
+  },
+  "pending": [
+    "Docker image build",
+    "cloud hosting service and region verification",
+    "actual wx.cloud.callContainer SDK",
+    "actual WeChat code2Session login",
+    "CFS mount and restart persistence",
+    "cloud database and complete private file migration",
+    "Android/iOS",
+    "cloud bills and alarms",
+    "production administrator access channel"
+  ],
+  "external_provider_calls": 0,
+  "beijing_server_changed": false
+}

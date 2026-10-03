@@ -5,7 +5,9 @@ App({
   config,
   globalData: { region: null, health: null },
   onLaunch() {
-    this.session = createSession(wx);
+    const cloud = config.cloud || {};
+    const sessionScope = config.transport === 'cloud' ? 'cloud.' + (cloud.env || 'unconfigured') + '.' + (cloud.service || 'unconfigured') : '';
+    this.session = createSession(wx, sessionScope);
     this.api = createClient(wx, config, this.session);
   },
 });

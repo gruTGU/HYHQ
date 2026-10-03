@@ -1,5 +1,11 @@
 # HYHQ 原生微信小程序 · 生态科普与自然观察
 
+## 独立云版本（2026-10-03）
+
+源目录默认保留 HTTP 模式。云版使用 `scripts/prepare-cloud-miniprogram.mjs` 生成独立 `miniprogram-cloud/`，需真实环境 ID、服务名和 AppID；请求、图片及音频走云调用，无 HTTP 回退，保持域名校验。云端环境信息与服务就绪后才能做真实登录/手机验证。
+
+云通道、按环境隔离的会话、分块文件、取消和失效清理已通过本地测试；当前仍未实际调用微信云 SDK。使用步骤和界限见 [项目 README](../README.md)、[云部署说明](../deploy/cloud/README.md)、[验证记录](../docs/verification/云迁移本地验证记录.md)。下面为保留的 HTTP 使用说明。
+
 原生 JavaScript + JSDoc、WXML、WXSS，**无需 npm 安装或构建**；Markdown 使用仓库内固定版本的浏览器依赖。微信基础库基线固定为 `3.7.12`，Node 测试使用 Node.js 20 或更新版本。
 
 ## 已实现的范围

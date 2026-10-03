@@ -3,6 +3,7 @@ from django.db import transaction
 from django.db.models import Q
 from rest_framework import serializers
 from common.exceptions import ServiceError
+from common.urls import api_uri
 from .models import User
 
 
@@ -17,7 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_avatar_url(self, obj):
         if obj.avatar_id and (obj.avatar.expires_at is None or obj.avatar.expires_at > timezone.now()):
-            return self.context['request'].build_absolute_uri(f'/api/v1/uploads/{obj.avatar_id}/content/?variant=thumbnail')
+            return api_uri(self.context['request'], f'/api/v1/uploads/{obj.avatar_id}/content/?variant=thumbnail')
         return None
 
     def validate_avatar_asset_id(self, value):

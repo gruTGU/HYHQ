@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/v1/', include('ecology.urls')),
     path('api/v1/', include('knowledge.urls')),
     path('api/v1/', include('assets.urls')),
+    path('api/v1/', include('cloudtransfer.urls')),
     path('api/v1/', include('recognition.urls')),
     path('api/v1/', include('activity.urls')),
     path('api/v1/', include('assessments.urls')),

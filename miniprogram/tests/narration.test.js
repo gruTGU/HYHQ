@@ -9,8 +9,8 @@ function fixture(request = async () => ({ data: metadata() }), options = {}) {
   let definition;
   const audios = [], calls = [];
   global.Component = (value) => { definition = value; };
-  global.getApp = () => ({ config: { baseURL: 'https://example.test/api/v1' }, api: { request: (...args) => { calls.push(args); return request(...args); } } });
-  global.wx = { createInnerAudioContext() {
+  global.getApp = () => ({ config: { baseURL: 'https://example.test/api/v1', ...(options.config || {}) }, api: { ...(options.api || {}), request: (...args) => { calls.push(args); return request(...args); } } });
+  global.wx = { env: { USER_DATA_PATH: '/private' }, createInnerAudioContext() {
     const handlers = {};
     const audio = { handlers, playCount: 0, stopCount: 0, destroyCount: 0,
       play() { this.playCount += 1; if (!options.silentPlay && handlers.Play) handlers.Play(); },
@@ -253,4 +253,52 @@ test('loading can be stopped; source change, hide and detach cancel startup with
     if (action !== 'detach') assert.equal(instance.data.loading, false, action);
   }
   assert.equal(timers.pending().length, 0);
+});
+
+test('cloud narration uses container download then a local audio source and releases file on stop', async () => {
+  const downloads = [], released = [];
+  const local = '/private/hyhq-cloud-' + ID + '.wav';
+  const { instance, definition, audios } = fixture(undefined, { config: { transport: 'cloud' }, api: { download: async (path) => { downloads.push(path); return local; }, releaseFile: (path) => released.push(path) } });
+  definition.lifetimes.attached.call(instance); await flush();
+  await instance.toggle();
+  assert.deepEqual(downloads, [metadata().audio_path]);
+  assert.equal(audios[0].src, local); assert.equal(instance.data.playing, true);
+  await instance.toggle(); await instance.toggle();
+  assert.equal(downloads.length, 1); // Resume rechecks metadata without redownloading unchanged audio.
+  instance.stop(); assert.deepEqual(released, [local]);
+});
+
+test('hide, detach, stop or source change cancel cloud downloads and discard late local files', async () => {
+  for (const action of ['hide', 'detach', 'stop', 'source']) {
+    const pending = deferred(); let aborts = 0; const released = [];
+    pending.promise.abort = () => { aborts += 1; };
+    const local = '/private/hyhq-cloud-' + ID + '.wav';
+    const { instance, definition, audios } = fixture(undefined, { config: { transport: 'cloud' }, api: { download: () => pending.promise, releaseFile: (path) => released.push(path) } });
+    definition.lifetimes.attached.call(instance); await flush();
+    const playing = instance.toggle(); await flush();
+    if (action === 'stop') instance.stop();
+    else if (action === 'source') { instance.data.targetId = OTHER; definition.observers['kind,targetId'].call(instance); }
+    else if (action === 'hide') definition.pageLifetimes.hide.call(instance);
+    else definition.lifetimes.detached.call(instance);
+    pending.resolve(local); await playing;
+    assert.equal(aborts, 1, action); assert.equal(audios.length, 0, action); assert.deepEqual(released, [local], action);
+  }
+});
+
+test('cloud download failure is retryable and foreign audio URL never reaches native player', async () => {
+  let attempt = 0;
+  const { instance, definition, audios } = fixture(undefined, { config: { transport: 'cloud' }, api: { download: async () => { if (++attempt === 1) throw new Error('failed'); return 'https://untrusted.example/audio.mp3'; } } });
+  definition.lifetimes.attached.call(instance); await flush();
+  await instance.toggle(); assert.match(instance.data.error, /重试/); assert.equal(audios.length, 0);
+  await instance.toggle(); assert.match(instance.data.error, /重试/); assert.equal(audios.length, 0);
+});
+
+test('cloud audio download has an overall deadline and cannot play after deadline fires', async (t) => {
+  const timers = fakeTimers(t); const pending = deferred(); let aborts = 0; const released = [];
+  pending.promise.abort = () => { aborts += 1; pending.reject(new Error('cancelled')); };
+  const { instance, definition, audios } = fixture(undefined, { config: { transport: 'cloud' }, api: { download: () => pending.promise, releaseFile: (path) => released.push(path) } });
+  definition.lifetimes.attached.call(instance); await flush();
+  const playing = instance.toggle(); await flush();
+  assert.equal(timers.latest().delay, 60000); timers.latest().callback(); await playing;
+  assert.equal(aborts, 1); assert.equal(audios.length, 0); assert.match(instance.data.error, /超时.*重试/); assert.equal(instance.data.loading, false);
 });

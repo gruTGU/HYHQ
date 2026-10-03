@@ -1,0 +1,22 @@
+# Dockerfile-specific allowlist: build only backend code and the cloud entrypoint.
+**
+!backend/
+!backend/**
+!deploy/
+!deploy/cloud/
+!deploy/cloud/entrypoint.sh
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/__pycache__
+**/*.pyc
+**/*.sqlite3
+**/*.sqlite3-*
+**/*.onnx
+**/*.pt
+**/*.pth
+**/*.gguf
+**/*.safetensors
+backend/var/
+backend/staticfiles/
