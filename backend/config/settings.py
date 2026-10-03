@@ -105,8 +105,9 @@ QWEATHER_ENABLED = os.getenv('QWEATHER_ENABLED', '0') == '1'
 QWEATHER_API_KEY = os.getenv('QWEATHER_API_KEY', '').strip()
 QWEATHER_API_HOST = os.getenv('QWEATHER_API_HOST', '').strip().lower()
 QWEATHER_MONTHLY_LIMIT = int(os.getenv('QWEATHER_MONTHLY_LIMIT', '100'))
-if not 1 <= QWEATHER_MONTHLY_LIMIT <= 30000:
-    raise ImproperlyConfigured('QWEATHER_MONTHLY_LIMIT must be between 1 and 30000')
+# Zero stops new reservations; existing cache and accounting records are retained.
+if not 0 <= QWEATHER_MONTHLY_LIMIT <= 30000:
+    raise ImproperlyConfigured('QWEATHER_MONTHLY_LIMIT must be between 0 and 30000')
 QWEATHER_TIMEOUT_SECONDS = 5
 QWEATHER_MINUTE_LIMIT = 15
 QWEATHER_CACHE_SECONDS = {

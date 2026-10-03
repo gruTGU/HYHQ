@@ -1,15 +1,11 @@
 <view class="page home-page">
-  <view class="brand row">
-    <view class="brand-identity"><image class="brand-logo" src="/assets/brand/hyhq-logo.jpg" mode="aspectFit" aria-label="海晏河清智慧平台标志" /><view><view class="brand-name">海晏河清</view><text class="eyebrow">HYHQ · 亲近自然</text></view></view>
-    <view class="brand-leaf" aria-hidden="true"></view>
-  </view>
-  <view class="intro"><view class="page-title">把日常，过成绿色。</view><view class="subtitle">看看天气，认一片叶，读懂身边的山水。</view></view>
-
   <view class="city-section section">
     <view class="section-head"><text class="section-title">今日自然</text><text class="live-label"><text class="live-dot"></text>真实天气</text></view>
     <picker wx:if="{{cities.length}}" range="{{cities}}" range-key="name" value="{{cityIndex}}" bindchange="changeCity">
-      <view class="city-choice row" hover-class="pressable"><view class="grow"><text class="small muted">关注地点</text><view class="title">{{city.name}}</view></view><view class="city-switch">切换地点 <text>⌄</text></view></view>
+      <view class="city-choice row" hover-class="pressable"><view class="grow"><text class="small muted">天气地点</text><view class="title">{{city.name}}</view></view><view class="city-switch">切换城市 / 校园 <text>⌄</text></view></view>
     </picker>
+    <view class="location-actions"><button class="location-button" hover-class="pressable" bindtap="locateCity" loading="{{locationBusy}}" disabled="{{locationBusy || cityLoading || !cities.length}}"><text wx:if="{{!locationBusy}}" class="location-symbol" aria-hidden="true">⌖</text>{{locationBusy ? '正在选城' : '定位选城'}}</button><text class="location-help">仅在点击后定位，在本机匹配邻近城市</text></view>
+    <view class="location-notice" wx:if="{{locationNotice}}" aria-live="polite">{{locationNotice}}</view>
     <view class="scope-note" wx:if="{{city.scope_note}}">{{city.scope_note}}</view>
     <page-state loading="{{cityLoading}}" error="{{cityError}}" bindretry="loadCityLocations" />
     <view class="notice" wx:if="{{!cityLoading && !cityError && (!cityEnabled || !cities.length)}}">天气正在休息，稍后再来看看。</view>

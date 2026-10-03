@@ -7,7 +7,15 @@ const NOW = '2026-10-03T04:00:00.000Z';
 function context(options = {}) { return { method: 'GET', path: 'weather-data/summary/', query: new URLSearchParams('location=tianjin'), body: {}, now: NOW, store: new MemoryStore(), config: { qweatherEnabled: true, qweatherBudgetConfirmed: true, qweatherApiKey: 'fake-test-only-key', qweatherApiHost: 'unit.qweatherapi.com', qweatherMonthlyLimit: 30 }, ...options }; }
 function payload(kind) { return { data: kind === 'alerts' ? { items: [], zero_result: true } : { temperature: 22, condition: '晴' }, attributions: ['Official fixture attribution'], refer: { sources: ['QWeather'] }, observed_at: null }; }
 function cached(kind, extra = {}) { return { id: `tianjin_${kind}`, kind, location: 'tianjin', payload: payload(kind), fetched_at: '2026-10-03T03:55:00.000Z', expires_at: '2026-10-03T04:15:00.000Z', ...extra }; }
-test('fixed five regional locations and disabled forecast contract', async () => { const ctx = context({ path: 'weather-data/locations/', query: new URLSearchParams() }); const result = (await weather.handle(ctx)).data.data; assert.equal(result.items.length, 5); assert.equal(result.items[1].slug, 'tiangong'); assert.equal(result.forecast_enabled, false); assert.match(result.items[1].scope_note, /不是校园内实测/); });
+test('fixed ten cities and three compatible campus locations keep forecast disabled', async () => {
+  const ctx = context({ path: 'weather-data/locations/', query: new URLSearchParams() }), result = (await weather.handle(ctx)).data.data;
+  assert.equal(result.items.length, 13); assert.equal(new Set(result.items.map(x => x.slug)).size, 13);
+  assert.deepEqual(result.items.filter(x => x.kind === 'city').map(x => x.slug).sort(), ['beijing', 'chengdu', 'chongqing', 'guangzhou', 'hangzhou', 'nanjing', 'shanghai', 'shenzhen', 'tianjin', 'wuhan']);
+  assert.deepEqual(result.items.filter(x => x.kind === 'campus').map(x => x.slug), ['tiangong', 'tianjin-normal', 'tianjin-technology']);
+  assert.equal(result.forecast_enabled, false); assert.ok(result.items.every(x => x.coordinate_system === 'WGS84'));
+  assert.match(result.items.find(x => x.slug === 'tiangong').scope_note, /不是校园内实测/);
+  assert.match(result.items.find(x => x.slug === 'beijing').scope_note, /城市代表点/);
+});
 test('zero budget or missing confirmation never calls upstream', async () => { for (const config of [{ qweatherMonthlyLimit: 0 }, { qweatherBudgetConfirmed: false }, { qweatherApiHost: 'attacker.example' }, { qweatherEnabled: false }]) { const ctx = context(); Object.assign(ctx.config, config); const result = await weather.handle(ctx, { fetchWeather: () => assert.fail('network must remain disabled') }); assert.equal(result.data.data.weather.status, 'unavailable'); assert.equal(await ctx.store.count('weather_requests'), 0); } });
 test('unknown location, duplicate query, and arbitrary query are rejected', async () => { for (const query of ['location=other', 'location=tianjin&location=beijing', 'location=tianjin&host=bad']) await assert.rejects(weather.handle(context({ query: new URLSearchParams(query) }))); });
 test('weather components reserve three requests and reuse caches', async () => { const ctx = context(); let calls = 0; const adapters = { fetchWeather: async (_, kind) => { calls++; return payload(kind); } }; const result = (await weather.handle(ctx, adapters)).data.data; assert.equal(result.weather.status, 'fresh'); assert.equal(result.alerts.status, 'empty'); await weather.handle(ctx, adapters); assert.equal(calls, 3); assert.equal(await ctx.store.count('weather_requests'), 3); });
@@ -26,3 +34,20 @@ test('all excluded weather products and forecast are absent from transport allow
 test('provider request uses fixed host/path and exact secret header without URL credentials', async () => { let request; const config = context().config; const result = await provider.fetchWeather(config, 'weather', weather.LOCATIONS[0], async (options, _, bounds) => { request = options; assert.equal(bounds.timeoutMs, 5000); return { metadata: { attributions: ['source'] }, temperature: { value: 21, unit: '°C' }, condition: { text: '晴' }, humidity: 0.6 }; }); assert.equal(request.hostname, 'unit.qweatherapi.com'); assert.equal(request.path, '/weather/v1/current/39.09/117.20?lang=zh'); assert.equal(request.headers['X-QW-Api-Key'], config.qweatherApiKey); assert.equal(result.data.humidity_percent, 60); });
 test('foreign AQI retains its index, missing weather is not converted to zero', () => { const result = provider.normalizeWeather('air', { metadata: { attributions: [] }, indexes: [{ code: 'us-epa', name: 'US AQI', aqi: 5 }] }); assert.equal(result.data.index_code, 'us-epa'); assert.throws(() => provider.normalizeWeather('weather', { metadata: { attributions: [] }, temperature: { value: null }, condition: { text: '晴' } })); });
 test('alerts only become empty on explicit valid zero flag', () => { assert.equal(provider.normalizeWeather('alerts', { metadata: { zeroResult: true } }).data.zero_result, true); assert.throws(() => provider.normalizeWeather('alerts', { metadata: { attributions: [] }, alerts: [] })); });
+test('GPS coordinates and alternate endpoint requests cannot create weather records or bypass slug allowlist', async () => {
+  for (const options of [{ query: new URLSearchParams('location=beijing&latitude=39.9088&longitude=116.3973') }, { query: new URLSearchParams('latitude=39.9088&longitude=116.3973') }, { body: { latitude: 39.9088, longitude: 116.3973 } }, { query: new URLSearchParams('location=39.9088,116.3973') }]) {
+    const ctx = context(options); await assert.rejects(weather.handle(ctx, { fetchWeather: () => assert.fail('coordinate request cannot reach provider') }));
+    assert.equal(ctx.store.data.size, 0);
+  }
+});
+test('new cities use the existing three products and shared cache budget with no new provider paths', async () => {
+  for (const slug of ['shanghai', 'guangzhou', 'shenzhen', 'hangzhou', 'chengdu', 'chongqing', 'wuhan', 'nanjing']) {
+    const ctx = context({ query: new URLSearchParams('location=' + slug) }), calls = [];
+    const adapters = { fetchWeather: async (_, kind, location) => { calls.push({ kind, slug: location.slug }); assert.deepEqual(location, weather.locationFor(slug)); return payload(kind); } };
+    const out = (await weather.handle(ctx, adapters)).data.data;
+    assert.equal(out.location.slug, slug); assert.deepEqual(calls.map(x => x.kind), ['weather', 'air', 'alerts']);
+    await weather.handle(ctx, adapters); assert.equal(calls.length, 3);
+    assert.equal((await ctx.store.get('weather_gate', 'budget')).days['2026-10-03'], 3);
+    assert.ok((await ctx.store.list('weather_requests')).every(row => row.location === slug && !('latitude' in row) && !('longitude' in row)));
+  }
+});

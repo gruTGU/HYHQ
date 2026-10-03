@@ -66,6 +66,44 @@ class WeatherServiceTests(TestCase):
         self.assertFalse(WeatherRequest.objects.exists())
         self.fetch.assert_not_called()
 
+    @override_settings(QWEATHER_MONTHLY_LIMIT=0, QWEATHER_FORECAST_ENABLED=True, QWEATHER_FORECAST_ENTITLEMENT_CONFIRMED=True)
+    def test_zero_allocation_blocks_all_reservations_even_with_valid_enabled_provider(self):
+        self.assertTrue(provider.configured())
+        for kind in ('weather', 'air', 'alerts', 'forecast'):
+            _, reservation, reason = reserve(self.location, kind, timezone.now())
+            self.assertIsNone(reservation)
+            self.assertEqual(reason, 'budget_exhausted')
+            self.assertEqual(get_component(self.location, kind)['reason'], 'budget_exhausted')
+        output = io.StringIO()
+        call_command('weather_refresh', location=self.location.slug, fetch=True, stdout=output)
+        self.assertIn('本部署封顶 0', output.getvalue())
+        self.assertEqual(WeatherMonth.objects.get().reserved, 0)
+        self.assertFalse(WeatherRequest.objects.exists())
+        self.fetch.assert_not_called()
+
+    def test_zero_allocation_retains_old_spend_and_cache_without_refreshing(self):
+        original = get_component(self.location, 'weather')
+        self.assertEqual(self.fetch.call_count, 1)
+        self.fetch.reset_mock()
+        with override_settings(QWEATHER_MONTHLY_LIMIT=0):
+            self.assertEqual(get_component(self.location, 'weather')['data'], original['data'])
+            WeatherCache.objects.update(expires_at=timezone.now() - timedelta(seconds=1))
+            stale = get_component(self.location, 'weather')
+            self.assertEqual(stale['status'], 'stale')
+            self.assertEqual(stale['reason'], 'budget_exhausted')
+            self.assertEqual(stale['data'], original['data'])
+        self.assertEqual(WeatherMonth.objects.get().reserved, 1)
+        self.assertEqual(WeatherRequest.objects.count(), 1)
+        self.fetch.assert_not_called()
+
+    @override_settings(QWEATHER_ENABLED=False, QWEATHER_MONTHLY_LIMIT=0)
+    def test_disabled_zero_allocation_keeps_all_outbound_closed(self):
+        result = summary(self.location)
+        self.assertTrue(all(result[kind]['reason'] == 'not_configured' for kind in ('weather', 'air', 'alerts')))
+        self.assertFalse(WeatherRequest.objects.exists())
+        self.assertFalse(WeatherMonth.objects.exists())
+        self.fetch.assert_not_called()
+
     @override_settings(QWEATHER_MONTHLY_LIMIT=1)
     def test_month_budget_stops_after_last_reservation_even_failure(self):
         self.fetch.side_effect = provider.ProviderError('timeout')

@@ -4,12 +4,20 @@ const providers = require('./providers');
 const DAY = 86400000;
 const TTL = Object.freeze({ weather: 1800000, air: 3600000, alerts: 900000 });
 const LOCATIONS = Object.freeze([
-  { slug: 'tianjin', name: '天津市', latitude: 39.09, longitude: 117.20 },
-  { slug: 'tiangong', name: '天津工业大学', latitude: 39.06, longitude: 117.11 },
-  { slug: 'tianjin-normal', name: '天津师范大学', latitude: 39.06, longitude: 117.12 },
-  { slug: 'tianjin-technology', name: '天津理工大学', latitude: 39.06, longitude: 117.13 },
-  { slug: 'beijing', name: '北京市', latitude: 39.90, longitude: 116.41 },
-].map((x) => Object.freeze({ ...x, coordinate_system: 'WGS84', scope_note: x.slug === 'beijing' || x.slug === 'tianjin' ? '城市代表点附近区域天气，非具体地点实时实测。' : '校园所在区域的天气网格查询，不是校园内实测或导航坐标。' })));
+  { slug: 'tianjin', name: '天津市', kind: 'city', latitude: 39.09, longitude: 117.20 },
+  { slug: 'beijing', name: '北京市', kind: 'city', latitude: 39.90, longitude: 116.41 },
+  { slug: 'shanghai', name: '上海市', kind: 'city', latitude: 31.23, longitude: 121.47 },
+  { slug: 'guangzhou', name: '广州市', kind: 'city', latitude: 23.13, longitude: 113.26 },
+  { slug: 'shenzhen', name: '深圳市', kind: 'city', latitude: 22.54, longitude: 114.06 },
+  { slug: 'hangzhou', name: '杭州市', kind: 'city', latitude: 30.27, longitude: 120.16 },
+  { slug: 'chengdu', name: '成都市', kind: 'city', latitude: 30.57, longitude: 104.07 },
+  { slug: 'chongqing', name: '重庆市', kind: 'city', latitude: 29.56, longitude: 106.55 },
+  { slug: 'wuhan', name: '武汉市', kind: 'city', latitude: 30.59, longitude: 114.30 },
+  { slug: 'nanjing', name: '南京市', kind: 'city', latitude: 32.06, longitude: 118.80 },
+  { slug: 'tiangong', name: '天津工业大学', kind: 'campus', latitude: 39.06, longitude: 117.11 },
+  { slug: 'tianjin-normal', name: '天津师范大学', kind: 'campus', latitude: 39.06, longitude: 117.12 },
+  { slug: 'tianjin-technology', name: '天津理工大学', kind: 'campus', latitude: 39.06, longitude: 117.13 },
+].map((x) => Object.freeze({ ...x, coordinate_system: 'WGS84', scope_note: x.kind === 'city' ? '城市代表点附近区域天气，不是你当前位置的实测天气。' : '校园所在区域的天气网格查询，不是校园内实测或导航坐标。' })));
 function timestamp(ctx) { const n = Date.parse(ctx.now); return Number.isFinite(n) ? n : Date.now(); }
 function dayOf(ms) { return new Date(ms + 8 * 3600000).toISOString().slice(0, 10); }
 function configured(config = {}) { return config.qweatherEnabled === true && config.qweatherBudgetConfirmed === true && typeof config.qweatherApiKey === 'string' && !!config.qweatherApiKey && providers.WEATHER_HOST.test(config.qweatherApiHost || '') && Number.isInteger(config.qweatherMonthlyLimit) && config.qweatherMonthlyLimit > 0 && config.qweatherMonthlyLimit <= 30000; }
@@ -117,7 +125,7 @@ async function handle(ctx, adapters = ctx.providers || {}) {
     return response({ items: LOCATIONS.map((x) => ({ ...x })), enabled: configured(ctx.config), forecast_enabled: false });
   }
   if (ctx.method === 'GET' && ctx.path === '/weather-data/summary/') {
-    if ([...query.keys()].join(',') !== 'location') throw new ApiError('VALIDATION_ERROR', '仅允许提供一个管理员已配置的 location。');
+    if ([...query.keys()].join(',') !== 'location' || Object.keys(ctx.body || {}).length) throw new ApiError('VALIDATION_ERROR', '仅允许提供一个管理员已配置的 location。');
     const location = locationFor(query.get('location')); if (!location) throw new ApiError('NOT_FOUND', '天气查询地点不存在。', 404);
     const value = { location, source_label: '和风天气', source_kind: 'api' };
     for (const kind of Object.keys(TTL)) value[kind] = await component(ctx, location, kind, adapters.fetchWeather);

@@ -3,6 +3,7 @@ const { app } = require('../../lib/page');
 const { time, value, message } = require('../../lib/format');
 const { loadRegions, selectRegion } = require('../../lib/region');
 const { weatherView } = require('../../lib/weather');
+const { locateWeatherCity } = require('../../lib/weather-location');
 function weatherTheme(data) {
   const condition = String(data && data.condition || '').toLowerCase();
   const code = Number(data && data.condition_code);
@@ -14,7 +15,7 @@ function weatherTheme(data) {
   return 'calm';
 }
 Page({
-  data: { loading: true, error: '', regions: [], regionIndex: 0, region: null, weather: null, air: null, alerts: [], alertNotice: '', sections: [], health: null, cityLoading: true, cityError: '', cities: [], cityIndex: 0, city: null, citySummary: null, cityEnabled: false, weatherTheme: 'calm', airExpanded: false, observationExpanded: false },
+  data: { loading: true, error: '', regions: [], regionIndex: 0, region: null, weather: null, air: null, alerts: [], alertNotice: '', sections: [], health: null, cityLoading: true, cityError: '', cities: [], cityIndex: 0, city: null, citySummary: null, cityEnabled: false, locationBusy: false, locationNotice: '', weatherTheme: 'calm', airExpanded: false, observationExpanded: false },
   onLoad() { this._alive = true; return this.load(); },
   onShow() {
     if (this._alive === false) return;
@@ -22,7 +23,7 @@ Page({
     const selected = app().globalData.region;
     if (this._hidden || (this._loaded && selected && (!this.data.region || selected.id !== this.data.region.id))) { this._hidden = false; return this.load(); }
   },
-  onHide() { this._hidden = true; this._generation = (this._generation || 0) + 1; this._cityGeneration = (this._cityGeneration || 0) + 1; },
+  onHide() { this._hidden = true; this._generation = (this._generation || 0) + 1; this._cityGeneration = (this._cityGeneration || 0) + 1; this._locationGeneration = (this._locationGeneration || 0) + 1; },
   onUnload() { this._alive = false; this.onHide(); },
   onPullDownRefresh() { return this.load(); },
   current(generation) { return this._alive !== false && !this._hidden && generation === this._generation; },
@@ -48,7 +49,8 @@ Page({
   cityCurrent(generation) { return this._alive !== false && !this._hidden && generation === this._cityGeneration; },
   async loadCityLocations() {
     const generation = this._cityGeneration = (this._cityGeneration || 0) + 1;
-    this.setData({ cityLoading: true, cityError: '', citySummary: null });
+    this._locationGeneration = (this._locationGeneration || 0) + 1;
+    this.setData({ cityLoading: true, cityError: '', citySummary: null, locationBusy: false, locationNotice: '' });
     try {
       const data = (await app().api.request('weather-data/locations/')).data || {};
       if (!this.cityCurrent(generation)) return;
@@ -65,15 +67,33 @@ Page({
     if (!this.cityCurrent(generation)) return;
     this.setData({ citySummary: weatherView(data || {}), weatherTheme: weatherTheme(data && data.weather && data.weather.data) });
   },
-  async changeCity(event) {
-    const cityIndex = Number(event.detail.value), city = this.data.cities[cityIndex];
+  changeCity(event) {
+    this._locationGeneration = (this._locationGeneration || 0) + 1;
+    return this.selectWeatherCity(Number(event.detail.value), '');
+  },
+  async selectWeatherCity(cityIndex, locationNotice) {
+    const city = this.data.cities[cityIndex];
     if (!city || this._alive === false || this._hidden) return;
     const generation = this._cityGeneration = (this._cityGeneration || 0) + 1;
     app().globalData.weatherLocation = city.slug;
-    this.setData({ cityIndex, city, cityLoading: true, cityError: '', citySummary: null });
+    this.setData({ cityIndex, city, cityLoading: true, cityError: '', citySummary: null, locationBusy: false, locationNotice });
     try { if (this.data.cityEnabled) await this.loadCitySummary(city.slug, generation); }
     catch (error) { if (this.cityCurrent(generation)) this.setData({ cityError: message(error) }); }
     finally { if (this.cityCurrent(generation)) this.setData({ cityLoading: false }); }
+  },
+  async locateCity() {
+    if (this._alive === false || this._hidden || this.data.locationBusy || this.data.cityLoading || !this.data.cities.length) return;
+    const generation = this._locationGeneration = (this._locationGeneration || 0) + 1;
+    this.setData({ locationBusy: true, locationNotice: '' });
+    const result = await locateWeatherCity(wx, this.data.cities);
+    if (this._alive === false || this._hidden || generation !== this._locationGeneration) return;
+    if (result.status === 'selected') {
+      const index = this.data.cities.findIndex(city => city.slug === result.slug), city = this.data.cities[index];
+      if (city) return this.selectWeatherCity(index, '已选择邻近支持城市：' + city.name + '。以下是城市代表点天气。');
+    }
+    this.setData({ locationBusy: false, locationNotice: result.status === 'unsupported'
+      ? '当前位置附近暂无支持城市，请手动选择要查看的城市。'
+      : '未能获取位置，你可以继续手动切换城市。' });
   },
   toggleAir() { if (this._alive !== false && !this._hidden) this.setData({ airExpanded: !this.data.airExpanded }); },
   toggleObservations() { if (this._alive !== false && !this._hidden) this.setData({ observationExpanded: !this.data.observationExpanded }); },

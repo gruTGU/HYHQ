@@ -1,17 +1,15 @@
-.brand { margin: 8rpx 0 36rpx; }
-.brand-identity { display: flex; align-items: center; min-width: 0; }
-.brand-logo { width: 92rpx; height: 92rpx; margin-right: 18rpx; border-radius: 24rpx; background: #fff; }
-.brand-name { font-size: 31rpx; font-weight: 650; letter-spacing: 5rpx; }
-.brand .eyebrow { font-size: 18rpx; letter-spacing: 2rpx; }
-.brand-leaf { width: 44rpx; height: 70rpx; border-radius: 80% 0 80% 0; background: #a8c99b; transform: rotate(28deg); margin-right: 12rpx; opacity: .75; }
-.intro .page-title { font-size: 46rpx; }
-.intro .subtitle { font-size: 25rpx; line-height: 1.9; }
 .city-section { padding: 28rpx; background: #fffefa; border: 1rpx solid #e0e8db; border-radius: 32rpx; box-shadow: 0 12rpx 36rpx rgba(44,62,51,.035); }
 .live-label { display: flex; align-items: center; font-size: 21rpx; color: #3a7d5c; }
 .live-dot { display: inline-block; width: 10rpx; height: 10rpx; border-radius: 50%; background: #75a365; margin-right: 10rpx; flex-shrink: 0; }
 .city-choice { margin: 22rpx 0 12rpx; min-height: 82rpx; }
 .city-choice .title { margin-top: 4rpx; font-size: 30rpx; }
 .city-switch { margin-left: 16rpx; background: #eef4e9; color: #3a7d5c; font-size: 23rpx; padding: 12rpx 18rpx; border-radius: 24rpx; flex-shrink: 0; }
+.location-actions { display: flex; align-items: center; gap: 18rpx; margin: 12rpx 0 16rpx; }
+.location-button { flex-shrink: 0; margin: 0; padding: 12rpx 18rpx; font-size: 24rpx; line-height: 1.7; border-radius: 22rpx; color: #3a7d5c; background: #eaf2e4; }
+.location-button[disabled] { color: #718775; background: #eff3eb; }
+.location-symbol { font-size: 28rpx; margin-right: 8rpx; }
+.location-help { color: #748474; font-size: 20rpx; line-height: 1.6; }
+.location-notice { color: #496750; background: #f0f5eb; border-radius: 16rpx; padding: 14rpx 18rpx; font-size: 22rpx; line-height: 1.7; margin-bottom: 16rpx; }
 .scope-note { margin-bottom: 20rpx; color: #748474; font-size: 21rpx; line-height: 1.7; }
 .weather-card { background: linear-gradient(130deg,#dce9d6,#e8efd8); border-radius: 28rpx; padding: 24rpx 26rpx; color: #2c3e33; overflow: hidden; }
 .weather-sun { background: linear-gradient(125deg,#f2e9bc 0%,#dce7c7 68%,#c8ddc0 100%); }
