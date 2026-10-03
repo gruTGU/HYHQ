@@ -16,13 +16,13 @@
 .login-card { padding: 34rpx; }
 .login-notice { font-size: 22rpx; line-height: 1.9; margin: 26rpx 0 8rpx; color: #718278; }
 .legal-link { color: #3a7d5c; text-decoration: underline; }
-.avatar-button { flex-shrink: 0; width: 120rpx; height: 120rpx; padding: 0; border-radius: 50%; margin: 0 24rpx 0 0; border: 6rpx solid rgba(255, 255, 255, .8); background: #e5efdf; overflow: hidden; }
-.avatar { display: block; width: 108rpx; height: 108rpx; }
-.avatar-placeholder { position: relative; width: 108rpx; height: 108rpx; }
+.avatar-button { flex: 0 0 120rpx; min-width: 120rpx; max-width: 120rpx; width: 120rpx; height: 120rpx; min-height: 120rpx; padding: 0; display: flex; align-items: center; justify-content: center; line-height: 1; border-radius: 50%; margin: 0 24rpx 0 0; border: 6rpx solid rgba(255, 255, 255, .8); background: #e5efdf; overflow: hidden; }
+.avatar { display: block; width: 108rpx; height: 108rpx; flex-shrink: 0; border-radius: 50%; overflow: hidden; }
+.avatar-placeholder { position: relative; width: 108rpx; height: 108rpx; border-radius: 50%; overflow: hidden; }
 .avatar-head { position: absolute; left: 36rpx; top: 20rpx; width: 36rpx; height: 36rpx; background: #7ca58d; border-radius: 50%; }
 .avatar-shoulders { position: absolute; left: 21rpx; bottom: 7rpx; width: 66rpx; height: 42rpx; background: #7ca58d; border-radius: 40rpx 40rpx 14rpx 14rpx; }
-.record-grid { display: flex; flex-wrap: wrap; background: #fff; border-radius: 32rpx; padding: 18rpx 8rpx; }
-.record-entry { width: 33.333%; display: flex; flex-direction: column; align-items: center; padding: 20rpx 2rpx; border-radius: 24rpx; background: transparent; font-size: 24rpx; line-height: 1.6; color: #2c3e33; font-weight: 400; }
+.record-grid { display: flex; flex-wrap: nowrap; align-items: stretch; background: #fff; border-radius: 32rpx; padding: 18rpx 6rpx; }
+.record-entry { flex: 1 1 0; min-width: 0; width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18rpx 0; border-radius: 18rpx; background: transparent; font-size: 21rpx; line-height: 1.6; color: #2c3e33; font-weight: 400; white-space: nowrap; }
 .record-entry:active { background: #f0f4ed; }
 .record-icon { position: relative; width: 48rpx; height: 48rpx; margin: 0 0 16rpx; color: #3a7d5c; }
 .icon-favorite { width: 36rpx; height: 44rpx; border: 3rpx solid #3a7d5c; border-radius: 6rpx 6rpx 3rpx 3rpx; }

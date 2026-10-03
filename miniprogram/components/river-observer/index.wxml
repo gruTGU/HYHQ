@@ -1,0 +1,66 @@
+<view class="observation-node page assessment-page embedded-assessment">
+  <block wx:if="{{!embedded}}"><text class="observation-node eyebrow">自然观察 · 河道记录</text>
+  <view class="observation-node page-title">从一张照片，<view class="observation-node">观察身边的河流。</view></view>
+  <view class="observation-node subtitle">记录眼前的河流，留意水面的细节。</view>
+  </block>
+  <view class="observation-node observe-kind"><text class="observation-node kind-dot"></text><text class="observation-node">漂浮物实验检测</text><text class="observation-node kind-note">仅本人可见</text></view>
+  <view class="observation-node flow-steps"><text class="observation-node {{!imagePath ? 'current' : ''}}">01 选择照片</text><view class="observation-node flow-step-line"></view><text class="observation-node {{imagePath && !task.result_view ? 'current' : ''}}">02 提交观察</text><view class="observation-node flow-step-line"></view><text class="observation-node {{task.result_view ? 'current' : ''}}">03 查看结果</text></view>
+  <view class="observation-node scope-card section"><view class="observation-node row" bindtap="toggleHelp"><view class="observation-node"><view class="observation-node title">这张照片能告诉我们什么</view><view class="observation-node small muted gap">仅检测漂浮物候选，不评价真实水质</view></view><text class="observation-node help-toggle">{{helpExpanded ? '收起 −' : '展开 +'}}</text></view><block wx:if="{{helpExpanded}}"><view class="observation-node copy gap">{{capability.scope}}</view><view class="observation-node small muted gap" wx:if="{{capability.modelName}}">{{capability.modelName}} · {{capability.modelVersion}}</view><view class="observation-node copy">图像教学规则分不是官方生态等级或水质评价。检测框面积不是水面覆盖率，也不代表真实污染程度。未检出也不表示水体清洁。</view></block></view>
+  <view class="observation-node notice" wx:if="{{capabilityKnown && !capability.enabled}}">河道观察模型当前未启用，暂不能提交新任务；已保存的观察记录仍可查看。</view>
+  <view class="observation-node error-inline" wx:if="{{capabilityError}}">{{capabilityError}}</view>
+  <view class="observation-node section image-wrap" wx:if="{{imagePath}}">
+    <image class="preview" src="{{imagePath}}" mode="widthFix" bindload="imageLoaded" binderror="imageError" />
+    <view class="observation-node box-layer" wx:if="{{imageReady && task.result_view}}">
+      <view class="observation-node detection-box" wx:for="{{task.result_view.boxes}}" wx:key="id" style="{{item.box_style}}"><text class="observation-node box-label">{{index + 1}}</text></view>
+    </view>
+  </view>
+  <view class="observation-node upload-panel section" wx:else><view class="observation-node water-illustration"><view class="observation-node water-bank"></view><view class="observation-node water-stream"></view><view class="observation-node water-reed"></view><view class="observation-node water-leaf"></view></view><view class="observation-node title">为这段河流，留一张照片</view><view class="observation-node copy">尽量保持清晰，拍摄可见水面</view><button class="observation-node observation-button {{(busy) ? 'observation-disabled' : ''}} primary choose-water" bindtap="choose" disabled="{{busy}}">拍照 / 从相册选择</button><view class="observation-node small muted gap">JPEG / PNG / WebP · 最大 5MB</view></view>
+  <view class="observation-node small muted gap" wx:if="{{imageUnavailable}}">{{imageUnavailable}}</view>
+  <button class="observation-node observation-button {{(busy) ? 'observation-disabled' : ''}} secondary gap" wx:if="{{imagePath}}" disabled="{{busy}}" bindtap="choose">选择另一张照片</button>
+  <view wx:if="{{!loggedIn}}" class="observation-node gap"><button class="observation-node observation-button primary" bindtap="login">登录后上传观察</button><view class="observation-node small muted gap">登录后可保存照片和自己的观察记录。</view></view>
+  <block wx:else>
+    <view class="observation-node card section association-card" wx:if="{{imageOrigin !== 'history'}}">
+      <view class="observation-node row" bindtap="toggleAssociation"><view class="observation-node"><view class="observation-node title">这次观察，发生在哪里</view><view class="observation-node small muted gap">{{waterBodies[waterIndex].id ? waterBodies[waterIndex].name : '可选关联水体，不填写也能继续'}}</view></view><text class="observation-node help-toggle">{{associationExpanded ? '收起 −' : '展开 +'}}</text></view>
+      <block wx:if="{{associationExpanded}}">
+      <picker range="{{waterBodies}}" range-key="name" value="{{waterIndex}}" disabled="{{busy}}" bindchange="changeWater"><view class="observation-node water-picker row"><text class="observation-node">{{waterBodies[waterIndex].name}}</text><text class="observation-node">⌄</text></view></picker>
+      <view class="observation-node small muted gap">请核对水体资料和实际位置。示范水体关联仅作个人标签，不核验真实到访。</view>
+      <view class="observation-node small muted gap" wx:if="{{waterNotice}}">{{waterNotice}}</view>
+      <view class="observation-node divider"></view>
+      <view class="observation-node copy">仅点击下方按钮时获取本次位置，用于查询同坐标系附近候选；上传时位置仅存入本人记录。拒绝定位仍可上传，不采集轨迹。</view>
+      <button class="observation-node observation-button {{(busy || locating) ? 'observation-disabled' : ''}} secondary gap" disabled="{{busy || locating}}" loading="{{locating}}" bindtap="locate">可选：获取位置并查找附近水体</button>
+      <view class="observation-node small muted gap" wx:if="{{locationNotice}}">{{locationNotice}}</view>
+      <view class="observation-node nearby gap" wx:if="{{nearby}}"><view class="observation-node title">候选：{{nearby.water_body_name}}</view><view class="observation-node small muted">仅供手动确认，不代表到访认证。</view><button class="observation-node observation-button {{(busy) ? 'observation-disabled' : ''}} secondary gap" disabled="{{busy}}" bindtap="acceptNearby">关联这个候选水体</button></view>
+      <button class="observation-node observation-button {{(busy) ? 'observation-disabled' : ''}} text-button gap" wx:if="{{location || locating}}" disabled="{{busy}}" bindtap="clearLocation">本次不保存位置</button>
+      </block>
+      <view class="observation-node small muted gap" wx:if="{{location && !associationExpanded}}">已附本次位置，可展开后移除。</view>
+    </view>
+    <view class="observation-node small muted gap">图片与观察记录仅本人可见，可随时删除。请避免上传他人隐私。<text class="observation-node privacy-link" bindtap="privacy">隐私说明</text></view>
+    <button wx:if="{{imageOrigin !== 'history'}}" class="observation-node observation-button {{(busy || locating || !capabilityKnown || !capability.enabled || !imagePath || task.status === 'queued' || task.status === 'running') ? 'observation-disabled' : ''}} primary gap" disabled="{{busy || locating || !capabilityKnown || !capability.enabled || !imagePath || task.status === 'queued' || task.status === 'running'}}" loading="{{busy}}" bindtap="submit">{{busy ? '正在上传' : '上传并观察漂浮物'}}</button>
+  </block>
+  <view class="observation-node card section" wx:if="{{task && !task.result_view}}"><view class="observation-node row"><text class="observation-node title">{{task.status_label}}</text><text class="observation-node pill">观察进度</text></view><view class="observation-node copy">{{task.error_label || (task.status === 'queued' ? '照片正在排队，请稍候。' : task.status === 'running' ? '正在分析图片，请稍候。' : '本次未产生观察结论。')}}</view><view class="observation-node small muted gap">{{task.created_label}}</view><button class="observation-node observation-button secondary gap" bindtap="refreshTask">刷新观察进度</button></view>
+  <block wx:if="{{task.result_view}}">
+    <view class="observation-node result-banner section"><view class="observation-node title">{{task.result_view.heading}}</view><view class="observation-node rule-score" wx:if="{{task.result_view.has_score}}">{{task.result_view.score_label}}<text class="observation-node rule-score-unit"> / 100</text></view><view class="observation-node small" wx:if="{{task.result_view.has_score}}">图像教学规则分</view><view class="observation-node copy">{{task.result_view.explanation}}</view></view>
+    <view class="observation-node card section"><view class="observation-node row"><text class="observation-node title">检测候选</text><text class="observation-node pill">{{task.result_view.detections.length}} 个</text></view><view class="observation-node detection-row" wx:for="{{task.result_view.detections}}" wx:key="id"><text class="observation-node">{{index + 1}} · {{item.label}}</text><text class="observation-node small muted">置信分数 {{item.confidence_label}}</text></view><view class="observation-node copy" wx:if="{{!task.result_view.detections.length}}">暂时无法确认，本次不提供分数。</view><view class="observation-node small muted gap" wx:if="{{task.result_view.detections.length}}">编号对应照片中的候选框。框按原图相对位置展示，不代表人工核实。</view></view>
+    <view class="observation-node card section" wx:if="{{task.summary_view}}">
+      <view class="observation-node title">画面观察摘要</view>
+      <block wx:if="{{task.summary_view.ready}}">
+        <view class="observation-node observation-metrics gap"><view class="observation-node observation-metric"><text class="observation-node observation-number">{{task.summary_view.count}}</text><view class="observation-node small muted">有效候选框</view></view><view class="observation-node observation-metric"><text class="observation-node observation-number">{{task.summary_view.area}}</text><view class="observation-node small muted">框并集占整图</view></view></view>
+        <view class="observation-node small muted gap">重叠框的面积只算一次。这是图片中的框面积，不是水面覆盖率；框数也不代表实际物体数或密度。</view>
+        <view class="observation-node divider"></view><view class="observation-node title">候选框位于画面哪里</view>
+        <view class="observation-node observation-grid gap"><view class="observation-node observation-cell {{item.active ? 'observation-cell-active' : ''}}" wx:for="{{task.summary_view.grid}}" wx:key="key"><text class="observation-node">{{item.label}}</text><text class="observation-node observation-cell-count">{{item.count}}</text></view></view>
+        <view class="observation-node small muted gap">按框中心在原图九宫格中计数，跨格框只记一次。上、下、左、右是照片方向，不是地图方位或污染分布。</view>
+        <view class="observation-node small muted gap">置信分数范围 {{task.summary_view.confidence}}，不是正确概率。</view>
+        <view class="observation-node small muted gap" wx:if="{{task.summary_view.excluded}}">另有 {{task.summary_view.excluded}} 条超出当前范围或数据不完整的候选，未计入本摘要。</view>
+      </block>
+      <view class="observation-node copy" wx:else>{{task.summary_view.message}}</view>
+    </view>
+    <view class="observation-node card section"><view class="observation-node title">规则解释与观察建议</view><view class="observation-node copy" wx:for="{{task.result_view.causes}}" wx:key="*this">· {{item}}</view><view class="observation-node divider"></view><view class="observation-node copy" wx:for="{{task.result_view.suggestions}}" wx:key="*this">· {{item}}</view></view>
+    <view class="observation-node card section"><view class="observation-node row" bindtap="toggleMetadata"><view class="observation-node title">本次观察信息</view><text class="observation-node help-toggle">{{metadataExpanded ? '收起 −' : '展开 +'}}</text></view><block wx:if="{{metadataExpanded}}"><view class="observation-node small muted gap">模型：{{task.result_view.model_name}} · {{task.result_view.model_version}}</view><view class="observation-node small muted">规则版本：{{task.result_view.rule_version}}</view><view class="observation-node small muted">提交时间：{{task.created_label}}</view><view class="observation-node small muted">关联水体：{{task.water_body.name || '未关联'}}</view><view class="observation-node small muted" wx:if="{{task.coordinate_system}}">本记录包含用户主动提供的位置 · {{task.coordinate_system}} · 仅本人可见</view></block></view>
+    <view class="observation-node notice">{{task.result_view.disclaimer}}</view>
+    <view class="observation-node card section ai-next"><text class="observation-node ai-model">✦ DeepSeek Flash</text><view class="observation-node title gap">继续理解这次观察</view><view class="observation-node copy">与 DeepSeek Flash 讨论观察结果，图片由你主动选择是否附带。解读不会改变检测框和教学规则分，也不能据此判断真实水质。</view><button class="observation-node observation-button {{(busy) ? 'observation-disabled' : ''}} secondary gap" bindtap="openAI" disabled="{{busy}}">问问 AI</button></view>
+  </block>
+  <button class="observation-node observation-button {{(busy) ? 'observation-disabled' : ''}} danger gap" wx:if="{{task}}" data-id="{{task.id}}" disabled="{{busy}}" bindtap="remove">删除此记录和图片</button>
+  <page-state loading="{{loading}}" error="{{error}}" bindretry="refreshTask" />
+  <view class="observation-node section" wx:if="{{loggedIn}}"><view class="observation-node section-head"><text class="observation-node section-title">最近的河道观察</text><button class="observation-node observation-button text-button" bindtap="allRecords">全部记录 ›</button></view><view class="observation-node small muted" wx:if="{{!jobs.length}}">还没有河道图像观察记录。</view><view class="observation-node card history-row" wx:for="{{jobs}}" wx:key="id" data-id="{{item.id}}" bindtap="openJob"><view class="observation-node row"><text class="observation-node">{{item.result_view ? item.result_view.heading : item.status_label}}</text><text class="observation-node chevron">›</text></view><view class="observation-node copy" wx:if="{{item.error_label}}">{{item.error_label}}</view><view class="observation-node small muted gap">{{item.created_label}} · 仅本人可见</view></view></view>
+  <view class="observation-node footer-note">观察，是认识河流的第一步</view>
+</view>

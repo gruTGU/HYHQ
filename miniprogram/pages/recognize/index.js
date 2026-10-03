@@ -3,7 +3,7 @@ const { app, requireLogin, toast, finish, detail } = require('../../lib/page');
 const { list, task, message } = require('../../lib/format');
 const { capability } = require('../../lib/recognition');
 Page({
-  data: { loading: false, error: '', busy: false, imagePath: '', imageOrigin: '', imageUnavailable: '', task: null, jobs: [], loggedIn: false, capability: capability(null), capabilityKnown: false, capabilityError: '', helpExpanded: false },
+  data: { mode: 'recognition', riverBusy: false, loading: false, error: '', busy: false, imagePath: '', imageOrigin: '', imageUnavailable: '', task: null, jobs: [], loggedIn: false, capability: capability(null), capabilityKnown: false, capabilityError: '', helpExpanded: false },
   onShow() {
     this._destroyed = false;
     selectTab(this, 2);
@@ -15,6 +15,9 @@ Page({
     if (this._userId !== userId || this._sessionToken !== sessionToken) this.clearPrivate();
     this._userId = userId;
     this._sessionToken = sessionToken;
+    // Returning from a legacy recognition record must select its own workflow.
+    if (app().globalData.recognitionJobId) this.setData({ mode: 'recognition', riverBusy: false });
+    if (this.data.mode === 'assessment') return;
     return this.load();
   },
   onHide() { this._visible = false; this.stopPolling(); },
@@ -25,7 +28,10 @@ Page({
     this._selectionVersion = (this._selectionVersion || 0) + 1;
     this.stopPolling();
   },
-  onPullDownRefresh() { this.load(); },
+  onPullDownRefresh() {
+    if (this.data.mode === 'assessment') { const observer = this.selectComponent && this.selectComponent('#river-observer'); return observer ? observer.refresh() : wx.stopPullDownRefresh(); }
+    return this.load();
+  },
   stopPolling() {
     this._pollGeneration = (this._pollGeneration || 0) + 1;
     if (this._timer) clearTimeout(this._timer);
@@ -37,7 +43,7 @@ Page({
     this.setData({ jobs: [], task: null, imagePath: '', imageOrigin: '', imageUnavailable: '', busy: false });
   },
   async load() {
-    if (this._destroyed) return;
+    if (this._destroyed || this.data.mode === 'assessment') return;
     const generation = this._loadGeneration = (this._loadGeneration || 0) + 1;
     const sentToken = app().session.token();
     const loggedIn = Boolean(app().session.token());
@@ -91,10 +97,11 @@ Page({
   },
   toggleHelp() { this.setData({ helpExpanded: !this.data.helpExpanded }); },
   choose() {
-    if (this._destroyed || this.data.busy || !requireLogin()) return;
+    if (this._destroyed || this.data.mode === 'assessment' || this.data.busy || !requireLogin()) return;
     const sentToken = app().session.token();
+    const modeVersion = this._modeVersion;
     wx.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['album', 'camera'], sizeType: ['compressed'], success: (result) => {
-      if (this._destroyed || app().session.token() !== sentToken) return;
+      if (this._destroyed || modeVersion !== this._modeVersion || this.data.mode === 'assessment' || app().session.token() !== sentToken) return;
       const file = result.tempFiles[0];
       if (!file) return;
       if (file.size > app().config.maxUploadBytes) { toast(new Error('图片不能超过 5MB，请压缩后重试')); return; }
@@ -104,7 +111,7 @@ Page({
     }, fail: (error) => { if (!this._destroyed && !/cancel/i.test(error.errMsg || '')) toast(new Error('未能选择图片，请检查相机与相册权限')); } });
   },
   async submit() {
-    if (this._destroyed || this.data.busy || this.data.imageOrigin === 'history' || (this.data.task && ['queued', 'running'].includes(this.data.task.status)) || !this.data.imagePath || !requireLogin()) return;
+    if (this._destroyed || this.data.mode === 'assessment' || this.data.busy || this.data.imageOrigin === 'history' || (this.data.task && ['queued', 'running'].includes(this.data.task.status)) || !this.data.imagePath || !requireLogin()) return;
     const sentToken = app().session.token();
     this.setData({ busy: true, error: '' });
     try {
@@ -178,6 +185,24 @@ Page({
   },
   refreshTask() { if (this.data.task) { this._pollCount = 0; this.poll(this.data.task.id); } else this.load(); },
   login() { wx.switchTab({ url: '/pages/profile/index' }); },
-  assessment() { wx.navigateTo({ url: '/pages/assessment/index' }); },
+  changeMode(event) {
+    const mode = event.currentTarget.dataset.mode;
+    if (this._destroyed || this.data.busy || this.data.riverBusy || !['recognition', 'assessment'].includes(mode) || mode === this.data.mode) return;
+    // The busy event is deferred to avoid nested setData; read the component
+    // directly as well so a same-tick action cannot interrupt upload/location.
+    const observer = this.data.mode === 'assessment' && this.selectComponent && this.selectComponent('#river-observer');
+    if (observer && observer.data && (observer.data.busy || observer.data.locating)) return;
+    this.stopPolling();
+    this._modeVersion = (this._modeVersion || 0) + 1;
+    this._loadGeneration = (this._loadGeneration || 0) + 1;
+    this._selectionVersion = (this._selectionVersion || 0) + 1;
+    this.setData({ mode, riverBusy: false, loading: false, error: '' });
+    if (mode === 'recognition') return this.onShow();
+  },
+  riverBusyChange(event) {
+    const busy = Boolean(event.detail && event.detail.busy);
+    if (!this._destroyed && this.data.mode === 'assessment' && busy !== this.data.riverBusy) this.setData({ riverBusy: busy });
+  },
+  assessment() { return this.changeMode({ currentTarget: { dataset: { mode: 'assessment' } } }); },
   privacy() { wx.navigateTo({ url: '/pages/legal/index?kind=privacy' }); },
 });

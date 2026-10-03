@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "校园植物 · AI 识别" }
+{ "navigationBarTitleText": "自然观察 · AI 识别", "usingComponents": { "river-observer": "/components/river-observer/index" } }

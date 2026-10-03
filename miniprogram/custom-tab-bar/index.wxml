@@ -4,6 +4,7 @@
       <view wx:if="{{item.icon === 'ai'}}" class="ai-circle" aria-hidden="true"><view class="ai-glyph"><image class="tab-sprite sprite-ai" src="/assets/brand/icons-green.jpg" mode="scaleToFill" /></view></view>
       <view wx:else class="tab-icon" aria-hidden="true"><image class="tab-sprite sprite-{{item.icon}}" src="/assets/brand/icons-green.jpg" mode="scaleToFill" /></view>
       <text class="tab-label">{{item.label}}</text>
+      <view wx:if="{{selected === index}}" class="tab-indicator" aria-hidden="true"></view>
       <view class="tab-hit" data-index="{{index}}" catchtap="switchTab" aria-hidden="true"></view>
     </button>
   </view>

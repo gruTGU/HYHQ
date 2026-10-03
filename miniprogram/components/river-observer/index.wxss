@@ -1,0 +1,3 @@
+@import "./base.wxss";
+@import "../../pages/assessment/index.wxss";
+.embedded-assessment { padding: 0; max-width: none; margin: 0; color: #2c3e33; font-size: 28rpx; line-height: 1.65; }
