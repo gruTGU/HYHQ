@@ -1,58 +1,64 @@
 <view class="page home-page">
   <view class="city-section section">
-    <view class="section-head"><text class="section-title">今日自然</text><text class="live-label"><text class="live-dot"></text>真实天气</text></view>
-    <picker wx:if="{{cities.length}}" range="{{cities}}" range-key="name" value="{{cityIndex}}" bindchange="changeCity">
-      <view class="city-choice row" hover-class="pressable"><view class="grow"><text class="small muted">天气地点</text><view class="title">{{city.name}}</view></view><view class="city-switch">切换城市 / 校园 <text>⌄</text></view></view>
-    </picker>
-    <view class="location-actions"><button class="location-button" hover-class="pressable" bindtap="locateCity" loading="{{locationBusy}}" disabled="{{locationBusy || cityLoading || !cities.length}}"><text wx:if="{{!locationBusy}}" class="location-symbol" aria-hidden="true">⌖</text>{{locationBusy ? '正在选城' : '定位选城'}}</button><text class="location-help">仅在点击后定位，在本机匹配邻近城市</text></view>
+    <view class="city-toolbar">
+      <picker class="city-picker" wx:if="{{cities.length}}" range="{{cities}}" range-key="name" value="{{cityIndex}}" bindchange="changeCity">
+        <view class="city-choice" hover-class="pressable"><text class="city-name">{{city.name}}</text><text class="city-switch">⌄</text></view>
+      </picker>
+      <text wx:else class="city-name">城市天气</text>
+      <button class="location-button" hover-class="pressable" bindtap="locateCity" loading="{{locationBusy}}" disabled="{{locationBusy || cityLoading || !cities.length}}" aria-label="定位选城，仅在点击后定位，在本机匹配邻近城市"><text wx:if="{{!locationBusy}}" class="location-symbol" aria-hidden="true">⌖</text>{{locationBusy ? '正在选城' : '定位选城'}}</button>
+    </view>
     <view class="location-notice" wx:if="{{locationNotice}}" aria-live="polite">{{locationNotice}}</view>
-    <view class="scope-note" wx:if="{{city.scope_note}}">{{city.scope_note}}</view>
     <page-state loading="{{cityLoading}}" error="{{cityError}}" bindretry="loadCityLocations" />
     <view class="notice" wx:if="{{!cityLoading && !cityError && (!cityEnabled || !cities.length)}}">天气正在休息，稍后再来看看。</view>
     <block wx:if="{{!cityLoading && !cityError && citySummary}}">
-      <view class="weather-card weather-{{weatherTheme}}" wx:if="{{citySummary.weather.available}}">
-        <view class="row"><text class="weather-condition">{{citySummary.weather.condition_label}}</text><text class="weather-state">{{citySummary.weather.status_label}}</text></view>
-        <view class="weather-main"><view><text class="temperature">{{citySummary.weather.temp_label}}</text><view class="weather-detail">相对湿度 {{citySummary.weather.humidity_label}}</view></view><view class="weather-art" aria-hidden="true"><view class="sun"></view><view class="cloud cloud-one"></view><view class="cloud cloud-two"></view><view class="rain-line rain-one"></view><view class="rain-line rain-two"></view><view class="rain-line rain-three"></view><view class="hill"></view><view class="hill front"></view><view class="art-leaf"></view></view></view>
-        <view class="weather-foot">更新于 {{citySummary.weather.fetched_label}}</view>
-        <view class="weather-foot stale-note" wx:if="{{citySummary.weather.stale && citySummary.weather.expires_label}}">缓存有效期截至 {{citySummary.weather.expires_label}}</view>
+      <view class="weather-card weather-{{weatherTheme}}">
+        <view class="weather-top">
+          <view class="weather-heading"><text class="weather-condition">{{citySummary.weather.available ? citySummary.weather.condition_label : '天气暂不可用'}}</text><text class="weather-state">{{citySummary.weather.status_label}}</text></view>
+          <button class="alert-badge alert-badge-{{alertBadge.tone}}" hover-class="pressable" bindtap="toggleAlerts" aria-expanded="{{alertsExpanded}}" aria-label="气象预警，{{alertBadge.label}}，{{alertsExpanded ? '收起详情' : '查看详情'}}"><text class="alert-badge-title">气象预警 {{alertsExpanded ? '−' : '＋'}}</text><text class="alert-badge-value">{{alertBadge.label}}</text></button>
+        </view>
+        <block wx:if="{{citySummary.weather.available}}">
+          <view class="weather-main"><view class="weather-reading"><text class="temperature">{{citySummary.weather.temp_label}}</text><text class="weather-detail">湿度 {{citySummary.weather.humidity_label}}</text></view><view class="weather-art" aria-hidden="true"><view class="sun"></view><view class="cloud cloud-one"></view><view class="cloud cloud-two"></view><view class="rain-line rain-one"></view><view class="rain-line rain-two"></view><view class="rain-line rain-three"></view><view class="hill"></view><view class="hill front"></view><view class="art-leaf"></view></view></view>
+          <view class="weather-foot">更新 {{citySummary.weather.fetched_label}}</view>
+          <view class="weather-foot stale-note" wx:if="{{citySummary.weather.stale && citySummary.weather.expires_label}}">缓存有效期截至 {{citySummary.weather.expires_label}}</view>
+        </block>
       </view>
-      <view class="notice" wx:else>天气暂不可用，请稍后重试。</view>
-      <view class="source-copy" wx:if="{{citySummary.weather.attribution}}">{{citySummary.weather.attribution}}</view>
-
-      <view class="air-card gap" wx:if="{{citySummary.air.available}}">
-        <view class="row"><view><text class="small muted">空气质量 · {{citySummary.air.data.index_name || 'AQI'}}</text><view class="aqi-row"><text class="aqi-value">{{citySummary.air.aqi_label}}</text><text class="aqi-category">{{citySummary.air.data.category}}</text></view></view><button class="air-toggle" hover-class="pressable" bindtap="toggleAir" aria-expanded="{{airExpanded}}">{{airExpanded ? '收起明细 −' : '空气明细 ＋'}}</button></view>
-        <view class="small muted">{{citySummary.air.status_label}} · {{citySummary.air.fetched_label}}</view>
-        <view class="small muted" wx:if="{{citySummary.air.stale && citySummary.air.expires_label}}">缓存有效期截至 {{citySummary.air.expires_label}}</view>
-        <view class="pollutants" wx:if="{{airExpanded}}"><view wx:for="{{citySummary.air.pollutants}}" wx:key="code" class="pollutant"><text class="small muted">{{item.name || item.code}}</text><view>{{item.value_label}}</view></view></view>
+      <view class="alerts-detail" wx:if="{{alertsExpanded}}">
+        <view class="alert-empty" wx:if="{{citySummary.alerts.empty}}"><text class="live-dot"></text><text>查询地点当前暂无气象预警</text></view>
+        <view class="notice" wx:elif="{{citySummary.alerts.status === 'unavailable'}}">预警查询暂不可用，请留意官方气象渠道。</view>
+        <view class="notice" wx:elif="{{citySummary.alerts.stale}}">以下为历史预警缓存，可能已变更或解除，请以最新官方发布为准。</view>
+        <view class="notice" wx:elif="{{!citySummary.alerts.items.length}}">预警状态暂未确认，请留意官方气象渠道。</view>
+        <view class="warning-card" wx:for="{{citySummary.alerts.items}}" wx:key="id"><view class="warning-kicker">气象预警 · {{item.message_label}}</view><view class="title">{{item.title}}</view><view class="warning-body">{{item.description}}</view><view class="warning-body" wx:if="{{item.instruction}}">{{item.instruction}}</view><view class="small muted">发布方：{{item.sender || '见数据来源'}}</view><view class="small muted">发布：{{item.issued_label}}</view><view class="small muted">生效：{{item.effective_label}} · 截止：{{item.expires_label}}</view></view>
+        <view class="source-copy" wx:if="{{citySummary.alerts.fetched_label}}">预警更新于 {{citySummary.alerts.fetched_label}}</view>
+        <view class="source-copy" wx:if="{{citySummary.alerts.stale && citySummary.alerts.expires_label}}">缓存有效期截至 {{citySummary.alerts.expires_label}}</view>
+        <view class="source-copy" wx:if="{{citySummary.alerts.sources}}">来源：{{citySummary.alerts.sources}}</view>
+        <view class="source-copy" wx:if="{{citySummary.alerts.attribution}}">{{citySummary.alerts.attribution}}</view>
+        <button class="alert-collapse" hover-class="pressable" bindtap="toggleAlerts">收起气象预警 −</button>
+      </view>
+      <view class="air-card" wx:if="{{citySummary.air.available}}">
+        <view class="air-summary"><view class="aqi-row"><text class="aqi-name">{{citySummary.air.data.index_name || 'AQI'}}</text><text class="aqi-value">{{citySummary.air.aqi_label}}</text><text class="aqi-category">{{citySummary.air.data.category}}</text></view><button class="air-toggle" hover-class="pressable" bindtap="toggleAir" aria-expanded="{{airExpanded}}">{{airExpanded ? '收起 −' : '空气明细 ＋'}}</button></view>
+        <view class="air-freshness">{{citySummary.air.status_label}} · {{citySummary.air.fetched_label}}</view>
+        <view class="air-freshness" wx:if="{{citySummary.air.stale && citySummary.air.expires_label}}">缓存有效期截至 {{citySummary.air.expires_label}}</view>
+        <view wx:if="{{airExpanded}}"><view class="pollutants"><view wx:for="{{citySummary.air.pollutants}}" wx:key="code" class="pollutant"><text class="small muted">{{item.name || item.code}}</text><view>{{item.value_label}}</view></view></view><view class="source-copy" wx:if="{{citySummary.air.sources}}">来源：{{citySummary.air.sources}}</view></view>
       </view>
       <view class="notice" wx:else>空气质量暂不可用。</view>
-      <view class="source-copy" wx:if="{{citySummary.air.sources}}">来源：{{citySummary.air.sources}}</view>
-      <view class="source-copy" wx:if="{{citySummary.air.attribution}}">{{citySummary.air.attribution}}</view>
-
-      <view class="alert-empty" wx:if="{{citySummary.alerts.empty}}"><view class="live-dot"></view><text>查询地点当前暂无气象预警</text></view>
-      <view class="notice" wx:elif="{{citySummary.alerts.status === 'unavailable'}}">预警查询暂不可用，请留意官方气象渠道。</view>
-      <view class="notice" wx:elif="{{citySummary.alerts.stale}}">以下为历史预警缓存，可能已变更或解除，请以最新官方发布为准。</view>
-      <view class="warning-card" wx:for="{{citySummary.alerts.items}}" wx:key="id"><view class="warning-kicker">气象预警 · {{item.message_label}}</view><view class="title">{{item.title}}</view><view class="warning-body">{{item.description}}</view><view class="warning-body" wx:if="{{item.instruction}}">{{item.instruction}}</view><view class="small muted">发布方：{{item.sender || '见数据来源'}}</view><view class="small muted">发布：{{item.issued_label}}</view><view class="small muted">生效：{{item.effective_label}} · 截止：{{item.expires_label}}</view></view>
-      <view class="source-copy" wx:if="{{citySummary.alerts.fetched_label}}">预警更新于 {{citySummary.alerts.fetched_label}}</view>
-      <view class="source-copy" wx:if="{{citySummary.alerts.stale && citySummary.alerts.expires_label}}">缓存有效期截至 {{citySummary.alerts.expires_label}}</view>
-      <view class="source-copy" wx:if="{{citySummary.alerts.sources}}">来源：{{citySummary.alerts.sources}}</view>
-      <view class="source-copy" wx:if="{{citySummary.alerts.attribution}}">{{citySummary.alerts.attribution}}</view>
+      <view class="source-copy" wx:if="{{citySummary.weather.attribution}}">{{citySummary.weather.attribution}}</view>
+      <view class="source-copy" wx:if="{{citySummary.air.attribution && citySummary.air.attribution !== citySummary.weather.attribution}}">{{citySummary.air.attribution}}</view>
     </block>
-    <button class="secondary gap weather-entry" hover-class="pressable" bindtap="openWeather">天气预报与出行提醒 ↗</button>
-    <button class="source-link" hover-class="pressable" bindtap="weatherSource">和风天气 QWeather <text>复制来源链接 ↗</text></button>
+    <view class="scope-note" wx:if="{{city.scope_note}}">{{city.scope_note}}</view>
+    <view class="weather-links"><button class="weather-entry" hover-class="pressable" bindtap="openWeather">预报与出行提醒 ↗</button><button class="source-link" hover-class="pressable" bindtap="weatherSource" aria-label="和风天气 QWeather，复制来源链接">和风天气 QWeather ↗</button></view>
   </view>
 
-  <view class="section"><view class="section-head"><text class="section-title">与自然相遇</text><text class="small muted">从一点好奇开始</text></view>
+  <view class="section"><view class="section-head"><text class="section-title">与自然相遇</text></view>
     <view class="discovery-grid">
-      <view class="discovery-card explore-entry" data-page="explore" bindtap="navigate" hover-class="pressable" aria-role="button"><view class="entry-art hills-art" aria-hidden="true"><view></view><view></view><view></view></view><view class="title">生态导览</view><view class="copy">把身边山水展开</view><text class="card-arrow">↗</text></view>
-      <view class="discovery-card recognize-entry" data-page="recognize" bindtap="navigate" hover-class="pressable" aria-role="button"><view class="entry-art plant-art" aria-hidden="true"><view></view><view></view><view></view></view><view class="title">识别一片绿意</view><view class="copy">拍下花朵，认识自然</view><text class="card-arrow">↗</text></view>
+      <view class="discovery-card explore-entry" data-page="explore" bindtap="navigate" hover-class="pressable" aria-role="button"><view class="entry-art hills-art" aria-hidden="true"><view></view><view></view><view></view></view><view class="title">生态导览</view><text class="card-arrow">↗</text></view>
+      <view class="discovery-card recognize-entry" data-page="recognize" bindtap="navigate" hover-class="pressable" aria-role="button"><view class="entry-art plant-art" aria-hidden="true"><view></view><view></view><view></view></view><view class="title">识别一片绿意</view><text class="card-arrow">↗</text></view>
     </view>
-    <view class="entry" data-page="learn" bindtap="navigate" hover-class="pressable" aria-role="button"><view class="entry-icon book">知</view><view class="grow"><view class="title">科普智游</view><view class="copy">读一篇好文，走读一条路线</view></view><text class="chevron">›</text></view>
-    <view class="entry" bindtap="assessment" hover-class="pressable" aria-role="button"><view class="entry-icon water">≈</view><view class="grow"><view class="title">河道照片观察</view><view class="copy">记录所见，了解漂浮物实验检测</view></view><text class="chevron">›</text></view>
+    <view class="entry" data-page="learn" bindtap="navigate" hover-class="pressable" aria-role="button"><view class="entry-icon book">知</view><view class="grow"><view class="title">科普智游</view></view><text class="chevron">›</text></view>
+    <view class="entry" bindtap="assessment" hover-class="pressable" aria-role="button"><view class="entry-icon water">≈</view><view class="grow"><view class="title">河道照片观察</view></view><text class="chevron">›</text></view>
   </view>
 
   <view class="observation-section section">
-    <view class="section-head"><view><text class="section-title">生态观察手记</text><view class="copy">在模拟数据中认识生态指标</view></view><text class="pill">模拟数据</text></view>
+    <view class="section-head"><view><text class="section-title">生态观察手记</text></view><text class="pill">模拟数据</text></view>
     <view class="observation-links"><view class="observation-link" data-page="water" bindtap="measurements" hover-class="pressable" aria-role="button"><text class="title">智慧河湖</text><text class="small muted">四项水环境指标 ›</text></view><view class="observation-link" data-page="data-center" bindtap="measurements" hover-class="pressable" aria-role="button"><text class="title">生态数据中心</text><text class="small muted">趋势与观测明细 ›</text></view></view>
     <button class="observation-toggle row" bindtap="toggleObservations" hover-class="pressable" aria-expanded="{{observationExpanded}}"><text>示范区环境概览</text><text>{{observationExpanded ? '收起 −' : '展开 ＋'}}</text></button>
     <view wx:if="{{observationExpanded}}" class="observation-detail">
@@ -70,5 +76,5 @@
       </block>
     </view>
   </view>
-  <view class="footer-note">HYHQ · 与自然一起生长</view>
+  <floating-ai visible="{{!loading && !error && region}}" tab-page="{{true}}" bindopen="openAI" />
 </view>

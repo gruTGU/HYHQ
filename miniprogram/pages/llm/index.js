@@ -4,20 +4,21 @@ const { assessmentTask } = require('../../lib/assessment');
 const { loadAll, selectRegion } = require('../../lib/region');
 const { DISCLAIMER, SOURCE_LABELS, SCOPE_LABELS, publicSource, modelLabel, pending, turnView, sessionView, readPage, requestId } = require('../../lib/llm');
 Page({
-  data: { weatherLocations: [{ slug: '', name: '不附加天气资料' }], weatherIndex: 0, weatherError: '', loading: true, busy: false, loggedIn: false, error: '', actionError: '', unavailable: false, status: null, modelLabel: 'DeepSeek Flash', scopeLabel: '识别解读', session: null, source: null, sourceLoading: false, sourceError: '', sourceKind: '', isRecognition: true, includeImage: false, question: '', questionCount: 0, turns: [], next: '', loadingMore: false, moreError: '', polling: false, pollNotice: '', hasPending: false, displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, disclaimer: DISCLAIMER },
+  data: { weatherLocations: [{ slug: '', name: '不附加天气资料' }], weatherIndex: 0, weatherError: '', entryValid: false, creationUncertain: false, loading: true, busy: false, loggedIn: false, error: '', actionError: '', unavailable: false, status: null, modelLabel: 'DeepSeek Flash', scopeLabel: '识别解读', session: null, source: null, sourceLoading: false, sourceError: '', sourceKind: '', isRecognition: true, includeImage: false, question: '', questionCount: 0, turns: [], next: '', loadingMore: false, moreError: '', polling: false, pollNotice: '', hasPending: false, displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, disclaimer: DISCLAIMER },
   onLoad(options) {
     this._alive = true; this._scope = 'recognition'; this._followLatest = true;
     if (options && options.sessionId) this._sessionId = options.sessionId;
     else if (options && ['recognition', 'assessment'].includes(options.kind) && options.jobId) { this._sourceKind = options.kind; this._sourceId = options.jobId; }
     else if (options && publicSource(options.scope, options.source_type, options.source_id)) { this._scope = options.scope; this._sourceType = options.source_type; this._sourceId = options.source_id; }
     else this._invalid = true;
-    this.setData({ isRecognition: this._scope === 'recognition', scopeLabel: SCOPE_LABELS[this._scope] });
+    this._requestedWeather = this._scope !== 'recognition' && options && typeof options.weather_location === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(options.weather_location) ? options.weather_location : '';
+    this.setData({ entryValid: !this._invalid, loggedIn: Boolean(app().session.token()), isRecognition: this._scope === 'recognition', scopeLabel: SCOPE_LABELS[this._scope] });
   },
   async onShow() {
     this._visible = true;
     const shown = this._showVersion = (this._showVersion || 0) + 1;
     if (this._mutation && this._mutation.token === app().session.token()) {
-      this.setData({ loading: true }); await this._mutation.promise;
+      this.setData({ loading: true, busy: true }); await this._mutation.promise;
       if (!this.active() || shown !== this._showVersion) return;
     }
     return this.load();
@@ -27,7 +28,7 @@ Page({
   active() { return this._alive !== false && this._visible !== false; },
   invalidate() { this._generation = (this._generation || 0) + 1; this._showVersion = (this._showVersion || 0) + 1; this.stopTimer(); },
   stopTimer() { this._pollVersion = (this._pollVersion || 0) + 1; if (this._timer) clearTimeout(this._timer); this._timer = null; },
-  clearView() { this.setData({ source: null, sourceLoading: false, sourceError: '', session: null, turns: [], displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, next: '', question: '', questionCount: 0, includeImage: false, busy: false, loading: false, loadingMore: false, polling: false, hasPending: false, actionError: '', pollNotice: '' }); },
+  clearView() { this.setData({ source: null, sourceLoading: false, sourceError: '', session: null, turns: [], displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, next: '', question: '', questionCount: 0, includeImage: false, creationUncertain: false, busy: false, loading: false, loadingMore: false, polling: false, hasPending: false, actionError: '', pollNotice: '' }); },
   hasMutation() { return !!(this._mutation && this._mutation.token === app().session.token()); },
   current(generation, token) {
     if (!this.active() || generation !== this._generation) return false;
@@ -45,10 +46,10 @@ Page({
     this.stopTimer();
     this._pollPaused = false;
     const generation = this._generation = (this._generation || 0) + 1, token = app().session.token();
-    if (this._token !== token) { this.clearView(); this._retry = null; this._draft = null; }
+    if (this._token !== token) { this.clearView(); this._retry = null; this._draft = null; this._creationUncertain = null; }
     this._token = token;
     this.restoreDraft();
-    this.setData({ loading: true, error: '', actionError: '', unavailable: false, loggedIn: Boolean(token), polling: false, pollNotice: '' });
+    this.setData({ loading: true, error: '', actionError: '', creationUncertain: this._creationUncertain === token, unavailable: false, loggedIn: Boolean(token), polling: false, pollNotice: '' });
     try {
       if (this._invalid) throw new Error('请从识别结果、生态导览或科普智游资料进入 AI。');
       await this.loadStatus(generation, token);
@@ -86,15 +87,17 @@ Page({
       const response = await app().api.request('weather-data/locations/');
       if (!this.current(generation, token)) return;
       if (!response.data || !Array.isArray(response.data.items)) throw new Error('天气地点暂不可用');
-      const weatherLocations = [{ slug: '', name: '不附加天气资料' }].concat(response.data.items.filter((item) => typeof item.slug === 'string' && typeof item.name === 'string'));
+      const weatherLocations = [{ slug: '', name: '不附加天气资料' }].concat(response.data.items.filter((item) => item && typeof item.slug === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(item.slug) && typeof item.name === 'string' && item.name.trim()));
       const previous = this.data.weatherLocations[this.data.weatherIndex];
-      const weatherIndex = Math.max(0, weatherLocations.findIndex((item) => item.slug === (previous && previous.slug || '')));
+      const selectedSlug = this._weatherSelected ? previous && previous.slug || '' : this._requestedWeather || '';
+      const weatherIndex = Math.max(0, weatherLocations.findIndex((item) => item.slug === selectedSlug));
+      this._weatherSelected = true;
       this.setData({ weatherLocations, weatherIndex });
     } catch (error) { if (this.current(generation, token)) this.setData({ weatherError: '天气地点暂不可用，本次可仅围绕页面资料对话。', weatherLocations: [{ slug: '', name: '不附加天气资料' }], weatherIndex: 0 }); }
   },
   chooseWeather(event) {
     const weatherIndex = Number(event.detail.value);
-    if (this.canAct() && !this._sessionId && this.data.weatherLocations[weatherIndex]) this.setData({ weatherIndex });
+    if (this.canAct() && !this._sessionId && Number.isInteger(weatherIndex) && this.data.weatherLocations[weatherIndex]) { this._weatherSelected = true; this.setData({ weatherIndex }); }
   },
   openWeather() { if (this.canAct()) wx.navigateTo({ url: '/pages/weather/index' }); },
   openCitation(event) {
@@ -155,7 +158,7 @@ Page({
     this._scrollTop = top;
   },
   scrollToLatest(force = false) {
-    if (!this.active() || !this.data.session || (!force && !this._followLatest)) return;
+    if (!this.composerVisible() || (!force && !this._followLatest)) return;
     if (force) this._followLatest = true;
     if (typeof wx.pageScrollTo === 'function') wx.pageScrollTo({ selector: '#chat-latest', duration: 220 });
   },
@@ -167,14 +170,14 @@ Page({
       else this.measureComposer({ scroll });
     });
   },
-  composerVisible() { return this.active() && !!this.data.session && this.data.loggedIn && !this.data.unavailable && !this.data.loading; },
+  composerVisible() { return this.active() && this.data.entryValid && this.data.loggedIn && !this.data.unavailable; },
   measureComposer({ scroll = false, force = false } = {}) {
     if (!this.composerVisible()) return;
-    const generation = this._generation, token = this._token, sessionId = this.data.session.id;
+    const generation = this._generation, token = this._token, sessionId = this.data.session && this.data.session.id || '';
     const version = this._composerVersion = (this._composerVersion || 0) + 1;
     // Measurements are asynchronous too: an older render must never affect a new
     // account, session, keyboard layout, or a page that has left the screen.
-    const accepted = () => this.active() && generation === this._generation && token === this._token && token === app().session.token() && version === this._composerVersion && this.composerVisible() && this.data.session.id === sessionId;
+    const accepted = () => this.active() && generation === this._generation && token === this._token && token === app().session.token() && version === this._composerVersion && this.composerVisible() && (this.data.session && this.data.session.id || '') === sessionId;
     if (typeof wx.createSelectorQuery !== 'function') return;
     wx.createSelectorQuery().in(this).select('.composer').boundingClientRect().exec((rects) => {
       if (!accepted()) return;
@@ -218,55 +221,78 @@ Page({
     try { await work(mutation.token); }
     finally { if (this._mutation === mutation) this._mutation = null; mutation.resolve(); if (this.active() && this._token === mutation.token && app().session.token() === mutation.token) this.setData({ busy: false }, () => this.measureComposer({ scroll: true })); }
   },
-  async createSession() {
-    if (!this.canAct() || !this.data.source || !this.data.status || !this.data.status.enabled || this._sessionId) return;
-    const draftKey = this.draftKey();
-    const generation = this._generation, token = this._token, includeImage = this.data.isRecognition && this.data.includeImage;
-    await this.mutate(async () => {
-      try {
-        const data = { scope: this._scope, include_image: includeImage };
-        if (this._scope === 'recognition') data[this._sourceKind === 'recognition' ? 'recognition_job_id' : 'assessment_job_id'] = this._sourceId;
-        else {
-          Object.assign(data, { source_type: this._sourceType, source_id: this._sourceId });
-          const weather = this.data.weatherLocations[this.data.weatherIndex];
-          if (weather && weather.slug) data.weather_location = weather.slug;
-        }
-        const response = await app().api.request('llm/sessions/', { method: 'POST', data });
-        const session = sessionView(response.data);
-        // Remember a created session across hide, but never for another login.
-        if (app().session.token() === token && this._alive !== false) {
-          this._sessionId = session.id;
-          if (this._draft && this._draft.token === token && this._draft.key === draftKey) this._draft.key = this.draftKey();
-        }
-        if (!this.current(generation, token)) return;
-        const source = !session.is_recognition && this.data.source && this.data.source.id === session.source_id && this.data.source.type === session.source_type ? this.data.source : null;
-        this.setData({ session, source, sourceError: '', turns: [], displayTurns: [], contextExpanded: false, next: '', actionError: '' });
-        if (!session.is_recognition) await this.loadSessionSource(session, generation, token);
-      } catch (error) { if (this.current(generation, token)) this.setData({ actionError: message(error) + (error.code === 'IMAGE_UNAVAILABLE' ? ' 可关闭附图，再建立仅文字结果的会话。' : error.status === 429 ? '' : ' 若结果未确认，可先去会话记录查看。') }); }
-    });
+  async createSession(generation, token) {
+    // Only send() can enter this helper while holding the mutation lock. There
+    // is no separate start action and opening the page never creates a session.
+    if (!this.hasMutation() || !this.current(generation, token) || !this.data.source || this._sessionId || this._creationUncertain === token) return null;
+    const draftKey = this.draftKey(), includeImage = this.data.isRecognition && this.data.includeImage;
+    const data = { scope: this._scope, include_image: includeImage };
+    if (this._scope === 'recognition') data[this._sourceKind === 'recognition' ? 'recognition_job_id' : 'assessment_job_id'] = this._sourceId;
+    else {
+      Object.assign(data, { source_type: this._sourceType, source_id: this._sourceId });
+      const weather = this.data.weatherLocations[this.data.weatherIndex];
+      if (weather && weather.slug) data.weather_location = weather.slug;
+    }
+    // Session creation has no server idempotency key. If its response is lost,
+    // do not guess that it failed and silently create a duplicate on retry.
+    this._creationUncertain = token;
+    let response;
+    try { response = await app().api.request('llm/sessions/', { method: 'POST', data }); }
+    catch (error) {
+      if (this._creationUncertain === token && error.status >= 400 && error.status < 500 && ![408, 499].includes(error.status)) this._creationUncertain = null;
+      throw error;
+    }
+    const session = sessionView(response.data);
+    if (app().session.token() === token && this._alive !== false) {
+      this._creationUncertain = null;
+      this._sessionId = session.id;
+      if (this._draft && this._draft.token === token && this._draft.key === draftKey) this._draft.key = this.draftKey();
+    }
+    if (!this.current(generation, token)) return null;
+    const source = !session.is_recognition && this.data.source && this.data.source.id === session.source_id && this.data.source.type === session.source_type ? this.data.source : null;
+    this.setData({ session, source, sourceError: '', turns: [], displayTurns: [], contextExpanded: false, next: '', actionError: '', creationUncertain: false });
+    if (!session.is_recognition) await this.loadSessionSource(session, generation, token);
+    return this.current(generation, token) && !this.data.unavailable ? session : null;
   },
   async send() {
-    if (!this.canAct() || !this.data.session || !this.data.status || !this.data.status.enabled || this.data.hasPending) return;
+    if (!this.canAct() || this.data.loading || this.data.unavailable || !this.data.status || !this.data.status.enabled || this.data.hasPending || (!this.data.session && !this.data.source)) return;
     const question = this.data.question.trim();
     if (!question || Array.from(question).length > 500) { this.setData({ actionError: '请填写 1 至 500 字的问题。' }, () => this.measureComposer()); return; }
-    const generation = this._generation, token = this._token, sessionId = this._sessionId;
-    const retry = this._retry && this._retry.question === question && this._retry.sessionId === sessionId ? this._retry : { question, sessionId, requestId: requestId() };
-    this._retry = retry;
+    if (this._creationUncertain === this._token) {
+      this.setData({ creationUncertain: true, actionError: '上次建立会话的结果尚未确认，请先到对话记录查看。问题已保留，不会重复建立会话。' }, () => this.measureComposer()); return;
+    }
+    const generation = this._generation, token = this._token;
     await this.mutate(async () => {
+      let creating = !this._sessionId;
       try {
+        const session = creating ? await this.createSession(generation, token) : this.data.session;
+        if (!session || !this.current(generation, token) || this.data.unavailable) return;
+        creating = false;
+        const sessionId = this._sessionId;
+        const retry = this._retry && this._retry.question === question && this._retry.sessionId === sessionId ? this._retry : { question, sessionId, requestId: requestId() };
+        this._retry = retry;
         const response = await app().api.request('llm/sessions/' + encodeURIComponent(sessionId) + '/turns/', { method: 'POST', data: { question, request_id: retry.requestId } });
         const turn = turnView(response.data);
         if (turn.session_id !== sessionId) throw new Error('返回轮次不属于当前会话，请刷新核对。');
         // A confirmed send clears that submitted draft even if its page was hidden.
         if (app().session.token() === token && this._draft && this._draft.token === token && this._draft.key === 'session:' + sessionId && this._draft.question.trim() === question) this._draft = null;
+        // This confirmation is also authoritative while hidden. Retain neither
+        // its draft nor its retry key, but never clear a newer send's key.
+        if (app().session.token() === token && this._retry === retry) this._retry = null;
         if (!this.current(generation, token)) return;
-        this._retry = null; this.setQuestion('');
+        this.setQuestion('');
         this._followLatest = true;
         this.updateTurns([turn].concat(this.data.turns.filter((row) => row.id !== turn.id)), true);
         this.setData({ actionError: '' });
         if (pending(turn)) this.startPolling(turn.id);
-      } catch (error) { if (this.current(generation, token)) { if (error.status === 404) this.handleError(error); this.setData({ actionError: error.code === 'LLM_DAILY_LIMIT' ? '本板块今日使用已达上限，请在北京时间零点后继续。' : message(error) + (error.status === 429 ? '' : ' 请先刷新核对是否已发送；重试同一问题不会重复提交。') }); } }
-      finally { if (this.current(generation, token)) { try { await this.loadStatus(generation, token); } catch (error) { if (this.current(generation, token)) this.setData({ actionError: this.data.actionError || '服务状态暂不可确认，请刷新重试。' }); } } }
+      } catch (error) {
+        if (this.current(generation, token)) {
+          if (error.status === 404) this.handleError(error);
+          const uncertain = this._creationUncertain === token;
+          const suffix = creating ? (error.code === 'IMAGE_UNAVAILABLE' ? ' 可关闭附图，再发送仅文字结果的问题。' : uncertain ? ' 会话是否已建立尚未确认，请先到对话记录查看；问题已保留，不会重复建立会话。' : '') : error.status === 429 ? '' : ' 请先刷新核对是否已发送；重试同一问题不会重复提交。';
+          this.setData({ creationUncertain: uncertain, actionError: error.code === 'LLM_DAILY_LIMIT' ? '本板块今日使用已达上限，请在北京时间零点后继续。' : message(error) + suffix });
+        }
+      } finally { if (this.current(generation, token)) { try { await this.loadStatus(generation, token); } catch (error) { if (this.current(generation, token)) this.setData({ actionError: this.data.actionError || '服务状态暂不可确认，请刷新重试。' }); } } }
     });
   },
   async loadTurns(more = false, generation = this._generation, token = this._token) {

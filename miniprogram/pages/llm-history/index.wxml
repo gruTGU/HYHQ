@@ -1,6 +1,5 @@
 <view class="page journal-page">
-  <view class="journal-heading"><text class="eyebrow">自然问答 · 我的对话</text><view class="page-title">把好奇，留在这里。</view><view class="subtitle">那些关于花、河流与远方的问题。</view><view class="journal-leaf"></view></view>
-  <view class="journal-note"><text class="note-mark">✦</text><text>从识别结果、生态导览或科普智游开启对话，在这里继续聊。</text></view>
+  <view class="page-heading">AI 对话记录</view>
   <view wx:if="{{status && !status.enabled}}" class="notice"><view class="title">AI 暂未开放</view><view class="copy">当前不能发送新问题，已有会话仍可查看。</view></view><view wx:if="{{statusError}}" class="error-inline">服务状态暂不可用：{{statusError}}</view>
   <view wx:if="{{!loggedIn && !loading}}" class="card section"><view class="title">登录后查看自己的对话</view><view class="copy">记录仅本人可见，可随时删除。</view><button class="primary gap" bindtap="login">去登录</button></view>
   <page-state loading="{{loading}}" error="{{error}}" empty="{{loggedIn && !loading && !error && !sessions.length}}" empty-text="还没有 AI 对话。去识别一朵花，或从喜欢的科普文章开始。" bindretry="load" />

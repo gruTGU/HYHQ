@@ -1,6 +1,6 @@
 <view class="page explore-page">
-  <view class="explore-heading"><text class="eyebrow">EXPLORE · 身边的自然</text><view class="page-title">在身边，遇见山水。</view><view class="subtitle">沿着好奇心，走近每一处绿意。</view><view class="heading-leaf" aria-hidden="true"></view></view>
-  <picker wx:if="{{regions.length}}" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion" class="section">
+
+  <picker wx:if="{{regions.length}}" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion" class="region-control">
     <view class="region-picker row" hover-class="pressable"><view><text class="small muted">当前区域</text><view class="title">{{region.name}}</view></view><text class="chevron">⌄</text></view>
   </picker>
   <view wx:if="{{region.is_demo}}" class="notice">科普模拟体验 · 本区域的地点与河湖为虚构场景，可用于学习，不对应真实地理位置。</view>

@@ -38,6 +38,7 @@ function fixture(handler, options = { sessionId: 's1' }, guest = false, pageName
   return { page, application, calls, modals, timers, navigation };
 }
 const change = (value) => ({ detail: { value } });
+const firstQuestion = (page) => { page.inputQuestion(change('请解释这份资料中的观察重点')); return page.send(); };
 const idEvent = (id) => ({ currentTarget: { dataset: { id } } });
 const flush = async () => { for (let count = 0; count < 8; count += 1) await Promise.resolve(); };
 
@@ -47,42 +48,42 @@ test('request identifiers remain valid UUIDs without exposing local quota UI sta
 test('guest reads service notice without fetching private source, sessions or sending a question', async () => {
   const { page, calls, navigation } = fixture(undefined, { kind: 'recognition', jobId: 'j1' }, true);
   await page.onShow(); assert.equal(page.data.loggedIn, false); assert.deepEqual(calls.map((item) => item.path), ['llm/status/']);
-  await page.send(); page.createSession(); page.login(); assert.equal(calls.length, 1); assert.deepEqual(navigation, ['/pages/profile/index']);
+  await page.send(); firstQuestion(page); page.login(); assert.equal(calls.length, 1); assert.deepEqual(navigation, ['/pages/profile/index']);
 });
 test('unbound chat links fail and disabled service retains an explicit status without creating a session', async () => {
   const invalid = fixture(undefined, {}); await invalid.page.onShow(); assert.match(invalid.page.data.error, /识别结果/); assert.equal(invalid.calls.length, 0);
   const { page, calls, modals } = fixture(async (path) => path === 'llm/status/' ? { data: { enabled: false, notice: '密钥尚未配置', quota: null } } : undefined, { kind: 'recognition', jobId: 'j1' });
-  await page.onShow(); await page.createSession();
+  await page.onShow(); await firstQuestion(page);
   assert.equal(page.data.status.enabled, false); assert.equal(page.data.status.notice, '密钥尚未配置'); assert.equal(modals.length, 0); assert.equal(calls.some((item) => item.options && item.options.method), false);
 });
-test('source entry defaults to no image, creates only on tap, and needs a separate first send', async () => {
+test('source entry shows an empty composer and creates a no-image session only with the first question', async () => {
   const { page, calls, modals } = fixture(undefined, { kind: 'recognition', jobId: 'j1' }); await page.onShow();
   assert.equal(page.data.includeImage, false); assert.ok(page.data.source.result_view); assert.equal(page.data.turns.length, 0);
   assert.equal(calls.some((item) => item.options && item.options.method === 'POST'), false);
-  await page.createSession();
+  await firstQuestion(page);
   const posts = calls.filter((item) => item.options && item.options.method === 'POST');
-  assert.equal(posts.length, 1); assert.deepEqual(posts[0].options.data, { scope: 'recognition', recognition_job_id: 'j1', include_image: false });
-  assert.equal(modals.length, 0); assert.equal(page.data.session.id, 's1'); assert.equal(page.data.question, ''); assert.equal(page.data.turns.length, 0);
+  assert.equal(posts.length, 2); assert.deepEqual(posts[0].options.data, { scope: 'recognition', recognition_job_id: 'j1', include_image: false });
+  assert.equal(modals.length, 0); assert.equal(page.data.session.id, 's1'); assert.equal(page.data.question, ''); assert.equal(page.data.turns.length, 1);
 });
 test('explicit image preference and double taps create one session without a checkbox or modal', async () => {
   const posted = deferred();
   const { page, calls, modals } = fixture(async (path, options) => path === 'llm/sessions/' && options.method === 'POST' ? posted.promise : undefined, { kind: 'recognition', jobId: 'j1' }); await page.onShow();
-  page.imageChange(change(true)); const creating = page.createSession(); await page.createSession();
+  page.imageChange(change(true)); const creating = firstQuestion(page); await firstQuestion(page);
   assert.equal(modals.length, 0); assert.equal(calls.filter((item) => item.options && item.options.method === 'POST').length, 1);
   assert.deepEqual(calls.find((item) => item.options && item.options.method === 'POST').options.data, { scope: 'recognition', recognition_job_id: 'j1', include_image: true });
   posted.resolve({ data: session('s1', { include_image: true }) }); await creating;
-  assert.equal(page.data.session.include_image, true); assert.equal(page.data.turns.length, 0);
+  assert.equal(page.data.session.include_image, true); assert.equal(page.data.turns.length, 1);
 });
 test('expired original image is an explicit failure with no automatic thumbnail or image-free retry', async () => {
   const { page, calls } = fixture(async (path, options) => { if (path === 'llm/sessions/' && options.method === 'POST') throw Object.assign(new Error('原图已过期'), { code: 'IMAGE_UNAVAILABLE', status: 409 }); }, { kind: 'recognition', jobId: 'j1' });
-  await page.onShow(); page.imageChange(change(true)); await page.createSession();
+  await page.onShow(); page.imageChange(change(true)); await firstQuestion(page);
   assert.equal(page.data.session, null); assert.equal(page.data.includeImage, true); assert.match(page.data.actionError, /关闭附图/); assert.equal(calls.filter((item) => item.options && item.options.method === 'POST').length, 1);
 });
 test('old create responses after hide or account switch never display private context', async () => {
   for (const mode of ['hide', 'account']) {
     const posted = deferred();
     const { page, application } = fixture(async (path, options) => path === 'llm/sessions/' && options.method === 'POST' ? posted.promise : undefined, { kind: 'recognition', jobId: 'j1' }); await page.onShow();
-    const creating = page.createSession();
+    const creating = firstQuestion(page);
     if (mode === 'hide') page.onHide(); else application.session.save({ token: 'B', user: { id: 'B' } });
     posted.resolve({ data: session('private-A') }); await creating;
     assert.equal(page.data.session, null); assert.equal(page.data.source, null);
@@ -92,7 +93,7 @@ test('old create responses after hide or account switch never display private co
 test('returning during session creation waits for the request and refresh cannot create a duplicate', async () => {
   const posted = deferred();
   const { page, calls } = fixture(async (path, options) => path === 'llm/sessions/' && options.method === 'POST' ? posted.promise : undefined, { kind: 'recognition', jobId: 'j1' }); await page.onShow();
-  const creating = page.createSession(); page.onHide(); const showing = page.onShow(); await page.onPullDownRefresh(); await page.createSession();
+  const creating = firstQuestion(page); page.onHide(); const showing = page.onShow(); await page.onPullDownRefresh(); await firstQuestion(page);
   posted.resolve({ data: session() }); await creating; await showing;
   assert.equal(page.data.session.id, 's1'); assert.equal(calls.filter((item) => item.options && item.options.method === 'POST').length, 1);
 });
@@ -218,25 +219,25 @@ test('result entries only navigate from a completed current-account task, never 
   }
 });
 
-test('public source sessions send only scoped identifiers and always need a separate first question', async () => {
+test('first public questions create the scoped session then send without a separate start action', async () => {
   for (const [scope, type, id] of [['explore', 'region', 'r1'], ['explore', 'place', 'p1'], ['explore', 'water', 'w1'], ['learn', 'region', 'r2'], ['learn', 'content', 'c1'], ['learn', 'route', 'route1']]) {
     const { page, calls, modals } = fixture(undefined, { scope, source_type: type, source_id: id }); await page.onShow();
     assert.equal(page.data.error, ''); assert.equal(page.data.source.id, id); assert.equal(page.data.isRecognition, false);
     assert.equal(calls[0].options.data.scope, scope); assert.equal(page.data.modelLabel, 'DeepSeek Flash');
     page.imageChange(change(true)); assert.equal(page.data.includeImage, false);
-    await page.createSession();
+    await firstQuestion(page);
     const posts = calls.filter((item) => item.options && item.options.method === 'POST');
-    assert.equal(posts.length, 1); assert.deepEqual(posts[0].options.data, { scope, source_type: type, source_id: id, include_image: false });
-    assert.equal(modals.length, 0); assert.equal(page.data.session.scope, scope); assert.equal(page.data.turns.length, 0); assert.equal(page.data.question, '');
+    assert.equal(posts.length, 2); assert.deepEqual(posts[0].options.data, { scope, source_type: type, source_id: id, include_image: false });
+    assert.equal(modals.length, 0); assert.equal(page.data.session.scope, scope); assert.equal(page.data.turns.length, 1); assert.equal(page.data.question, '');
     assert.equal(Object.hasOwn(posts[0].options.data, 'body'), false);
   }
 });
 test('wrong scope/source combinations and unavailable source never create sessions', async () => {
   for (const options of [{ scope: 'learn', source_type: 'place', source_id: 'p1' }, { scope: 'explore', source_type: 'content', source_id: 'c1' }, { scope: 'learn', source_type: 'region' }]) {
-    const { page, calls } = fixture(undefined, options); await page.onShow(); await page.createSession(); assert.match(page.data.error, /资料进入/); assert.equal(calls.length, 0);
+    const { page, calls } = fixture(undefined, options); await page.onShow(); await firstQuestion(page); assert.match(page.data.error, /资料进入/); assert.equal(calls.length, 0);
   }
   const { page, calls } = fixture(undefined, { scope: 'explore', source_type: 'water', source_id: 'missing' });
-  await page.onShow(); await page.createSession(); assert.equal(page.data.unavailable, true); assert.equal(page.data.source, null);
+  await page.onShow(); await firstQuestion(page); assert.equal(page.data.unavailable, true); assert.equal(page.data.source, null);
   assert.equal(calls.some((item) => item.options && item.options.method === 'POST'), false);
   assert.equal(entryUrl('explore', 'content', 'c1'), '');
 });
@@ -281,20 +282,20 @@ test('article name and summary survive creation, history reopening and refresh u
     if (path === 'contents/c1/') return { data: article() };
     if (path === 'llm/sessions/s1/' || (path === 'llm/sessions/' && options.method === 'POST')) return { data: publicSession };
   }, { scope: 'learn', source_type: 'content', source_id: 'c1' });
-  await page.onShow(); assert.equal(page.data.source.title, article().title); await page.createSession();
+  await page.onShow(); assert.equal(page.data.source.title, article().title); await firstQuestion(page);
   assert.equal(page.data.source.title, article().title); assert.equal(page.data.source.summary, article().summary);
   assert.equal(page.data.session.source_type, 'content'); assert.equal(page.data.session.source_id, 'c1'); page.original();
   page.onHide(); revision = 1; await page.onShow(); assert.equal(page.data.source.title, article().title);
   await page.load(); assert.equal(page.data.source.summary, article().summary); page.original();
   assert.deepEqual(navigation, ['/pages/detail/index?kind=content&id=c1', '/pages/detail/index?kind=content&id=c1']);
-  assert.equal(calls.filter((item) => item.options && item.options.method === 'POST').length, 1);
+  assert.equal(calls.filter((item) => item.options && item.options.method === 'POST').length, 2);
 });
 test('server session source is authoritative when creation returns a different source ID', async () => {
   const { page, navigation, calls } = fixture(async (path, options) => {
     if (path === 'llm/sessions/' && options.method === 'POST') return { data: session('s1', { kind: 'learn', scope: 'learn', source_type: 'content', source_id: 'canonical' }) };
     if (path === 'contents/canonical/') return { data: { id: 'canonical', title: '实际关联文章', summary: '真实来源摘要' } };
   }, { scope: 'learn', source_type: 'content', source_id: 'c1' });
-  await page.onShow(); await page.createSession(); assert.equal(page.data.source.id, 'canonical'); assert.equal(page.data.source.title, '实际关联文章'); page.original();
+  await page.onShow(); await firstQuestion(page); assert.equal(page.data.source.id, 'canonical'); assert.equal(page.data.source.title, '实际关联文章'); page.original();
   assert.deepEqual(navigation, ['/pages/detail/index?kind=content&id=canonical']); assert.ok(calls.some((item) => item.path === 'contents/canonical/'));
 });
 test('late source metadata from an old session cannot overwrite a newly loaded session', async () => {
@@ -332,15 +333,15 @@ test('pending session source metadata after hide or login change cannot restore 
   }
 });
 
-test('all fresh entry types start blank and creation or refresh never inserts a preset question', async () => {
+test('all fresh entry types start blank and neither opening nor refreshing creates an empty session', async () => {
   const entries = [{ kind: 'recognition', jobId: 'j1' }, { kind: 'assessment', jobId: 'a1' }, { scope: 'explore', source_type: 'region', source_id: 'r1' }, { scope: 'learn', source_type: 'content', source_id: 'c1' }];
   for (const options of entries) {
     const { page, calls } = fixture(undefined, options);
     await page.onShow(); assert.equal(page.data.question, ''); assert.equal(page.data.questionCount, 0);
     await page.load(); assert.equal(page.data.question, '');
-    await page.createSession(); assert.equal(page.data.question, ''); await page.send();
+    assert.equal(page.composerVisible(), true); await page.send(); assert.equal(page.data.question, ''); await page.send();
     assert.match(page.data.actionError, /请填写/);
-    assert.equal(calls.filter((item) => item.options && item.options.method === 'POST').length, 1, 'only creates a session; blank text never creates a turn');
+    assert.equal(calls.filter((item) => item.options && item.options.method === 'POST').length, 0, 'blank text creates neither session nor turn');
   }
 });
 test('history entry and subsequent refresh stay empty in recognition, assessment, explore and learn', async () => {
@@ -458,7 +459,7 @@ test('older and unavailable composer measurements never replace the latest layou
   for (const value of [null, { height: NaN }, { height: -1 }]) {
     page.measureComposer(); pending.pop()([value]); assert.equal(page.data.composerHeight, 256);
   }
-  page.setData({ loading: true }); page.measureComposer(); assert.equal(pending.length, 0);
+  page.setData({ loading: true }); page.measureComposer(); assert.equal(pending.length, 1, 'loading retains the composer for drafting');
 });
 test('composer query and layout callbacks cannot modify or scroll after unload, hide, account or session changes', async () => {
   for (const mode of ['unload', 'hide', 'account', 'session']) {
@@ -496,7 +497,7 @@ test('public chat selects weather explicitly, never refreshes weather and does n
   const { page, calls, application } = fixture(async (path) => path === 'weather-data/locations/' ? { data: { items: [{ slug: 'tianjin-city', name: '天津市' }], enabled: true } } : undefined, { scope: 'learn', source_type: 'content', source_id: 'c1' });
   application.globalData.weatherLocation = 'tianjin-city';
   await page.onShow(); assert.equal(page.data.weatherIndex, 0); assert.equal(page.data.question, '');
-  page.chooseWeather(change(1)); await page.createSession();
+  page.chooseWeather(change(1)); await firstQuestion(page);
   const post = calls.find((item) => item.path === 'llm/sessions/' && item.options.method === 'POST');
   assert.equal(post.options.data.weather_location, 'tianjin-city');
   assert.equal(calls.some((item) => item.path.includes('summary/') || item.path.includes('forecast/')), false);
@@ -504,7 +505,7 @@ test('public chat selects weather explicitly, never refreshes weather and does n
 });
 test('weather directory failure degrades to page-only chat and existing sessions explain unavailable weather', async () => {
   const { page, calls } = fixture(async (path) => { if (path === 'weather-data/locations/') throw new Error('暂时不可用'); }, { scope: 'explore', source_type: 'place', source_id: 'p1' });
-  await page.onShow(); assert.match(page.data.weatherError, /仅围绕页面/); await page.createSession();
+  await page.onShow(); assert.match(page.data.weatherError, /仅围绕页面/); await firstQuestion(page);
   assert.equal('weather_location' in calls.find((item) => item.path === 'llm/sessions/' && item.options.method === 'POST').options.data, false);
   const view = sessionView(session('s', { kind: 'learn', scope: 'learn', source_type: 'content', source_id: 'c1', weather_location: 'tianjin', weather_context: { location: { name: '天津市' }, status: 'unavailable' } }));
   assert.match(view.weatherLabel, /过期或不可用/);
@@ -516,4 +517,126 @@ test('source buttons navigate only to server-provided references attached to tha
   page.openCitation({ currentTarget: { dataset: { turn: 't', kind: 'content', id: 'c1' } } });
   assert.deepEqual(navigation, ['/pages/detail/index?kind=content&id=c1']);
   page.onHide(); page.openCitation({ currentTarget: { dataset: { turn: 't', kind: 'content', id: 'c1' } } }); assert.equal(navigation.length, 1);
+});
+
+test('fresh chat is draftable while source reads are pending, without opening a session or prefilling context', async () => {
+  const source = deferred();
+  const { page, calls } = fixture(async path => path === 'contents/c1/' ? source.promise : undefined, { scope: 'learn', source_type: 'content', source_id: 'c1' });
+  const loading = page.onShow(); await flush();
+  assert.equal(page.data.loading, true); assert.equal(page.composerVisible(), true);
+  page.inputQuestion(change('我先写下自己的问题')); await page.send();
+  assert.equal(page.data.question, '我先写下自己的问题'); assert.equal(calls.some(row => row.options && row.options.method), false);
+  source.resolve({ data: { id: 'c1', title: '所选资料', summary: '不能自动填入输入框的资料' } }); await loading;
+  assert.equal(page.data.question, '我先写下自己的问题'); assert.equal(page.data.contextExpanded, false);
+  await page.send();
+  const posts = calls.filter(row => row.options && row.options.method === 'POST');
+  assert.equal(posts.length, 2); assert.equal(posts[0].path, 'llm/sessions/'); assert.equal(posts[1].options.data.question, '我先写下自己的问题');
+});
+
+test('a newly created session survives first-turn failure, preserving its draft and request ID for retry', async () => {
+  let fails = true; const ids = [];
+  const { page, calls } = fixture(async (path, options) => {
+    if (path === 'llm/sessions/s1/turns/' && options && options.method === 'POST') {
+      ids.push(options.data.request_id); if (fails) throw new Error('发送结果未确认');
+    }
+  }, { kind: 'recognition', jobId: 'j1' });
+  await page.onShow(); page.inputQuestion(change('  第一条原始问题  ')); await page.send();
+  assert.equal(page.data.session.id, 's1'); assert.equal(page.data.question, '  第一条原始问题  ');
+  assert.equal(page._draft.key, 'session:s1');
+  page.onHide(); await page.onShow(); assert.equal(page.data.question, '  第一条原始问题  ');
+  fails = false; await page.send();
+  assert.equal(calls.filter(row => row.path === 'llm/sessions/' && row.options.method === 'POST').length, 1);
+  assert.equal(ids.length, 2); assert.equal(ids[0], ids[1]); assert.equal(page.data.question, ''); assert.equal(page.data.turns.length, 1);
+});
+
+test('ambiguous session creation is never repeated by send, refresh or hide-return, and its draft stays intact', async () => {
+  for (const failure of [new Error('网络中断'), Object.assign(new Error('服务暂不可用'), { status: 503 }), Object.assign(new Error('响应超时'), { status: 408 })]) {
+    const { page, calls } = fixture(async (path, options) => { if (path === 'llm/sessions/' && options.method === 'POST') throw failure; }, { scope: 'explore', source_type: 'place', source_id: 'p1' });
+    await page.onShow(); page.inputQuestion(change('需要保留的第一条问题')); await page.send(); await page.send();
+    assert.equal(page.data.creationUncertain, true); assert.match(page.data.actionError, /对话记录/);
+    await page.load(); await page.send(); page.onHide(); await page.onShow(); await page.send();
+    assert.equal(page.data.question, '需要保留的第一条问题'); assert.equal(page.data.creationUncertain, true);
+    assert.equal(calls.filter(row => row.options && row.options.method === 'POST').length, 1);
+  }
+});
+
+test('an explicitly rejected image session can retry without its image and without losing the question', async () => {
+  let first = true;
+  const { page, calls } = fixture(async (path, options) => {
+    if (path === 'llm/sessions/' && options.method === 'POST' && first) { first = false; throw Object.assign(new Error('原图不可用'), { status: 409, code: 'IMAGE_UNAVAILABLE' }); }
+  }, { kind: 'recognition', jobId: 'j1' });
+  await page.onShow(); page.imageChange(change(true)); page.inputQuestion(change('保留这条问题')); await page.send();
+  assert.equal(page.data.creationUncertain, false); assert.equal(page.data.question, '保留这条问题'); assert.equal(page.data.session, null);
+  page.imageChange(change(false)); await page.send();
+  const posts = calls.filter(row => row.options && row.options.method === 'POST');
+  assert.equal(posts.length, 3); assert.equal(posts[0].options.data.include_image, true); assert.equal(posts[1].options.data.include_image, false);
+  assert.equal(posts[2].options.data.question, '保留这条问题'); assert.equal(page.data.question, '');
+});
+
+test('hiding during the first create remembers the session but never sends a paid turn from a hidden page', async () => {
+  const created = deferred();
+  const { page, calls } = fixture(async (path, options) => path === 'llm/sessions/' && options.method === 'POST' ? created.promise : undefined, { kind: 'recognition', jobId: 'j1' });
+  await page.onShow(); page.inputQuestion(change('回来后再发送的问题')); const sending = page.send();
+  page.onHide(); const showing = page.onShow(); assert.equal(page.data.busy, true);
+  created.resolve({ data: session() }); await sending; await showing;
+  assert.equal(page.data.session.id, 's1'); assert.equal(page.data.question, '回来后再发送的问题');
+  assert.equal(calls.filter(row => row.options && row.options.method === 'POST').length, 1);
+  await page.send(); assert.equal(calls.filter(row => row.path === 'llm/sessions/' && row.options.method === 'POST').length, 1);
+  assert.equal(page.data.turns.length, 1);
+});
+
+test('weather entry is allowlisted, remains user-editable before sending, and never adds another quota scope', async () => {
+  for (const slug of ['tianjin-city', 'missing-city', '../private', ['tianjin-city']]) {
+    const { page, calls } = fixture(async path => path === 'weather-data/locations/' ? { data: { items: [{ slug: 'tianjin-city', name: '天津市' }, { slug: 'beijing-city', name: '北京市' }, null, { slug: '../private', name: '不合法条目' }] } } : undefined, { scope: 'explore', source_type: 'region', source_id: 'r1', weather_location: slug });
+    await page.onShow(); assert.equal(page.data.weatherIndex, slug === 'tianjin-city' ? 1 : 0);
+    assert.equal(page.data.question, ''); assert.equal(page.data.weatherLocations.length, 3);
+    page.chooseWeather(change(2)); await page.load(); assert.equal(page.data.weatherIndex, 2);
+    page.inputQuestion(change('适合去散步吗？')); await page.send();
+    const created = calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST');
+    assert.equal(created.options.data.scope, 'explore'); assert.equal(created.options.data.weather_location, 'beijing-city');
+    assert.equal(calls.some(row => /summary|forecast/.test(row.path)), false);
+  }
+});
+
+test('weather preselection falls back to none on directory failure and is ignored for recognition', async () => {
+  const publicChat = fixture(async path => { if (path === 'weather-data/locations/') throw new Error('地点目录不可用'); }, { scope: 'learn', source_type: 'content', source_id: 'c1', weather_location: 'tianjin-city' });
+  await publicChat.page.onShow(); assert.equal(publicChat.page.data.weatherIndex, 0); await firstQuestion(publicChat.page);
+  assert.equal('weather_location' in publicChat.calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST').options.data, false);
+  const recognition = fixture(undefined, { kind: 'recognition', jobId: 'j1', weather_location: 'tianjin-city' });
+  await recognition.page.onShow(); await firstQuestion(recognition.page);
+  assert.equal(recognition.calls.some(row => row.path === 'weather-data/locations/'), false);
+  assert.equal('weather_location' in recognition.calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST').options.data, false);
+});
+
+test('fresh composer measurements tolerate no session and become stale when first send establishes one', async () => {
+  const { page } = fixture(undefined, { kind: 'recognition', jobId: 'j1' }); await page.onShow();
+  const { pending } = composerMeasurements(page); page.measureComposer(); pending.pop()([{ height: 155 }]); assert.equal(page.data.composerHeight, 155);
+  page.measureComposer(); const beforeCreation = pending.pop(); await firstQuestion(page);
+  const currentHeight = page.data.composerHeight; beforeCreation([{ height: 999 }]); assert.equal(page.data.composerHeight, currentHeight);
+});
+
+test('confirmed hidden send clears its retry key so repeating the same question later is a new turn', async () => {
+  const posted = deferred(), ids = []; let first = true, completed = false;
+  const { page } = fixture(async (path, options) => {
+    if (path === 'llm/sessions/s1/turns/' && options && options.method === 'POST') {
+      ids.push(options.data.request_id); if (first) { first = false; return posted.promise; }
+      return { data: turn('second', { question: options.data.question }) };
+    }
+    if (path === 'llm/sessions/s1/turns/' && completed) return { data: [turn('first', { question: '同一个问题' })] };
+  });
+  await page.onShow(); page.inputQuestion(change('同一个问题')); const sending = page.send(); page.onHide();
+  completed = true; posted.resolve({ data: turn('first', { question: '同一个问题' }) }); await sending;
+  assert.equal(page._retry, null); await page.onShow(); assert.equal(page.data.question, ''); assert.equal(page.data.turns[0].id, 'first');
+  page.inputQuestion(change('同一个问题')); await page.send();
+  assert.equal(ids.length, 2); assert.notEqual(ids[0], ids[1]); assert.equal(page.data.turns[0].id, 'second');
+});
+
+test('first send attaches the requested weather only when its slug is in the server directory', async () => {
+  for (const requested of ['tianjin-city', 'not-in-directory']) {
+    const { page, calls } = fixture(async path => path === 'weather-data/locations/' ? { data: { items: [{ slug: 'tianjin-city', name: '天津市' }] } } : undefined, { scope: 'explore', source_type: 'region', source_id: 'r1', weather_location: requested });
+    await page.onShow(); await firstQuestion(page);
+    const body = calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST').options.data;
+    assert.equal(body.weather_location, requested === 'tianjin-city' ? requested : undefined);
+    assert.equal(body.scope, 'explore');
+  }
 });

@@ -1,7 +1,4 @@
-.recognition-hero { position: relative; overflow: hidden; padding: 10rpx 0 8rpx; }
-.hero-leaf { position: absolute; border-radius: 80% 0 80% 0; background: #a8c99b; opacity: .25; right: 2rpx; top: 6rpx; width: 92rpx; height: 150rpx; transform: rotate(26deg); pointer-events: none; }
-.leaf-b { width: 54rpx; height: 90rpx; right: 74rpx; top: 88rpx; transform: rotate(-38deg); background: #7fb3c8; }
-.observe-tabs { display: flex; margin: 28rpx 0; padding: 8rpx; background: #e2ecde; border-radius: 24rpx; }
+.observe-tabs { display: flex; margin: 0 0 24rpx; padding: 8rpx; background: #e2ecde; border-radius: 24rpx; }
 .observe-tab { flex: 1; width: 50%; min-width: 0; min-height: 72rpx; display: flex; align-items: center; justify-content: center; text-align: center; color: #687e6d; background: transparent; font-size: 26rpx; font-weight: 400; line-height: 1.5; padding: 18rpx 0; border-radius: 19rpx; }
 .observe-tab.active { background: #fffefa; color: #3a7d5c; font-weight: 600; box-shadow: 0 4rpx 12rpx rgba(44,62,51,.04); }
 .observe-tab text { margin-left: 12rpx; }

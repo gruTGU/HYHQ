@@ -1,7 +1,7 @@
 <view class="page detail-page">
   <page-state loading="{{loading}}" error="{{error}}" bindretry="load" />
   <block wx:if="{{!loading && !error && item}}">
-    <text class="eyebrow">{{kind === 'place' ? 'PLACE / 生态地点' : kind === 'content' ? 'JOURNAL / 科普手记' : 'ROUTE / 绿色漫步'}}</text>
+    <text class="eyebrow">{{kind === 'place' ? '生态地点' : kind === 'content' ? '科普手记' : '漫步路线'}}</text>
     <view class="page-title">{{item.name || item.title}}</view>
     <view class="row gap"><source-label source="manual" /><text class="pill" wx:if="{{item.is_demo}}">科普模拟资料</text></view>
     <narration-player wx:if="{{kind === 'content' || kind === 'route'}}" kind="{{kind}}" target-id="{{item.id}}" />

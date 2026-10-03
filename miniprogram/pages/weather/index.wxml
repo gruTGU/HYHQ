@@ -1,5 +1,5 @@
 <view class="page weather-page">
-  <view class="weather-heading"><text class="eyebrow">WEATHER JOURNAL</text><text class="page-title">出发前，看一眼天空</text><text class="muted">接下来的天气，和一次恰好的提醒。</text></view>
+  <view class="page-heading">天气预报</view>
   <picker wx:if="{{locations.length}}" range="{{locations}}" range-key="name" value="{{locationIndex}}" disabled="{{busy}}" bindchange="changeLocation"><view class="location-picker" hover-class="pressable"><view><text class="eyebrow">天气地点</text><text class="location-name">{{location.name}}</text></view><text class="picker-arrow">⌄</text></view></picker>
   <text wx:if="{{location.scope_note}}" class="scope-note">{{location.scope_note}}</text>
   <page-state loading="{{loading}}" error="{{error}}" bind:retry="load" />
@@ -10,7 +10,7 @@
     <view wx:for="{{forecast.days}}" wx:key="starts_at" class="card forecast-day"><view class="forecast-top"><text class="day-date">{{item.date_label}}</text><text class="temperature">{{item.temperature_label}}</text></view><text class="condition">{{item.condition_label}}</text><view class="forecast-meta"><text>夜间 {{item.night_label}}</text><text>白天降水概率 {{item.rain_label}}</text></view></view>
     <view class="source-footer"><text>来源：{{forecast.source_label}} · 更新 {{forecast.fetched_label}}</text><text wx:if="{{forecast.attribution}}" user-select="true">{{forecast.attribution}}</text><button class="text-button" bindtap="copySource">查看来源地址</button></view>
   </view>
-  <view class="card reminder-card"><text class="eyebrow">A GENTLE REMINDER</text><text class="section-title">明早出发前提醒我</text><text class="muted">{{subscriptionNotice || '天气提醒暂未开放。'}}</text>
+  <view class="card reminder-card"><text class="section-title">明早出发前提醒我</text><text class="muted">{{subscriptionNotice || '天气提醒暂未开放。'}}</text>
     <block wx:if="{{subscriptionEnabled}}"><button wx:if="{{!loggedIn || !wechatLogin}}" class="secondary" hover-class="pressable" bindtap="login">使用微信登录后设置</button><button wx:elif="{{!intent}}" class="primary" hover-class="pressable" disabled="{{busy || !location}}" loading="{{busy}}" bindtap="prepareReminder">设置明早提醒</button></block>
     <view wx:if="{{intent}}" class="intent-panel"><text class="intent-title">{{intent.location_name}}</text><text class="muted">{{intent.scheduled_label}} · 仅本次</text><button wx:if="{{!canConfirmAgain}}" class="primary" hover-class="pressable" disabled="{{busy}}" loading="{{busy}}" bindtap="authorizeReminder">授权这次提醒</button></view>
     <button wx:if="{{canConfirmAgain}}" class="secondary" disabled="{{busy}}" loading="{{busy}}" bindtap="retryConfirmation">重试保存授权结果</button>

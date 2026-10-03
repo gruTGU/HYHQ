@@ -1,5 +1,5 @@
 <view class="page records-page">
-  <view class="records-header"><text class="eyebrow">GREEN MEMORIES / 绿色记忆</text><view class="page-title">{{title}}</view><view class="subtitle">收藏每一份喜欢，回看每一次发现。</view><view class="private-label"><view class="privacy-dot"></view><text>仅当前账号可见</text></view></view>
+  <view class="records-header"><view class="page-heading">{{title}}</view><view class="private-label"><view class="privacy-dot"></view><text>仅当前账号可见</text></view></view>
   <view class="section"><page-state loading="{{loading}}" error="{{error && !records.length ? error : ''}}" bindretry="load" /></view>
   <view wx:if="{{!loading && !error && !records.length}}" class="card records-empty">
     <view class="empty-plant" aria-hidden="true"><view class="plant-stem"></view><view class="plant-leaf leaf-left"></view><view class="plant-leaf leaf-right"></view><view class="plant-soil"></view></view>

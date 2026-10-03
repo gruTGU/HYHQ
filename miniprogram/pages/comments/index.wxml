@@ -1,7 +1,6 @@
 <view class="page comments-page">
-  <text class="eyebrow">GROW TOGETHER / 生态同行</text>
-  <view class="page-title">{{mode === 'mine' ? '我的评论' : mode === 'reports' ? '我的举报' : '留下观察与发现'}}</view>
-  <view class="subtitle">{{mode === 'reports' ? '举报仅供你和获授权的管理员查看。' : '围绕眼前的内容，分享真实、友善的观察。'}}</view>
+  <view class="page-heading">{{mode === 'mine' ? '我的评论' : mode === 'reports' ? '我的举报' : '评论'}}</view>
+  <view wx:if="{{mode === 'reports'}}" class="small muted">举报仅供你和获授权的管理员查看。</view>
   <view wx:if="{{invalid}}" class="card notice">内容入口无效，请返回原页面重新打开。</view>
   <block wx:else>
     <view wx:if="{{loggedIn}}" class="records-nav"><button class="text-button" bindtap="myComments" disabled="{{busy}}">我的评论</button><button class="text-button" bindtap="myReports" disabled="{{busy}}">我的举报</button></view>

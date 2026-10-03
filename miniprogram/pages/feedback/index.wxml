@@ -1,6 +1,5 @@
 <view class="page feedback-page">
-  <text class="eyebrow">GROW TOGETHER / 一起完善</text>
-  <view class="page-title">听见你的想法</view><view class="subtitle">关于页面、内容与体验，都可以在这里告诉我们。</view>
+  <view class="page-heading">意见反馈</view>
   <view class="feedback-flow"><view><text class="flow-number">1</text><text>提交建议</text></view><text class="flow-line"></text><view><text class="flow-number">2</text><text>等待处理</text></view><text class="flow-line"></text><view><text class="flow-number">3</text><text>查看答复</text></view></view>
   <view wx:if="{{!loggedIn && listError}}" class="error-inline">{{listError}}</view>
   <view wx:if="{{!loggedIn}}" class="card section"><view class="title">登录后，留下你的建议</view><view class="copy">反馈与答复仅供本人及获授权处理反馈的管理员查看。</view><button hover-class="pressable" class="primary gap" bindtap="login">去登录</button></view>

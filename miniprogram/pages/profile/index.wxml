@@ -1,11 +1,10 @@
 <view class="page profile-page">
   <view class="profile-header">
-    <view class="profile-brand"><view><text class="profile-eyebrow">MY GREEN LIFE</text><view class="profile-heading">我的绿色生活</view></view><view class="profile-brand-mark"><image class="brand-logo" src="/assets/brand/hyhq-logo.jpg" mode="aspectFit" aria-label="海晏河清智慧平台标志" /></view></view>
+    <view class="profile-brand"><view class="profile-heading">我的</view><view class="profile-brand-mark"><image class="brand-logo" src="/assets/brand/hyhq-logo.jpg" mode="aspectFit" aria-label="海晏河清智慧平台标志" /></view></view>
     <view wx:if="{{!loading && user}}" class="profile-identity">
       <button hover-class="pressable" class="avatar-button" open-type="chooseAvatar" bindchooseavatar="chooseAvatar" disabled="{{busy}}" aria-label="更换个人头像"><image wx:if="{{avatar}}" class="avatar" src="{{avatar}}" mode="aspectFill" /><view wx:else class="avatar-placeholder"><view class="avatar-head"></view><view class="avatar-shoulders"></view></view></button>
-      <view class="grow"><view class="profile-name">{{user.nickname || '绿色生活体验者'}}</view><view class="profile-caption">记录发现，也留住喜欢</view><text wx:if="{{authMode === 'development'}}" class="profile-test">测试账号</text></view>
+      <view class="grow"><view class="profile-name">{{user.nickname || '绿色生活体验者'}}</view><text wx:if="{{authMode === 'development'}}" class="profile-test">测试账号</text></view>
     </view>
-    <view wx:else class="profile-intro">收藏一处风景，认识一株植物。<view>从这里，留下你的绿色足迹。</view></view>
   </view>
   <view class="profile-content">
     <page-state loading="{{loading}}" error="{{error && !busy ? error : ''}}" bindretry="load" />

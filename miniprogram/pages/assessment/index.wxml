@@ -1,7 +1,5 @@
 <view class="page assessment-page">
-  <text class="eyebrow">自然观察 · 河道记录</text>
-  <view class="page-title">从一张照片，<view>观察身边的河流。</view></view>
-  <view class="subtitle">记录眼前的河流，留意水面的细节。</view>
+  <view class="page-heading">河道观察</view>
   <view class="observe-kind"><text class="kind-dot"></text><text>漂浮物实验检测</text><text class="kind-note">仅本人可见</text></view>
   <view class="flow-steps"><text class="{{!imagePath ? 'current' : ''}}">01 选择照片</text><view class="flow-step-line"></view><text class="{{imagePath && !task.result_view ? 'current' : ''}}">02 提交观察</text><view class="flow-step-line"></view><text class="{{task.result_view ? 'current' : ''}}">03 查看结果</text></view>
   <view class="scope-card section"><view class="row" bindtap="toggleHelp"><view><view class="title">这张照片能告诉我们什么</view><view class="small muted gap">仅检测漂浮物候选，不评价真实水质</view></view><text class="help-toggle">{{helpExpanded ? '收起 −' : '展开 +'}}</text></view><block wx:if="{{helpExpanded}}"><view class="copy gap">{{capability.scope}}</view><view class="small muted gap" wx:if="{{capability.modelName}}">{{capability.modelName}} · {{capability.modelVersion}}</view><view class="copy">图像教学规则分不是官方生态等级或水质评价。检测框面积不是水面覆盖率，也不代表真实污染程度。未检出也不表示水体清洁。</view></block></view>

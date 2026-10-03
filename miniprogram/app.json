@@ -63,7 +63,7 @@
   },
   "permission": {
     "scope.userLocation": {
-      "desc": "仅在主动点击后，用于本机选择邻近天气城市，或查找附近水体并可选保存个人观察位置"
+      "desc": "用于选择天气城市、查找附近水体及记录观察位置"
     }
   },
   "requiredPrivateInfos": [

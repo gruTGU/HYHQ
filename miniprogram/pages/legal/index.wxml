@@ -1,5 +1,5 @@
 <view class="page legal-page">
-  <text class="eyebrow">HYHQ / 安心使用</text><view class="page-title">{{privacy ? '隐私说明' : '用户协议'}}</view><view class="subtitle">了解我们的服务，以及你对个人信息的选择。</view><view class="legal-updated">更新日期：{{cloudMode ? '2026 年 10 月 3 日' : '2026 年 9 月 24 日'}}</view>
+  <view class="page-heading">{{privacy ? '隐私说明' : '用户协议'}}</view><view class="legal-updated">更新日期：{{cloudMode ? '2026 年 10 月 3 日' : '2026 年 9 月 24 日'}}</view>
   <view class="legal-tabs"><button hover-class="pressable" class="legal-tab {{privacy ? 'active' : ''}}" data-kind="privacy" bindtap="switchDocument">隐私说明</button><button hover-class="pressable" class="legal-tab {{!privacy ? 'active' : ''}}" data-kind="terms" bindtap="switchDocument">用户协议</button></view>
   <block wx:if="{{privacy}}">
     <view class="legal-summary"><view class="title">你的信息，由你选择</view><view class="copy">公开资料可直接浏览。上传图片、设置资料和使用定位，都由你主动操作；个人记录可在“我的”管理。</view></view>

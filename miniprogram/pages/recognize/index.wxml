@@ -1,5 +1,5 @@
 <view class="page recognition-page">
-  <view class="recognition-hero"><text class="eyebrow">自然观察 · AI 识别</text><view class="page-title">{{mode === 'assessment' ? '观察，眼前的河流。' : '你好，这片绿。'}}</view><view class="subtitle">{{mode === 'assessment' ? '记录可见水面，留意漂浮物与画面细节。' : '靠近一朵花，发现它的名字。'}}</view><view class="hero-leaf leaf-a"></view><view class="hero-leaf leaf-b"></view></view>
+
   <view class="observe-tabs"><button class="observe-tab {{mode === 'recognition' ? 'active' : ''}}" disabled="{{busy || riverBusy}}" data-mode="recognition" bindtap="changeMode" aria-pressed="{{mode === 'recognition'}}">花卉识别</button><button class="observe-tab {{mode === 'assessment' ? 'active' : ''}}" disabled="{{busy || riverBusy}}" data-mode="assessment" bindtap="changeMode" aria-pressed="{{mode === 'assessment'}}">河道观察</button></view>
   <river-observer wx:if="{{mode === 'assessment'}}" id="river-observer" bindbusychange="riverBusyChange" />
   <block wx:else>

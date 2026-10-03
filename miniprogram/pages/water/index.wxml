@@ -1,5 +1,5 @@
 <view class="page measurement-page">
-  <view class="measurement-heading"><text class="eyebrow">WATER · 智慧河湖</text><view class="page-title">看见一条河的变化。</view><view class="subtitle">水温、酸碱度、浊度与溶解氧，慢慢读懂。</view><view class="river-line" aria-hidden="true"></view></view>
+  <view class="page-heading">智慧河湖</view>
   <view class="learning-note"><text class="learning-badge">科普模拟体验</text><view>模拟数据帮助理解指标变化；缺测、存疑数据保持断线，不用于认定水质等级或官方 AQI。</view></view>
   <view class="card section filters">
     <view class="section-head"><text class="section-title">选择观测范围</text><text class="filter-hint">按需切换</text></view>

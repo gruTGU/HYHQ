@@ -42,4 +42,6 @@ test('chat and history have no persistent quota/consent controls and successful 
   const chat = fs.readFileSync(path.join(__dirname, '../pages/llm/index.wxml'), 'utf8'), history = fs.readFileSync(path.join(__dirname, '../pages/llm-history/index.wxml'), 'utf8');
   assert.doesNotMatch(chat + history, /quota|consent|checkbox|五轮|5 轮|剩余额度|使用 1 轮/);
   assert.match(chat, /<markdown-view content="{{item.answer/); assert.match(chat, /{{modelLabel}}/);
+  assert.doesNotMatch(chat, /bindtap="createSession"|开启这段对话|先开启对话|与山水对话|自然同行|从眼前的发现/);
+  assert.match(chat, /wx:if="{{entryValid && loggedIn && !unavailable}}" class="composer /);
 });

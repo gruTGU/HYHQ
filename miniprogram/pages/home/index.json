@@ -1,1 +1,6 @@
-{ "navigationBarTitleText": "海晏河清 · 校园生态" }
+{
+  "navigationBarTitleText": "海晏河清",
+  "usingComponents": {
+    "floating-ai": "/components/floating-ai/index"
+  }
+}

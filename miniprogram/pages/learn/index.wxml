@@ -1,9 +1,4 @@
 <view class="page learn-page">
-  <text class="eyebrow">NATURE JOURNAL / 科普智游</text>
-  <view class="journal-hero">
-    <view class="journal-intro"><view class="page-title">读懂自然，<view>再走近一点。</view></view><view class="subtitle">把生态知识，带进日常。</view></view>
-    <image class="journal-art" src="/assets/illustrations/botanical-river.jpg" mode="aspectFill" aria-hidden="true" />
-  </view>
   <button class="secondary section knowledge-entry" hover-class="pressable" bindtap="openSearch">资料检索 · 从原文里找答案 ↗</button>
   <view class="tabs section"><button class="tab {{tab === 'contents' ? 'selected' : ''}}" data-tab="contents" bindtap="changeTab" hover-class="pressable">科普手记</button><button class="tab {{tab === 'routes' ? 'selected' : ''}}" data-tab="routes" bindtap="changeTab" hover-class="pressable">漫步路线</button></view>
   <view class="card filters">
@@ -20,7 +15,7 @@
       <view wx:if="{{place}}" class="linked-place gap"><text>正在浏览关联地点的科普</text><button class="text-button" bindtap="clearPlace">清除地点</button></view>
       <view wx:if="{{category || plant_label || search || place}}" class="active-filters"><text class="small muted">{{category ? categories[categoryIndex].name + ' · ' : ''}}{{plant_label ? plantLabels[plantIndex].name + ' · ' : ''}}{{search ? '“' + search + '”' : '已限定内容范围'}}</text><button class="text-button reset" bindtap="resetFilters">清除筛选</button></view>
     </block>
-    <view wx:else><view class="copy">依次浏览沿途地点，发现绿色生活的另一面。</view><button wx:if="{{regionId}}" class="text-button gap" bindtap="allRoutes">浏览全部区域路线 ↗</button></view>
+    <view wx:else><button wx:if="{{regionId}}" class="text-button gap" bindtap="allRoutes">浏览全部区域路线 ↗</button></view>
   </view>
   <view class="section-head results-head"><text class="section-title">{{tab === 'contents' ? '自然手记' : '慢慢走，看一看'}}</text><text class="small muted">{{tab === 'contents' ? '阅读 · 发现 · 收藏' : '管理员整理'}}</text></view>
   <block wx:if="{{tab === 'contents'}}">

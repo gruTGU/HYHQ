@@ -1,5 +1,5 @@
 <view class="page search-page">
-  <text class="eyebrow">REFERENCE / 有据可查</text><view class="page-title">从资料里找答案</view><view class="subtitle">检索科普手记、漫步路线和公开地点。</view>
+  <view class="page-heading">资料检索</view>
   <view class="card section">
     <view class="search-row"><input value="{{input}}" maxlength="100" placeholder="如：湿地 鸟类（空格分隔关键词）" confirm-type="search" bindinput="input" bindconfirm="search" /><button class="primary" bindtap="search" loading="{{loading}}">检索</button></view>
     <view class="filter-grid gap"><picker range="{{categories}}" range-key="name" value="{{categoryIndex}}" data-field="categoryIndex" bindchange="filter"><view class="selector">{{categories[categoryIndex].name}} ⌄</view></picker><picker range="{{plantLabels}}" range-key="name" value="{{plantIndex}}" data-field="plantIndex" bindchange="filter"><view class="selector">{{plantLabels[plantIndex].name}} ⌄</view></picker></view>
