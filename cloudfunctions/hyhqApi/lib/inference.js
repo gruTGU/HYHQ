@@ -5,6 +5,7 @@ const path = require('node:path');
 const os = require('node:os');
 const crypto = require('node:crypto');
 const { ApiError } = require('./core');
+const { ensureNative } = require('./native-runtime');
 const FLOWERS = require('../data/models/flowers-efficientnet-b0-v1.manifest.json');
 const RIVER = require('../data/models/river-floating-debris-v1.manifest.json');
 const FIXED = Object.freeze({
@@ -144,6 +145,7 @@ function resize(image, width, height, crop = { left: 0, top: 0, width, height })
 async function decode(bytes) {
   if (!Buffer.isBuffer(bytes) || bytes.length < 4 || bytes.length > 6 * 1024 * 1024) throw error('INVALID_IMAGE');
   try {
+    await ensureNative();
     const sharp = require('sharp');
     // Pillow's RGB conversion ignores an embedded ICC profile. Do the same so
     // fixed model inputs are not silently colour-corrected by libvips.
@@ -248,6 +250,7 @@ async function infer(kind, bytes, options = {}) {
     const snapshotValue = snapshot(kind), blob = await verifiedBytes(kind, options.modelRoot), image = await decode(bytes);
     const quality = lowQuality(image);
     if (quality) return kind === 'recognition' ? { decision: 'uncertain', reason: 'LOW_IMAGE_QUALITY', candidates: [], threshold: snapshotValue.threshold, model: snapshotValue, scope: snapshotValue.scope, disclaimer: DISCLAIMER } : assessmentResult([], image.width, image.height, 'LOW_IMAGE_QUALITY');
+    await ensureNative();
     const input = preprocess(kind, image), ort = require('onnxruntime-node');
     let session;
     try {

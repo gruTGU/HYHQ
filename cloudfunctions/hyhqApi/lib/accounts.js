@@ -2,6 +2,7 @@
 const crypto = require('node:crypto');
 const { ApiError, response, requireUser, uuid, sha256 } = require('./core');
 const TTL = 7 * 86400000;
+const AGREEMENT_VERSION = '2026-10-07';
 function publicUser(user) {
   return { id: user.id, nickname: user.nickname, record_history: user.record_history, auth_kind: 'wechat', avatar_url: user.avatar_id ? '/api/v1/uploads/' + user.avatar_id + '/content/?variant=thumbnail' : null };
 }
@@ -27,6 +28,8 @@ async function purgeAccount(ctx, user) {
     const current = await tx.get('users', user.id);
     if (current) await tx.update('users', user.id, { is_active: false, deleting: true, record_revision: (current.record_revision || 0) + 1 });
   });
+  await require('./community').purgeOwner(ctx, user);
+  await require('./weather-reminders').purgeOwnerReminders(ctx, user.id);
   await require('./llm').anonymizeOwner({ ...ctx, user });
   for (const kind of ['assets', 'uploads']) {
     for (let round = 0; round < 100; round++) {
@@ -39,7 +42,7 @@ async function purgeAccount(ctx, user) {
       if (round === 99) throw new ApiError('CLEANUP_PENDING', '账号已停用，资料清理中，请稍后重试', 503);
     }
   }
-  for (const kind of ['favorites', 'histories', 'visits', 'feedback', 'recognition_jobs', 'assessment_jobs', 'asset_usage', 'llm_sessions', 'llm_turns', 'llm_owners', 'sessions']) {
+  for (const kind of ['favorites', 'histories', 'visits', 'feedback', 'recognition_jobs', 'assessment_jobs', 'asset_usage', 'llm_sessions', 'llm_turns', 'llm_owners', 'sessions', 'weather_ai_drafts']) {
     for (let round = 0; round < 100; round++) {
       const rows = await ctx.store.list(kind, { where: { owner_id: user.id }, limit: 100 });
       if (!rows.length) break;
@@ -55,6 +58,10 @@ async function purgeAccount(ctx, user) {
   // Anonymized daily budgets deliberately survive account deletion/recreation.
 }
 async function login(ctx) {
+  const agreement = ctx.body.agreement;
+  // Older released clients still log in; never invent their agreement history.
+  // Updated clients send an explicit, versioned checkbox decision.
+  if (agreement !== undefined && (!agreement || typeof agreement !== 'object' || Array.isArray(agreement) || agreement.accepted !== true || agreement.version !== AGREEMENT_VERSION || Object.keys(agreement).some(key => !['accepted', 'version'].includes(key)))) throw new ApiError('AGREEMENT_REQUIRED', '请阅读并勾选同意当前用户协议与隐私说明');
   if (typeof ctx.body.code !== 'string' || !ctx.body.code.length || ctx.body.code.length > 256) throw new ApiError('VALIDATION_ERROR', '微信登录凭证无效');
   const existingIdentity = await ctx.store.get('identities', ctx.identityKey);
   const existingUser = existingIdentity && await ctx.store.get('users', existingIdentity.owner_id);
@@ -73,6 +80,7 @@ async function login(ctx) {
       await tx.set('users', user.id, user);
       await tx.set('identities', ctx.identityKey, { id: ctx.identityKey, owner_id: user.id });
     }
+    if (agreement) user = await tx.update('users', user.id, { agreement_acceptance: { version: AGREEMENT_VERSION, accepted_at: ctx.now } });
     await tx.set('auth_gates', ctx.identityKey, { id: ctx.identityKey, hour, count: count + 1 });
     await tx.set('sessions', hash, { id: hash, owner_id: user.id, identity_key: ctx.identityKey, expires_at: expires, created_at: ctx.now });
     return user;
@@ -92,7 +100,7 @@ async function handle(ctx) {
   if (ctx.method === 'GET') return response(publicUser(ctx.user));
   if (ctx.method === 'PATCH') {
     const fields = Object.keys(ctx.body);
-    if (fields.some(key => !['nickname', 'record_history', 'avatar_asset_id'].includes(key)) || ('nickname' in ctx.body && (typeof ctx.body.nickname !== 'string' || ctx.body.nickname.trim().length > 32)) || ('record_history' in ctx.body && typeof ctx.body.record_history !== 'boolean')) throw new ApiError('VALIDATION_ERROR', '个人资料参数无效');
+    if (fields.some(key => !['nickname', 'record_history', 'avatar_asset_id'].includes(key)) || ('nickname' in ctx.body && (typeof ctx.body.nickname !== 'string' || !ctx.body.nickname.trim() || Array.from(ctx.body.nickname.trim()).length > 32 || /[\x00-\x1f\x7f]/.test(ctx.body.nickname))) || ('record_history' in ctx.body && typeof ctx.body.record_history !== 'boolean')) throw new ApiError('VALIDATION_ERROR', '个人资料参数无效');
     let oldAvatar;
     const user = await ctx.store.transaction(async tx => {
       const current = await tx.get('users', ctx.user.id); requireUser({ user: current });
@@ -111,7 +119,11 @@ async function handle(ctx) {
       }
       return tx.update('users', current.id, patch);
     });
-    if (oldAvatar) await ctx.storage.deleteAsset(user, oldAvatar);
+    if (oldAvatar) {
+      // The profile is already committed. Storage cleanup records and the asset
+      // maintenance sweep retry failures; do not report the accepted change as failed.
+      try { await ctx.storage.deleteAsset(user, oldAvatar); } catch (_) { /* Retried by maintenance. */ }
+    }
     return response(publicUser(user));
   }
   throw new ApiError('METHOD_NOT_ALLOWED', '不支持此操作', 405);

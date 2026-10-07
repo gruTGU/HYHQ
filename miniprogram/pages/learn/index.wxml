@@ -1,5 +1,6 @@
-<view class="page learn-page">
+<view style="{{themeStyle}}" class="page theme-{{themeId}} learn-page">
   <button class="secondary section knowledge-entry" hover-class="pressable" bindtap="openSearch">资料检索 · 从原文里找答案 ↗</button>
+  <button wx:if="{{draftsAvailable}}" class="text-button section" bindtap="openSubmissions">写自然手记 · 我的投稿 ↗</button>
   <view class="tabs section"><button class="tab {{tab === 'contents' ? 'selected' : ''}}" data-tab="contents" bindtap="changeTab" hover-class="pressable">科普手记</button><button class="tab {{tab === 'routes' ? 'selected' : ''}}" data-tab="routes" bindtap="changeTab" hover-class="pressable">漫步路线</button></view>
   <view class="card filters">
     <view class="filter-top"><picker class="region-picker" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion"><view class="region-selector"><text class="region-leaf" aria-hidden="true"></text><text>{{regions[regionIndex].name}}</text><text class="picker-chevron">⌄</text></view></picker><button wx:if="{{tab === 'contents'}}" class="text-button filter-toggle" bindtap="toggleFilters" aria-expanded="{{showFilters}}">{{showFilters ? '收起筛选' : '分类筛选'}}<text wx:if="{{category || plant_label || place}}" class="filter-dot"></text></button></view>

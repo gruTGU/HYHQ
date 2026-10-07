@@ -1,8 +1,9 @@
 'use strict';
-const { ApiError, response, requireUser, uuid } = require('./core');
+const { ApiError, response, uuid } = require('./core');
 const providers = require('./providers');
 const DAY = 86400000;
-const TTL = Object.freeze({ weather: 1800000, air: 3600000, alerts: 900000 });
+const TTL = Object.freeze({ weather: 3600000, air: 3600000, alerts: 3600000, daily: 6 * 3600000 });
+const CURRENT_KINDS = Object.freeze(['weather', 'air', 'alerts']);
 const LOCATIONS = Object.freeze([
   { slug: 'tianjin', name: '天津市', kind: 'city', latitude: 39.09, longitude: 117.20 },
   { slug: 'beijing', name: '北京市', kind: 'city', latitude: 39.90, longitude: 116.41 },
@@ -20,22 +21,65 @@ const LOCATIONS = Object.freeze([
 ].map((x) => Object.freeze({ ...x, coordinate_system: 'WGS84', scope_note: x.kind === 'city' ? '城市代表点附近区域天气，不是你当前位置的实测天气。' : '校园所在区域的天气网格查询，不是校园内实测或导航坐标。' })));
 function timestamp(ctx) { const n = Date.parse(ctx.now); return Number.isFinite(n) ? n : Date.now(); }
 function dayOf(ms) { return new Date(ms + 8 * 3600000).toISOString().slice(0, 10); }
+function dailyToday(payload, now) {
+  const days = payload && payload.data && payload.data.days;
+  if (!Array.isArray(days)) return null;
+  const matches = days.filter(row => row && Number.isFinite(Date.parse(row.starts_at)) && Number.isFinite(Date.parse(row.ends_at))
+    && dayOf(Date.parse(row.starts_at)) === dayOf(now) && Date.parse(row.starts_at) <= now && now < Date.parse(row.ends_at));
+  return matches.length === 1 ? matches[0] : null;
+}
+function expiryFor(kind, payload, fetched) {
+  let expires = fetched + TTL[kind];
+  if (kind === 'alerts') {
+    // An active warning ending sooner must not be held as active for an hour.
+    const items = payload && payload.data && payload.data.items;
+    for (const item of Array.isArray(items) ? items : []) {
+      const end = Date.parse(item && item.expires_at);
+      if (Number.isFinite(end) && end > fetched) expires = Math.min(expires, end);
+    }
+  }
+  if (kind === 'daily') {
+    expires = Math.min(expires, Date.parse(dayOf(fetched) + 'T00:00:00+08:00') + DAY);
+    const today = dailyToday(payload, fetched);
+    if (today) expires = Math.min(expires, Date.parse(today.ends_at));
+    else for (const row of Array.isArray(payload && payload.data && payload.data.days) ? payload.data.days : []) {
+      const start = Date.parse(row && row.starts_at);
+      if (Number.isFinite(start) && start > fetched) expires = Math.min(expires, start);
+    }
+  }
+  return expires;
+}
+function cacheDeadline(cache) {
+  const fetched = Date.parse(cache && cache.fetched_at), stored = Date.parse(cache && cache.expires_at);
+  if (!cache || !Object.hasOwn(TTL, cache.kind) || !Number.isFinite(fetched) || !Number.isFinite(stored) || stored <= fetched) return NaN;
+  return Math.min(stored, expiryFor(cache.kind, cache.payload, fetched));
+}
+function freshCache(cache, now) { return !!(cache && (cache.kind !== 'daily' || cache.payload && cache.payload.data && cache.payload.data.schema_version === 2) && cache.payload && Date.parse(cache.fetched_at) <= now && cacheDeadline(cache) > now); }
 function configured(config = {}) { return config.qweatherEnabled === true && config.qweatherBudgetConfirmed === true && typeof config.qweatherApiKey === 'string' && !!config.qweatherApiKey && providers.WEATHER_HOST.test(config.qweatherApiHost || '') && Number.isInteger(config.qweatherMonthlyLimit) && config.qweatherMonthlyLimit > 0 && config.qweatherMonthlyLimit <= 30000; }
 function locationFor(slug) { return LOCATIONS.find((x) => x.slug === slug); }
 function publicCache(cache, reason = '', now = Date.now()) {
   const value = cache && cache.payload && typeof cache.payload === 'object' ? cache.payload : null;
-  const stale = !!(value && (!cache.expires_at || Date.parse(cache.expires_at) <= now));
+  const deadline = cacheDeadline(cache), stale = !!(value && !freshCache(cache, now));
   let status = value ? (stale ? 'stale' : 'fresh') : 'unavailable';
-  if (value && !stale && cache.kind === 'alerts' && value.data && value.data.zero_result === true) status = 'empty';
-  return { ...(value || { data: null, attributions: [], refer: { sources: ['QWeather'] }, observed_at: null }), status, stale,
-    reason: reason || (cache && cache.last_reason) || '', fetched_at: cache && cache.fetched_at || null, expires_at: cache && cache.expires_at || null, source_label: '和风天气', source_kind: 'api' };
+  let data = value && value.data, omitted = false;
+  if (value && cache.kind === 'alerts' && data && Array.isArray(data.items)) {
+    const items = data.items.filter(item => Number.isFinite(Date.parse(item && item.expires_at)) && Date.parse(item.expires_at) > now);
+    omitted = items.length !== data.items.length;
+    data = { ...data, items };
+    if (!stale && data.zero_result === true && !data.items.length) status = 'empty';
+    else if (!items.length && data.zero_result !== true) { status = stale ? 'stale' : 'unavailable'; reason = reason || 'no_valid_alerts'; }
+  }
+  if (value && cache.kind === 'daily' && data) data = { ...data, today: stale ? null : dailyToday(value, now) };
+  return { ...(value || { data: null, attributions: [], refer: { sources: ['QWeather'] }, observed_at: null }), ...(value ? { data } : {}), status, stale,
+    ...(omitted ? { expired_or_invalid_alerts_omitted: true } : {}),
+    reason: reason || (cache && cache.last_reason) || '', fetched_at: cache && cache.fetched_at || null, expires_at: Number.isFinite(deadline) ? new Date(deadline).toISOString() : cache && cache.expires_at || null, source_label: '和风天气', source_kind: 'api' };
 }
 async function component(ctx, location, kind, fetcher = providers.fetchWeather) {
   if (!Object.hasOwn(TTL, kind)) throw new ApiError('WEATHER_KIND_INVALID', '天气接口不在允许范围。');
   const now = timestamp(ctx), id = `${location.slug}_${kind}`;
   const reserved = await ctx.store.transaction(async (tx) => {
     const cache = await tx.get('weather_cache', id) || { id, kind, location: location.slug, payload: null };
-    if (cache.payload && Date.parse(cache.expires_at) > now) return { cache };
+    if (freshCache(cache, now)) return { cache };
     if (!configured(ctx.config)) return { cache, reason: 'not_configured' };
     const gate = await tx.get('weather_gate', 'budget') || { id: 'budget', days: {}, recent: [] };
     if (Date.parse(cache.lease_until) > now) return { cache, reason: 'refreshing' };
@@ -66,13 +110,17 @@ async function component(ctx, location, kind, fetcher = providers.fetchWeather) 
     if (!current || current.lease_token !== reserved.requestId) return current;
     current.lease_token = null; current.lease_until = null;
     if (error) {
-      Object.assign(current, { last_reason: error.code, retry_at: new Date(now + 600000).toISOString() });
-      if ([401, 402, 403, 429].includes(error.status)) {
+      // A forecast entitlement denial is product-specific. It must not switch
+      // off already-authorized current weather; credential/balance/rate errors
+      // still stop all subsequent paid requests through the global gate.
+      const dailyDenied = kind === 'daily' && error.status === 403;
+      Object.assign(current, { last_reason: dailyDenied ? 'daily_access_denied' : error.code, retry_at: new Date(now + (dailyDenied ? DAY : 600000)).toISOString() });
+      if ([401, 402, 403, 429].includes(error.status) && !dailyDenied) {
         const gate = await tx.get('weather_gate', 'budget');
         Object.assign(gate, { blocked_until: new Date(now + (error.status === 429 ? 3600000 : DAY)).toISOString(), block_reason: error.status === 429 ? 'upstream_rate_limited' : 'upstream_access_denied' });
         await tx.set('weather_gate', 'budget', gate);
       }
-    } else Object.assign(current, { payload, fetched_at: new Date(now).toISOString(), expires_at: new Date(now + TTL[kind]).toISOString(), retry_at: null, last_reason: '' });
+    } else Object.assign(current, { payload, fetched_at: new Date(now).toISOString(), expires_at: new Date(expiryFor(kind, payload, now)).toISOString(), retry_at: null, last_reason: '' });
     await tx.set('weather_cache', id, current);
     return current;
   });
@@ -82,6 +130,7 @@ function safeContextComponent(cache, now) {
   if (!cache) return { status: 'unavailable', data: null, reason: 'not_cached', source_label: '和风天气', fetched_at: null, expires_at: null };
   const out = publicCache(cache, '', now), unavailable = (reason, stale = false) => ({ ...out, data: null, status: stale ? 'stale' : 'unavailable', stale, reason });
   if (!out.data) return out;
+  if (out.status === 'unavailable') return { ...out, data: null };
   if (typeof out.data !== 'object' || Array.isArray(out.data) || (cache.kind === 'alerts' && typeof out.data.zero_result !== 'boolean')) return unavailable('invalid_cached_payload');
   const fetched = Date.parse(out.fetched_at), expires = Date.parse(out.expires_at);
   if (!Number.isFinite(fetched) || !Number.isFinite(expires) || fetched > now || expires <= fetched) return unavailable('invalid_cache_time');
@@ -102,8 +151,10 @@ async function readContext(ctx, slug) {
   if (!slug) return out;
   const location = locationFor(slug); if (!location) return { ...out, reason: 'location_unavailable' };
   out.location = { slug: location.slug, name: location.name, scope_note: location.scope_note };
-  for (const kind of Object.keys(TTL)) out.components[kind] = safeContextComponent(await ctx.store.get('weather_cache', `${slug}_${kind}`), timestamp(ctx));
-  out.components.forecast = { status: 'unavailable', data: null, reason: 'forecast_disabled', source_label: '和风天气', fetched_at: null, expires_at: null };
+  // Forecast has its own page and appointment flow. RAG remains a
+  // cache-only read of these three current products and never triggers refresh.
+  out.components = Object.fromEntries(await Promise.all(CURRENT_KINDS.map(async kind => [kind, safeContextComponent(await ctx.store.get('weather_cache', `${slug}_${kind}`), timestamp(ctx))])));
+  out.components.forecast = { status: 'unavailable', data: null, reason: 'forecast_not_in_context', source_label: '和风天气', fetched_at: null, expires_at: null };
   while (Buffer.byteLength(JSON.stringify(out)) > 3500) {
     const candidates = Object.entries(out.components).filter(([, value]) => value.reason !== 'context_budget_exceeded').sort((a, b) => JSON.stringify(b[1]).length - JSON.stringify(a[1]).length);
     if (!candidates.length) break;
@@ -116,34 +167,45 @@ async function readContext(ctx, slug) {
   out.reason = out.status === 'available' ? '' : 'no_fresh_cache'; return out;
 }
 async function handle(ctx, adapters = ctx.providers || {}) {
-  const originalPath = ctx.path;
   ctx = { ...ctx, path: '/' + String(ctx.path || '').replace(/^\/+/, '') };
   if (!ctx.path.startsWith('/weather-data/')) return undefined;
   const query = ctx.query || new URLSearchParams();
   if (ctx.method === 'GET' && ctx.path === '/weather-data/locations/') {
     if (query.size) throw new ApiError('VALIDATION_ERROR', '地点列表不接受额外参数。');
-    return response({ items: LOCATIONS.map((x) => ({ ...x })), enabled: configured(ctx.config), forecast_enabled: false });
+    return response({ items: LOCATIONS.map((x) => ({ ...x })), enabled: configured(ctx.config), forecast_enabled: configured(ctx.config) });
   }
   if (ctx.method === 'GET' && ctx.path === '/weather-data/summary/') {
     if ([...query.keys()].join(',') !== 'location' || Object.keys(ctx.body || {}).length) throw new ApiError('VALIDATION_ERROR', '仅允许提供一个管理员已配置的 location。');
     const location = locationFor(query.get('location')); if (!location) throw new ApiError('NOT_FOUND', '天气查询地点不存在。', 404);
     const value = { location, source_label: '和风天气', source_kind: 'api' };
-    for (const kind of Object.keys(TTL)) value[kind] = await component(ctx, location, kind, adapters.fetchWeather);
+    // Read published caches in parallel. Warm summaries need one
+    // database round trip and no transactions. Refresh misses stay sequential:
+    // an upstream auth/quota failure must block the following paid requests.
+    const kinds = Object.keys(TTL);
+    const caches = await Promise.all(kinds.map(kind => kind === 'daily'
+      ? ctx.store.get('weather_cache', `${location.slug}_${kind}`).catch(() => null)
+      : ctx.store.get('weather_cache', `${location.slug}_${kind}`)));
+    for (const [index, kind] of kinds.entries()) {
+      const cache = caches[index];
+      try {
+        value[kind] = freshCache(cache, timestamp(ctx)) ? publicCache(cache, '', timestamp(ctx)) : await component(ctx, location, kind, adapters.fetchWeather);
+      } catch (error) {
+        // Optional extrema cannot hide a usable weather/air/warning summary.
+        // Admission failures never bypass the shared gate or trigger a retry.
+        if (kind !== 'daily') throw error;
+        value.daily = publicCache(cache, 'daily_unavailable', timestamp(ctx));
+      }
+    }
     return response(value);
   }
   const forecast = ctx.path.match(/^\/weather-data\/([a-z0-9-]+)\/forecast\/$/);
   if (ctx.method === 'GET' && forecast) {
     if (query.size) throw new ApiError('VALIDATION_ERROR', '预报不接受额外参数。');
     const location = locationFor(forecast[1]); if (!location) throw new ApiError('NOT_FOUND', '天气查询地点不存在。', 404);
-    return response({ location, enabled: false, forecast: publicCache(null, 'forecast_disabled', timestamp(ctx)) });
+    const value = await component(ctx, location, 'daily', adapters.fetchWeather);
+    return response({ location, enabled: configured(ctx.config), forecast: value });
   }
-  if (ctx.method === 'GET' && ctx.path === '/weather-data/reminders/') {
-    if (query.size) throw new ApiError('VALIDATION_ERROR', '提醒状态不接受额外参数。');
-    return response({ enabled: false, reason: 'native_subscription_not_implemented', template_id: '', mode: 'once', notice: '天气提醒暂未开放。', items: [], wechat_login: !!ctx.user });
-  }
-  if (ctx.method === 'POST' && /^\/weather-data\/reminders\//.test(ctx.path)) {
-    requireUser(ctx); throw new ApiError('SUBSCRIPTIONS_DISABLED', '个人版天气订阅发送尚未开放。', 503);
-  }
+  if (ctx.path.startsWith('/weather-data/reminders/')) return require('./weather-reminders').handle({ ...ctx, providers: adapters });
   return undefined;
 }
 module.exports = { handle, readContext, safeContextComponent, configured, component, publicCache, LOCATIONS, locationFor, dayOf };

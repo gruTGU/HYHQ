@@ -1,7 +1,8 @@
+const { withTheme } = require('../../lib/theme');
 const { app } = require('../../lib/page');
 const { message } = require('../../lib/format');
 const { sessionView, readPage } = require('../../lib/llm');
-Page({
+Page(withTheme({
   data: { loggedIn: false, loading: true, loadingMore: false, busy: false, error: '', moreError: '', statusError: '', sessions: [], next: '', status: null },
   onLoad() { this._alive = true; },
   async onShow() {
@@ -85,4 +86,4 @@ Page({
       finally { if (this._mutation === mutation) this._mutation = null; mutation.resolve(); if (this.active() && token === app().session.token()) this.setData({ busy: false }); }
     }, fail: () => { if (current()) this._confirming = false; } });
   },
-});
+}));

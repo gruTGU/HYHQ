@@ -35,7 +35,7 @@ M2 静态导览、河湖与数据中心已完成 API 和页面逻辑联调，相
 
 微信公众平台的 request、uploadFile、downloadFile 合法域名均填写 `https://greatdata.asia`，不带 `/api/v1`；当前不使用 socket、UDP、TCP，也无需配置 DNS 预解析或预连接域名。正式联调需在开发者工具中开启域名、TLS 和 HTTPS 证书校验，不能沿用本地调试的跳过校验设置。
 
-本机私有项目配置已保留真实 AppID 并设置 `urlCheck: true`，文件继续被 Git 忽略。2026-09-23 外网 ACME 校验仍被腾讯云拦截，服务器 AppSecret 仍待配置；因此本次地址切换不等于公网已连通。当前定位申请应对应 `wx.getLocation`，填写材料见 [接口申请说明](../docs/微信接口申请填写说明.md)，实际测试及剩余条件见 [联调记录](../docs/verification/上线联调记录.md)。
+本机私有项目配置已保留真实 AppID 并设置 `urlCheck: true`，文件继续被 Git 忽略。2026-09-23 外网 ACME 校验仍被腾讯云拦截，服务器 AppSecret 仍待配置；因此本次地址切换不等于公网已连通。定位接口现采用 `wx.getFuzzyLocation`、`wx.chooseLocation` 与 `wx.choosePoi`，填写材料见 [接口申请说明](../docs/微信接口申请填写说明.md)，实际测试及剩余条件见 [联调记录](../docs/verification/上线联调记录.md)。
 
 ## 推荐：独立本机预览
 
@@ -163,7 +163,7 @@ HYHQ_SMOKE_MODE=both HYHQ_EXPECT_RECOGNITION=1 HYHQ_EXPECT_ASSESSMENT=1 node tes
 
 ### 可选定位与微信平台配置
 
-用户主动点击按钮时才调用 `wx.getLocation({ type: 'gcj02' })`；附近候选须手动确认，不代表到访认证。手选水体或不关联水体均可直接上传。可选位置在提交时仅存入本人任务，可取消并随记录删除，不采集轨迹。项目已声明 `scope.userLocation` 和 `requiredPrivateInfos`；正式运行前需在微信平台配置与实际用途一致的隐私声明和位置权限，并用开发者工具、真机检查授权、拒绝及取消流程。
+用户主动点击时才调用 `wx.getFuzzyLocation({ type: 'gcj02' })` 查找附近候选；模糊坐标不写入观察记录，候选须手动确认，不代表到访认证。需要附具体观察位置时，使用 `wx.chooseLocation` 或 `wx.choosePoi` 自主选点；只选城市、缺少坐标的 POI 不能保存为观察点。手选水体或不关联水体均可直接上传。自主选择的具体位置在提交时仅存入本人任务，可取消并随记录删除，不采集轨迹。项目声明 `scope.userFuzzyLocation`、选点所需 `scope.userLocation` 及对应 `requiredPrivateInfos`，不再声明或调用互斥的 `getLocation`。正式运行前需在微信平台配置与实际用途一致的隐私声明和位置权限，并用开发者工具、真机检查授权、拒绝及取消流程。
 
 ## DeepSeek Flash 分区互动
 

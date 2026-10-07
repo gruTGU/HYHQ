@@ -3,7 +3,9 @@ const { ApiError, response, uuid } = require('./lib/core');
 const { configFromEnvironment } = require('./lib/config');
 const accounts = require('./lib/accounts');
 const { storageFor } = require('./lib/files');
+const { runtimeProviders } = require('./lib/subscription-transport');
 function createApp({ store, cloud, config, now = () => new Date().toISOString(), providers }) {
+  providers = runtimeProviders(cloud, config, providers);
   return async function dispatch(event, identity = {}) {
     const requestId = uuid();
     try {
@@ -17,6 +19,11 @@ function createApp({ store, cloud, config, now = () => new Date().toISOString(),
       // Only this entry obtains identity from the server SDK. Client event fields
       // named OPENID/APPID/user/header identity are intentionally never consumed.
       ctx.identityKey = accounts.identityOf(identity, config);
+      // Verified SDK identity only. Its one private use is subscription-recipient
+      // binding after explicit consent; never include it in public responses/logs.
+      ctx.wechatOpenId = identity.OPENID;
+      ctx.checkCommunityText = providers && providers.checkCommunityText || (cloud && cloud.openapi && cloud.openapi.security && cloud.openapi.security.msgSecCheck
+        ? payload => cloud.openapi.security.msgSecCheck({ ...payload, openid: identity.OPENID, version: 2 }) : null);
       ctx.storage = storageFor(ctx, cloud);
       if (ctx.path !== 'auth/wechat/') await accounts.authenticate(ctx, headers);
       if (ctx.path === 'health/' && method === 'GET') {
@@ -28,7 +35,7 @@ function createApp({ store, cloud, config, now = () => new Date().toISOString(),
           features: { recognition: capabilities.recognition.enabled, assessment: capabilities.assessment.enabled, llm },
           ...capabilities, optional_services: { weather, llm, inference: capabilities.recognition.enabled && capabilities.assessment.enabled } });
       }
-      for (const handler of [accounts.handle, () => ctx.storage.handle(), require('./lib/management').handle, require('./lib/maintenance').handle, require('./lib/weather').handle, require('./lib/recognition').handle, require('./lib/llm').handle, require('./lib/activity').handle, require('./lib/catalog').handle]) {
+      for (const handler of [accounts.handle, () => ctx.storage.handle(), require('./lib/community').handle, require('./lib/management').handle, require('./lib/maintenance').handle, require('./lib/weather-booking-ai').handle, require('./lib/weather').handle, require('./lib/recognition').handle, require('./lib/llm').handle, require('./lib/activity').handle, require('./lib/catalog').handle]) {
         const result = await handler(ctx);
         if (result !== undefined) return result;
       }
@@ -42,24 +49,47 @@ function createApp({ store, cloud, config, now = () => new Date().toISOString(),
   };
 }
 function createRuntime(dependencies) {
-  const application = createApp(dependencies);
+  const providers = runtimeProviders(dependencies.cloud, dependencies.config, dependencies.providers);
+  const application = createApp({ ...dependencies, providers });
   return async (event, identity, trustedRuntime = {}) => {
     const config = dependencies.config;
-    // Only main reads these values from server process.env. No event field,
-    // client header or SDK identity supplied in the request becomes a trigger.
-    if (config.maintenanceEnabled === true && config.deploymentEnv && trustedRuntime.source === 'wx_trigger' && trustedRuntime.env === config.deploymentEnv) {
-      const ctx = { store: dependencies.store, config, now: dependencies.now ? dependencies.now() : new Date().toISOString(), user: null };
-      ctx.storage = storageFor(ctx, dependencies.cloud);
-      const summary = await require('./lib/maintenance').runMaintenance(ctx, { limit: 20 });
-      if (!summary.failed) await ctx.store.transaction(async tx => {
-        const current = await tx.get('maintenance_state', 'global');
-        if (current) await tx.update('maintenance_state', 'global', { timer_verified_at: ctx.now });
-      });
-      return response({ kind: 'maintenance', ...summary });
+    // Event names select work only after the invocation source and deployment
+    // environment have been verified from server process.env, never client data.
+    const trustedTimer = config.deploymentEnv && trustedRuntime.source === 'wx_trigger' && trustedRuntime.env === config.deploymentEnv;
+    if (trustedTimer && event && event.Type === 'Timer') {
+      const ctx = { store: dependencies.store, config, providers, now: dependencies.now ? dependencies.now() : new Date().toISOString(), user: null };
+      if (event.TriggerName === 'hyhqWeatherReminders' && config.weatherReminders && config.weatherReminders.enabled === true) {
+        // A reminder run has its own 60-second invocation, not the remainder of
+        // the maintenance sweep's 25-second work window.
+        const summary = await require('./lib/weather-reminders').runDueReminders(ctx, { limit: 3 });
+        return response({ kind: 'weather-reminders', ...summary });
+      }
+      if (event.TriggerName === 'hyhqMaintenance' && config.maintenanceEnabled === true) {
+        const started = Date.now();
+        ctx.storage = storageFor(ctx, dependencies.cloud);
+        const summary = await require('./lib/maintenance').runMaintenance(ctx, { limit: 20 });
+        const cleanupStarted = Date.now(), deadline = Math.min(started + 45000, cleanupStarted + 15000);
+        let reminderCleanup = { processed: 0, skipped: true };
+        try {
+          if (cleanupStarted < deadline) reminderCleanup = await require('./lib/weather-reminders').cleanupReminders(
+            { ...ctx, now: new Date(Date.parse(ctx.now) + Math.max(0, cleanupStarted - started)).toISOString() },
+            { limit: 20, alive: () => Date.now() < deadline });
+        } catch (_) { reminderCleanup = { failed: 1 }; }
+        // Retention runs even when new subscriptions are disabled. Store only
+        // aggregate outcomes; recipient/appointment contents never enter logs.
+        summary.reminder_cleanup = { ...reminderCleanup, finished_at: new Date(Date.parse(ctx.now) + Math.max(0, Date.now() - started)).toISOString() };
+        await ctx.store.transaction(async tx => {
+          const current = await tx.get('maintenance_state', 'global');
+          if (current) await tx.update('maintenance_state', 'global', { ...(!summary.failed ? { timer_verified_at: ctx.now } : {}), reminder_cleanup: summary.reminder_cleanup });
+        });
+        return response({ kind: 'maintenance', ...summary });
+      }
+      return response({ kind: 'timer-ignored' });
     }
     return application(event, identity);
   };
 }
+
 let application, sdk;
 exports.main = async event => {
   if (!application) {

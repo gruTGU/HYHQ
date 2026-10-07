@@ -1,18 +1,23 @@
+const { withTheme } = require('../../lib/theme');
 const { app } = require('../../lib/page');
 const { message, task } = require('../../lib/format');
 const { assessmentTask } = require('../../lib/assessment');
 const { loadAll, selectRegion } = require('../../lib/region');
 const { DISCLAIMER, SOURCE_LABELS, SCOPE_LABELS, publicSource, modelLabel, pending, turnView, sessionView, readPage, requestId } = require('../../lib/llm');
-Page({
-  data: { weatherLocations: [{ slug: '', name: '不附加天气资料' }], weatherIndex: 0, weatherError: '', entryValid: false, creationUncertain: false, loading: true, busy: false, loggedIn: false, error: '', actionError: '', unavailable: false, status: null, modelLabel: 'DeepSeek Flash', scopeLabel: '识别解读', session: null, source: null, sourceLoading: false, sourceError: '', sourceKind: '', isRecognition: true, includeImage: false, question: '', questionCount: 0, turns: [], next: '', loadingMore: false, moreError: '', polling: false, pollNotice: '', hasPending: false, displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, disclaimer: DISCLAIMER },
+Page(withTheme({
+  data: { weatherLocations: [{ slug: '', name: '不附加天气资料' }], weatherIndex: 0, weatherError: '', entryValid: false, creationUncertain: false, loading: true, busy: false, loggedIn: false, error: '', actionError: '', unavailable: false, status: null, modelLabel: 'DeepSeek Flash', scopeLabel: '识别解读', session: null, source: null, sourceLoading: false, sourceError: '', sourceKind: '', isRecognition: true, isImageMode: false, imageModeBlocked: false, includeImage: false, question: '', questionCount: 0, turns: [], next: '', loadingMore: false, moreError: '', polling: false, pollNotice: '', hasPending: false, displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, disclaimer: DISCLAIMER },
   onLoad(options) {
-    this._alive = true; this._scope = 'recognition'; this._followLatest = true;
+    this._alive = true; this._scope = 'recognition'; this._interpretationMode = 'result'; this._followLatest = true;
     if (options && options.sessionId) this._sessionId = options.sessionId;
-    else if (options && ['recognition', 'assessment'].includes(options.kind) && options.jobId) { this._sourceKind = options.kind; this._sourceId = options.jobId; }
+    else if (options && ['recognition', 'assessment'].includes(options.kind) && options.jobId) {
+      this._sourceKind = options.kind; this._sourceId = options.jobId;
+      if (options.interpretation_mode === 'image' && options.kind === 'assessment') this._interpretationMode = 'image';
+      else if (options.interpretation_mode && options.interpretation_mode !== 'result') this._invalid = true;
+    }
     else if (options && publicSource(options.scope, options.source_type, options.source_id)) { this._scope = options.scope; this._sourceType = options.source_type; this._sourceId = options.source_id; }
     else this._invalid = true;
     this._requestedWeather = this._scope !== 'recognition' && options && typeof options.weather_location === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(options.weather_location) ? options.weather_location : '';
-    this.setData({ entryValid: !this._invalid, loggedIn: Boolean(app().session.token()), isRecognition: this._scope === 'recognition', scopeLabel: SCOPE_LABELS[this._scope] });
+    this.setData({ entryValid: !this._invalid, loggedIn: Boolean(app().session.token()), isRecognition: this._scope === 'recognition', isImageMode: this._interpretationMode === 'image', includeImage: this._interpretationMode === 'image', scopeLabel: this._interpretationMode === 'image' ? '河道 AI 看图' : SCOPE_LABELS[this._scope] });
   },
   async onShow() {
     this._visible = true;
@@ -28,7 +33,7 @@ Page({
   active() { return this._alive !== false && this._visible !== false; },
   invalidate() { this._generation = (this._generation || 0) + 1; this._showVersion = (this._showVersion || 0) + 1; this.stopTimer(); },
   stopTimer() { this._pollVersion = (this._pollVersion || 0) + 1; if (this._timer) clearTimeout(this._timer); this._timer = null; },
-  clearView() { this.setData({ source: null, sourceLoading: false, sourceError: '', session: null, turns: [], displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, next: '', question: '', questionCount: 0, includeImage: false, creationUncertain: false, busy: false, loading: false, loadingMore: false, polling: false, hasPending: false, actionError: '', pollNotice: '' }); },
+  clearView() { this.setData({ source: null, sourceLoading: false, sourceError: '', session: null, turns: [], displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, next: '', question: '', questionCount: 0, includeImage: this._interpretationMode === 'image', imageModeBlocked: false, creationUncertain: false, busy: false, loading: false, loadingMore: false, polling: false, hasPending: false, actionError: '', pollNotice: '' }); },
   hasMutation() { return !!(this._mutation && this._mutation.token === app().session.token()); },
   current(generation, token) {
     if (!this.active() || generation !== this._generation) return false;
@@ -52,6 +57,18 @@ Page({
     this.setData({ loading: true, error: '', actionError: '', creationUncertain: this._creationUncertain === token, unavailable: false, loggedIn: Boolean(token), polling: false, pollNotice: '' });
     try {
       if (this._invalid) throw new Error('请从识别结果、生态导览或科普智游资料进入 AI。');
+      if (token && !this._sessionId && this._scope !== 'recognition') {
+        // These are independent reads. A public entry used to wait for three
+        // complete cloud round trips before enabling its blank composer.
+        const results = await Promise.allSettled([
+          this.loadStatus(generation, token), this.loadPublicSource(), this.loadWeatherChoices(generation, token),
+        ]);
+        if (!this.current(generation, token)) return;
+        const failed = results.find(result => result.status === 'rejected');
+        if (failed) throw failed.reason;
+        this.setData({ source: results[1].value, sourceKind: this._scope, isRecognition: false, scopeLabel: SCOPE_LABELS[this._scope] });
+        return;
+      }
       await this.loadStatus(generation, token);
       if (!this.current(generation, token) || !token) return;
       if (this._sessionId) {
@@ -60,8 +77,8 @@ Page({
         if (!this.current(generation, token) || sessionId !== this._sessionId) return;
         const session = sessionView(result.data);
         if (session.id !== sessionId) throw new Error('返回的会话不匹配，请刷新核对。');
-        this._scope = session.scope;
-        this.setData({ session, source: null, sourceError: '', sourceKind: session.kind, isRecognition: session.is_recognition, scopeLabel: SCOPE_LABELS[session.scope], includeImage: session.include_image === true });
+        this._scope = session.scope; this._interpretationMode = session.is_image_mode ? 'image' : 'result';
+        this.setData({ session, source: null, sourceError: '', sourceKind: session.kind, isRecognition: session.is_recognition, scopeLabel: session.is_image_mode ? '河道 AI 看图' : SCOPE_LABELS[session.scope], isImageMode: session.is_image_mode, imageModeBlocked: session.is_image_mode && session.image_available !== true, includeImage: session.include_image === true });
         if (!session.is_recognition) await this.loadSessionSource(session, generation, token);
         if (!this.current(generation, token) || this._sessionId !== session.id || this.data.unavailable) return;
         await this.loadTurns(false, generation, token);
@@ -75,7 +92,13 @@ Page({
         const result = await app().api.request(endpoint + encodeURIComponent(this._sourceId) + '/');
         if (!this.current(generation, token)) return;
         const source = this._sourceKind === 'recognition' ? task(result.data) : assessmentTask(result.data);
-        if (source.status !== 'succeeded') throw new Error('请在原任务完成并有可查看结果后使用 AI 解读。');
+        if (this._interpretationMode === 'image') {
+          if (this._sourceKind !== 'assessment' || !['succeeded', 'failed'].includes(source.status) || source.id !== this._sourceId || !source.asset_id || source.expires_at && !(Date.parse(source.expires_at) > Date.now())) {
+            this.setData({ source: null, imageModeBlocked: true });
+            throw new Error('这张河道原图暂不可用于看图，请等待处理完成或重新上传。');
+          }
+          this.setData({ includeImage: true, imageModeBlocked: false });
+        } else if (source.status !== 'succeeded') throw new Error('请在原任务完成并有可查看结果后使用 AI 解读。');
         this.setData({ source, sourceKind: this._sourceKind });
       }
     } catch (error) { if (this.current(generation, token)) this.handleError(error); }
@@ -108,7 +131,7 @@ Page({
   },
   async loadPublicSource(type = this._sourceType, id = this._sourceId) {
     let item;
-    if (type === 'region' || type === 'water') item = (await loadAll(app().api, type === 'region' ? 'regions/' : 'water-bodies/')).find((row) => row.id === id);
+    if (type === 'region' || type === 'water') item = (await loadAll(app().api, type === 'region' ? 'regions/' : 'water-bodies/', undefined, { cache: false })).find((row) => row.id === id);
     else item = (await app().api.request(({ place: 'places/', content: 'contents/', route: 'routes/', water: 'water-bodies/' })[type] + encodeURIComponent(id) + '/')).data;
     if (!item || item.id !== id) throw Object.assign(new Error('当前公开资料已不可用，请返回重新选择。'), { status: 404 });
     return { id: item.id, type, region: item.region || (type === 'region' ? item.id : ''), label: SOURCE_LABELS[type], title: item.title || item.name || SOURCE_LABELS[type], summary: item.summary || item.description || '结合当前公开资料回答；资料中的模拟内容会保留说明。' };
@@ -141,7 +164,7 @@ Page({
     if (error.status === 404) { this.stopTimer(); this.setData({ session: null, source: null, sourceLoading: false, sourceError: '', turns: [], displayTurns: [], next: '', unavailable: true, hasPending: false, polling: false }); }
     this.setData({ error: message(error) });
   },
-  draftKey() { return this._sessionId ? 'session:' + this._sessionId : ['source', this._scope, this._sourceType || this._sourceKind, this._sourceId].join(':'); },
+  draftKey() { return this._sessionId ? 'session:' + this._sessionId : ['source', this._scope, this._sourceType || this._sourceKind, this._sourceId, this._interpretationMode].join(':'); },
   restoreDraft() {
     const draft = this._draft;
     const question = draft && draft.token === this._token && draft.key === this.draftKey() ? draft.question : '';
@@ -214,7 +237,7 @@ Page({
     this.setQuestion(turn.question); this.setData({ actionError: '' }, () => this.measureComposer({ scroll: true, force: true }));
   },
   inputQuestion(event) { if (!this.canAct()) return; this.setQuestion(typeof event.detail.value === 'string' ? event.detail.value : ''); this.setData({ actionError: '' }, () => this.measureComposer()); },
-  imageChange(event) { if (this.canAct() && this.data.isRecognition && !this.data.session) this.setData({ includeImage: event.detail.value === true }); },
+  imageChange(event) { if (this.canAct() && this.data.isRecognition && !this.data.isImageMode && !this.data.session) this.setData({ includeImage: event.detail.value === true }); },
   async mutate(work) {
     const mutation = { token: app().session.token() }; mutation.promise = new Promise((resolve) => { mutation.resolve = resolve; }); this._mutation = mutation;
     this.setData({ busy: true, actionError: '' });
@@ -225,9 +248,12 @@ Page({
     // Only send() can enter this helper while holding the mutation lock. There
     // is no separate start action and opening the page never creates a session.
     if (!this.hasMutation() || !this.current(generation, token) || !this.data.source || this._sessionId || this._creationUncertain === token) return null;
-    const draftKey = this.draftKey(), includeImage = this.data.isRecognition && this.data.includeImage;
+    const draftKey = this.draftKey(), includeImage = this._interpretationMode === 'image' || this.data.isRecognition && this.data.includeImage;
     const data = { scope: this._scope, include_image: includeImage };
-    if (this._scope === 'recognition') data[this._sourceKind === 'recognition' ? 'recognition_job_id' : 'assessment_job_id'] = this._sourceId;
+    if (this._scope === 'recognition') {
+      data[this._sourceKind === 'recognition' ? 'recognition_job_id' : 'assessment_job_id'] = this._sourceId;
+      if (this._interpretationMode === 'image') data.interpretation_mode = 'image';
+    }
     else {
       Object.assign(data, { source_type: this._sourceType, source_id: this._sourceId });
       const weather = this.data.weatherLocations[this.data.weatherIndex];
@@ -243,6 +269,7 @@ Page({
       throw error;
     }
     const session = sessionView(response.data);
+    if (this._interpretationMode === 'image' && !session.is_image_mode) throw new Error('看图会话尚未确认，请到对话记录核对。');
     if (app().session.token() === token && this._alive !== false) {
       this._creationUncertain = null;
       this._sessionId = session.id;
@@ -250,12 +277,12 @@ Page({
     }
     if (!this.current(generation, token)) return null;
     const source = !session.is_recognition && this.data.source && this.data.source.id === session.source_id && this.data.source.type === session.source_type ? this.data.source : null;
-    this.setData({ session, source, sourceError: '', turns: [], displayTurns: [], contextExpanded: false, next: '', actionError: '', creationUncertain: false });
+    this.setData({ session, source, isImageMode: session.is_image_mode, imageModeBlocked: session.is_image_mode && session.image_available !== true, sourceError: '', turns: [], displayTurns: [], contextExpanded: false, next: '', actionError: '', creationUncertain: false });
     if (!session.is_recognition) await this.loadSessionSource(session, generation, token);
     return this.current(generation, token) && !this.data.unavailable ? session : null;
   },
   async send() {
-    if (!this.canAct() || this.data.loading || this.data.unavailable || !this.data.status || !this.data.status.enabled || this.data.hasPending || (!this.data.session && !this.data.source)) return;
+    if (!this.canAct() || this.data.loading || this.data.unavailable || this.data.imageModeBlocked || !this.data.status || !this.data.status.enabled || this.data.hasPending || (!this.data.session && !this.data.source)) return;
     const question = this.data.question.trim();
     if (!question || Array.from(question).length > 500) { this.setData({ actionError: '请填写 1 至 500 字的问题。' }, () => this.measureComposer()); return; }
     if (this._creationUncertain === this._token) {
@@ -266,7 +293,7 @@ Page({
       let creating = !this._sessionId;
       try {
         const session = creating ? await this.createSession(generation, token) : this.data.session;
-        if (!session || !this.current(generation, token) || this.data.unavailable) return;
+        if (!session || !this.current(generation, token) || this.data.unavailable || this.data.imageModeBlocked) return;
         creating = false;
         const sessionId = this._sessionId;
         const retry = this._retry && this._retry.question === question && this._retry.sessionId === sessionId ? this._retry : { question, sessionId, requestId: requestId() };
@@ -288,8 +315,9 @@ Page({
       } catch (error) {
         if (this.current(generation, token)) {
           if (error.status === 404) this.handleError(error);
+          if (this.data.isImageMode && error.code === 'IMAGE_UNAVAILABLE') this.setData({ imageModeBlocked: true });
           const uncertain = this._creationUncertain === token;
-          const suffix = creating ? (error.code === 'IMAGE_UNAVAILABLE' ? ' 可关闭附图，再发送仅文字结果的问题。' : uncertain ? ' 会话是否已建立尚未确认，请先到对话记录查看；问题已保留，不会重复建立会话。' : '') : error.status === 429 ? '' : ' 请先刷新核对是否已发送；重试同一问题不会重复提交。';
+          const suffix = creating ? (error.code === 'IMAGE_UNAVAILABLE' ? (this.data.isImageMode ? ' 请重新上传河道照片后再看图，问题已保留。' : ' 可关闭附图，再发送仅文字结果的问题。') : uncertain ? ' 会话是否已建立尚未确认，请先到对话记录查看；问题已保留，不会重复建立会话。' : '') : error.status === 429 ? '' : ' 请先刷新核对是否已发送；重试同一问题不会重复提交。';
           this.setData({ creationUncertain: uncertain, actionError: error.code === 'LLM_DAILY_LIMIT' ? '本板块今日使用已达上限，请在北京时间零点后继续。' : message(error) + suffix });
         }
       } finally { if (this.current(generation, token)) { try { await this.loadStatus(generation, token); } catch (error) { if (this.current(generation, token)) this.setData({ actionError: this.data.actionError || '服务状态暂不可确认，请刷新重试。' }); } } }
@@ -363,4 +391,4 @@ Page({
     if (kind === 'recognition') { app().globalData.recognitionJobId = id; wx.switchTab({ url: '/pages/recognize/index' }); }
     else wx.navigateTo({ url: '/pages/assessment/index?jobId=' + encodeURIComponent(id) });
   },
-});
+}));

@@ -1,13 +1,15 @@
 const { TABS, currentIndex, tabAt } = require('../lib/tab-bar');
+const { connectTheme, disconnectTheme } = require('../lib/theme');
 
 Component({
   data: { tabs: TABS, selected: 0 },
   lifetimes: {
-    attached() { this._detached = false; this.syncSelected(); },
-    detached() { this._detached = true; this._switchVersion = (this._switchVersion || 0) + 1; },
+    attached() { this._detached = false; connectTheme(this); this.syncSelected(); },
+    detached() { disconnectTheme(this); this._detached = true; this._switchVersion = (this._switchVersion || 0) + 1; },
   },
   pageLifetimes: {
-    show() { this._switching = false; this.syncSelected(); },
+    show() { connectTheme(this); this._switching = false; this.syncSelected(); },
+    hide() { disconnectTheme(this); },
   },
   methods: {
     syncSelected() {

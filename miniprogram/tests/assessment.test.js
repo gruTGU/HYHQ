@@ -75,7 +75,7 @@ test('guest loads scope and manual water choices without requesting location or 
   const calls = [];
   const app = application({ request: async (url) => { calls.push(url); return { data: url === 'health/' ? health : [{ id: 'water', name: '示范河' }] }; } }, true);
   const instance = page(app);
-  global.wx.getLocation = () => { throw new Error('Unexpected automatic location'); };
+  global.wx.getFuzzyLocation = () => { throw new Error('Unexpected automatic location'); };
   await instance.onShow();
   assert.deepEqual(calls, ['health/', 'water-bodies/']);
   assert.equal(instance.data.waterIndex, 0);
@@ -87,10 +87,11 @@ test('optional location uses GCJ02, presents a suggestion and waits for manual a
   let locationRequest, nearbyQuery;
   const app = application({ request: async (url, options) => { nearbyQuery = { url, options }; return { data: { match: { water_body_id: 'nearby', water_body_name: '候选河', suggestion_only: true } } }; } });
   const instance = page(app);
-  global.wx.getLocation = (value) => { locationRequest = value; };
-  instance.locate();
+  global.wx.getFuzzyLocation = (value) => { locationRequest = value; };
+  const locating = instance.locate();
   assert.equal(locationRequest.type, 'gcj02');
-  await locationRequest.success({ latitude: 30.123, longitude: 120.456 });
+  locationRequest.success({ latitude: 30.123, longitude: 120.456 });
+  await locating;
   assert.deepEqual(nearbyQuery.options.data, { latitude: 30.123, longitude: 120.456, coordinate_system: 'GCJ02' });
   assert.equal(nearbyQuery.url, 'nearby-water-bodies/');
   assert.equal(instance.data.waterIndex, 0);
@@ -106,8 +107,8 @@ test('denied location still allows photo submission and never fabricates zero co
   const app = application({ upload: async (file, purpose) => { assert.equal(purpose, 'recognition'); return { id: 'fresh-asset' }; }, request: async (url, options) => { created = { url, data: options.data }; return { data: { id: 'new', status: 'queued' } }; } });
   const instance = page(app);
   ready(instance);
-  global.wx.getLocation = (options) => options.fail({ errMsg: 'auth deny' });
-  instance.locate();
+  global.wx.getFuzzyLocation = (options) => options.fail({ errMsg: 'auth deny' });
+  await instance.locate();
   assert.match(instance.data.locationNotice, /仍可/);
   await instance.submit();
   assert.deepEqual(created, { url: 'assessment-jobs/', data: { asset_id: 'fresh-asset' } });
@@ -118,9 +119,10 @@ test('clearing location discards an in-flight nearby suggestion and never reatta
   const nearby = deferred();
   let locationRequest;
   const instance = page(application({ request: () => nearby.promise }));
-  global.wx.getLocation = (value) => { locationRequest = value; };
-  instance.locate();
-  const finding = locationRequest.success({ latitude: 30, longitude: 120 });
+  global.wx.getFuzzyLocation = (value) => { locationRequest = value; };
+  const finding = instance.locate();
+  locationRequest.success({ latitude: 30, longitude: 120 });
+  await Promise.resolve();
   instance.clearLocation();
   nearby.resolve({ data: { match: { water_body_id: 'stale-water', water_body_name: '旧候选' } } });
   await finding;
@@ -132,11 +134,12 @@ test('clearing location discards an in-flight nearby suggestion and never reatta
 test('a late location permission callback cannot write after page unload', async () => {
   let locationRequest;
   const instance = page(application({ request: async () => { throw new Error('request after unload'); } }));
-  global.wx.getLocation = (value) => { locationRequest = value; };
-  instance.locate();
+  global.wx.getFuzzyLocation = (value) => { locationRequest = value; };
+  const locating = instance.locate();
   instance.onUnload();
   instance.setData = () => { throw new Error('write after unload'); };
-  await locationRequest.success({ latitude: 30, longitude: 120 });
+  locationRequest.success({ latitude: 30, longitude: 120 });
+  await locating;
 });
 
 test('manual water association submits independently without requesting GPS', async () => {
@@ -157,7 +160,7 @@ test('river upload needs a selected photo and explicit submit but no repeated ag
   }));
   ready(instance);
   instance.data.imagePath = ''; instance.data.imageOrigin = '';
-  global.wx.getLocation = () => { throw new Error('GPS must not be acquired automatically'); };
+  global.wx.getFuzzyLocation = () => { throw new Error('GPS must not be acquired automatically'); };
   global.wx.chooseMedia = (options) => selections.push(options);
   instance.poll = async () => {};
   assert.equal(Object.hasOwn(instance.data, 'consent'), false);
@@ -348,4 +351,27 @@ test('private history loads the observation summary through the normal identity 
   assert.equal(instance.data.task.summary_view.grid.length, 9);
   instance.clearPrivate();
   assert.equal(instance.data.task, null);
+});
+
+
+test('river AI image entry is explicit, terminal-only, source-bound, and does not call a model', async () => {
+  const app = application(fixtureAPI()), instance = page(app), navigation = [];
+  await instance.onShow();
+  app.api.request = async () => assert.fail('opening image chat must not invoke a model');
+  global.wx.navigateTo = ({ url }) => navigation.push(url);
+  for (const state of ['queued', 'running']) {
+    instance.data.task = { ...succeeded, status: state }; instance.openImageAI();
+  }
+  instance.data.task = { ...succeeded, status: 'failed', expires_at: '2020-01-01T00:00:00Z' }; instance.openImageAI();
+  instance.data.task = { ...succeeded, status: 'failed', asset_id: '' }; instance.openImageAI();
+  assert.equal(navigation.length, 0);
+  instance.data.task = { ...succeeded, status: 'failed' }; instance.openImageAI();
+  assert.deepEqual(navigation, ['/pages/llm/index?kind=assessment&jobId=job&interpretation_mode=image']);
+  instance.onHide(); instance.openImageAI(); assert.equal(navigation.length, 1);
+});
+
+test('river empty detections retain truthful no-water-quality conclusion without a fake score', () => {
+  const view = resultView({ ...succeeded, score: 100, detections: [] });
+  assert.equal(view.has_score, false); assert.equal(view.score_label, '—');
+  assert.match(view.explanation, /不能据此认定/); assert.doesNotMatch(view.explanation, /本次不提供分数/);
 });

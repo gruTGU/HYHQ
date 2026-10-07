@@ -1,0 +1,9 @@
+<view class="page themes-page theme-{{themeId}}" style="{{themeStyle}}">
+  <view class="page-heading">外观与主题</view>
+  <view wx:for="{{themes}}" wx:key="id" class="card theme-card {{item.selected ? 'theme-selected' : ''}} {{item.ready ? '' : 'theme-pending'}}">
+    <view style="{{item.previewStyle}}" class="theme-preview {{item.ready ? 'preview-forest' : 'preview-pending'}}" aria-hidden="true"><view></view><view></view><view></view></view>
+    <view class="row gap"><view><view class="title">{{item.name}}</view><view class="copy">{{item.description}}</view></view><text wx:if="{{item.selected}}" class="pill">使用中</text></view>
+    <button class="secondary gap" disabled="{{!item.ready || item.selected}}" data-id="{{item.id}}" bindtap="choose">{{item.selected ? '当前主题' : item.ready ? '使用这个主题' : '待开放'}}</button>
+  </view>
+  <view wx:if="{{notice}}" class="notice">{{notice}}</view>
+</view>

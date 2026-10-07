@@ -1,4 +1,4 @@
-<view class="page feedback-page">
+<view style="{{themeStyle}}" class="page theme-{{themeId}} feedback-page">
   <view class="page-heading">意见反馈</view>
   <view class="feedback-flow"><view><text class="flow-number">1</text><text>提交建议</text></view><text class="flow-line"></text><view><text class="flow-number">2</text><text>等待处理</text></view><text class="flow-line"></text><view><text class="flow-number">3</text><text>查看答复</text></view></view>
   <view wx:if="{{!loggedIn && listError}}" class="error-inline">{{listError}}</view>

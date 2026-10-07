@@ -1,3 +1,4 @@
+const { withTheme } = require('../../lib/theme');
 const { app, requireLogin, detail, toast } = require('../../lib/page');
 const { time, task, message } = require('../../lib/format');
 const { assessmentTask } = require('../../lib/assessment');
@@ -31,7 +32,7 @@ function present(record, kind) {
     created_label: time(record.visited_at || record.viewed_at || record.created_at),
   });
 }
-Page({
+Page(withTheme({
   data: { loading: true, loadingMore: false, error: '', kind: '', title: '', records: [], next: null, busy: false, emptyState: emptyStates.favorites },
   onLoad(options) {
     if (!titles[options.kind]) { this.setData({ loading: false, error: '记录类型无效' }); return; }
@@ -191,4 +192,4 @@ Page({
       }
     }, fail: () => { if (current()) this._confirming = false; } });
   },
-});
+}));

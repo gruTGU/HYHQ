@@ -1,4 +1,4 @@
-<view class="page explore-page">
+<view style="{{themeStyle}}" class="page theme-{{themeId}} explore-page">
 
   <picker wx:if="{{regions.length}}" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion" class="region-control">
     <view class="region-picker row" hover-class="pressable"><view><text class="small muted">当前区域</text><view class="title">{{region.name}}</view></view><text class="chevron">⌄</text></view>

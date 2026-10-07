@@ -43,7 +43,7 @@ function resultView(job) {
   const suggestions = (Array.isArray(job.suggestions) ? job.suggestions : []).map((item) => typeof item === 'string' ? item : item && item.text).filter(Boolean);
   return {
     heading: detections.length ? '发现漂浮物候选' : '暂时无法确认',
-    explanation: detections.length ? '这些是模型候选，需结合照片与现场情况人工核对。置信分数不是正确概率。' : '未检出可展示的漂浮物候选，不能据此认定没有污染或水质良好；本次不提供分数。',
+    explanation: detections.length ? '这些是模型候选，需结合照片与现场情况人工核对。置信分数不是正确概率。' : '未检出可展示的漂浮物候选，不能据此认定没有污染或水质良好。',
     score_label: score === null ? '—' : String(score),
     has_score: score !== null,
     detections,
@@ -57,6 +57,11 @@ function resultView(job) {
   };
 }
 
+function imageEligible(item, now = Date.now()) {
+  return Boolean(item && ['succeeded', 'failed'].includes(item.status) && typeof item.id === 'string' && item.id
+    && typeof item.asset_id === 'string' && item.asset_id && (!item.expires_at || Date.parse(item.expires_at) > now));
+}
+
 function assessmentTask(item) {
   const view = resultView(item);
   return Object.assign({}, item, {
@@ -64,8 +69,9 @@ function assessmentTask(item) {
     created_label: time(item.created_at),
     error_label: item.error_code === 'MODEL_NOT_CONFIGURED' ? '河道观察模型当前未启用，本次未产生结论。' : item.message || item.error_message || '',
     result_view: view,
+    can_image_ai: imageEligible(item),
     title: '河道图像观察',
   });
 }
 
-module.exports = { capability, assessmentTask, resultView, detectionViews, SCOPE, DISCLAIMER };
+module.exports = { capability, assessmentTask, resultView, detectionViews, imageEligible, SCOPE, DISCLAIMER };

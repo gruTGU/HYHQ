@@ -105,7 +105,25 @@ async function loadCatalog(ctx) {
         metric_name: metricMap.get(row.metric_code).name, unit: metricMap.get(row.metric_code).unit,
         source_name: sourceMap.get(row.source_id).name, source_type: sourceMap.get(row.source_id).kind,
         is_simulated: sourceMap.get(row.source_id).kind === 'simulation' }));
-    const contents = raw.contents.filter((row) => !row.status || row.status === 'published').map((row) => {
+    // The community capability is checked on every request, including RAG.
+    // Turning it off must not expose previously approved user submissions.
+    const userContents = raw.contents.filter(row => row._community_submission);
+    const communityOpen = !userContents.length || await require('./community').enabled(ctx);
+    const activeAuthors = new Set();
+    if (communityOpen && userContents.length) {
+      const ids = [...new Set(userContents.map(row => row._community_owner_id).filter(id => UUID.test(id || '')))];
+      // Deactivation is the deletion barrier. Cleanup can fail or be retried;
+      // no public read or RAG stage may keep showing that author's old text.
+      // Metadata stays server-only, and ordinary editor articles need no reads.
+      for (let offset = 0; offset < ids.length; offset += 20) {
+        await Promise.all(ids.slice(offset, offset + 20).map(async id => {
+          const author = await ctx.store.get('users', id);
+          if (author && author.is_active === true && !author.deleting) activeAuthors.add(id);
+        }));
+      }
+    }
+    const contents = raw.contents.filter((row) => (!row.status || row.status === 'published')
+      && (!row._community_submission || communityOpen && row._community_submission === true && activeAuthors.has(row._community_owner_id))).map((row) => {
       const place = placeMap.get(row.place); return { ...row, _linked_place: row.place || null, place: place ? place.id : null,
         place_summary: place ? Object.fromEntries(['id', 'slug', 'name', 'kind', 'region', 'region_name', 'is_demo'].map((key) => [key, place[key]])) : null };
     });

@@ -1,8 +1,8 @@
-<view class="page">
+<view class="page theme-{{themeId}}" style="{{themeStyle}}">
   <view class="title">平台管理</view><view class="copy">仅授权管理员可访问，关键操作保留记录。</view>
   <page-state loading="{{loading}}" error="{{error}}" bindretry="load" />
   <block wx:if="{{allowed}}">
-    <view class="admin-tabs"><button data-tab="stats" bindtap="tab">概览</button><button data-tab="contents" bindtap="tab">科普</button><button data-tab="routes" bindtap="tab">路线</button><button data-tab="places" bindtap="tab">地点</button><button data-tab="feedback" bindtap="tab">反馈</button><button data-tab="audit" bindtap="tab">审计</button><button data-tab="maintenance" bindtap="tab">维护</button></view>
+    <view class="admin-tabs"><button data-tab="stats" bindtap="tab">概览</button><button data-tab="contents" bindtap="tab">科普</button><button data-tab="routes" bindtap="tab">路线</button><button data-tab="places" bindtap="tab">地点</button><button data-tab="feedback" bindtap="tab">反馈</button><button data-tab="submissions" bindtap="tab">投稿审核</button><button data-tab="comments" bindtap="tab">评论审核</button><button data-tab="reports" bindtap="tab">举报处理</button><button data-tab="audit" bindtap="tab">审计</button><button data-tab="maintenance" bindtap="tab">维护</button></view>
     <view wx:if="{{notice}}" class="admin-notice">{{notice}}</view>
     <block wx:if="{{tab === 'stats'}}">
       <view class="copy">统计时间：{{asOf}}</view>
@@ -20,6 +20,12 @@
     <view wx:for="{{rows}}" wx:key="id" class="card section admin-row">
       <view class="admin-row-heading"><view class="title">{{item.title_label}}</view><text class="admin-status">{{item.status_label}}</text></view><view class="copy">{{item.time_label}}</view>
       <view wx:if="{{tab === 'feedback'}}" class="admin-body">{{item.body}}</view><view wx:if="{{item.reply}}" class="admin-notice">答复：{{item.reply}}</view>
+      <block wx:if="{{tab === 'submissions' || tab === 'comments' || tab === 'reports'}}">
+        <view class="admin-body">{{item.body || item.detail}}</view><view wx:if="{{item.source}}" class="copy">来源：{{item.source}}</view><view wx:if="{{item.review_reason}}" class="admin-notice">审核说明：{{item.review_reason}}</view>
+        <view wx:if="{{tab !== 'reports'}}" class="copy">内容检查：{{item.safety_status}}</view><view wx:if="{{tab === 'reports'}}" class="copy">举报对象：{{item.kind}} / {{item.target_id}} · 原因：{{item.reason}}</view>
+        <view wx:if="{{tab !== 'reports' && (item.status === 'pending' || item.status === 'approved')}}" class="admin-actions"><button wx:if="{{item.status === 'pending' && item.safety_status === 'pass'}}" class="primary" data-id="{{item.id}}" data-decision="approved" bindtap="reviewCommunity" disabled="{{busy}}">核对并通过</button><button class="secondary" data-id="{{item.id}}" data-decision="rejected" bindtap="reviewCommunity" disabled="{{busy}}">{{item.status === 'approved' ? '撤下内容' : '驳回并说明'}}</button></view>
+        <view wx:if="{{tab === 'reports'}}" class="admin-actions"><button class="secondary" data-id="{{item.id}}" data-decision="resolved" bindtap="reviewCommunity" disabled="{{busy}}">标为已处理</button><button class="secondary" data-id="{{item.id}}" data-decision="dismissed" bindtap="reviewCommunity" disabled="{{busy}}">不予受理</button></view>
+      </block>
       <view wx:if="{{item.detail_label}}" class="copy admin-note">{{item.detail_label}}</view><view wx:if="{{item.fields_label}}" class="copy">变更字段：{{item.fields_label}}</view>
       <button wx:if="{{tab === 'contents' || tab === 'routes' || tab === 'places'}}" class="secondary" data-id="{{item.id}}" disabled="{{busy}}" bindtap="edit">查看与编辑</button><button wx:if="{{tab === 'feedback'}}" class="secondary" data-id="{{item.id}}" disabled="{{busy}}" bindtap="resolveFeedback">{{item.status === 'resolved' ? '更新答复' : '处理反馈'}}</button>
     </view>

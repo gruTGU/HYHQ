@@ -1,0 +1,25 @@
+<view style="{{themeStyle}}" class="page theme-{{themeId}} submissions-page">
+  <view class="title">我的投稿</view>
+  <view wx:if="{{!loggedIn}}" class="card section"><view class="copy">登录后保存私人草稿、查看审核进度。</view><button class="primary gap" bindtap="login">前往登录</button></view>
+  <block wx:else>
+    <view wx:if="{{!enabled}}" class="notice section">{{reason || '公开投稿尚未开放，私人草稿可以保存。'}}</view>
+    <view class="actions section"><button class="primary" disabled="{{busy}}" bindtap="create">写自然手记</button><button class="secondary" disabled="{{busy}}" bindtap="load">刷新记录</button></view>
+    <view wx:if="{{error}}" class="error-inline section">{{error}}</view><view wx:if="{{notice}}" class="notice section">{{notice}}</view>
+    <view wx:if="{{editor}}" class="card editor section">
+      <view class="row"><text class="subtitle">{{editor.status_label || '私人草稿'}}</text><button class="text-button" disabled="{{busy}}" bindtap="closeEditor">收起</button></view>
+      <block wx:if="{{editor.status === 'draft' || editor.status === 'rejected' || editor.status === 'withdrawn'}}">
+        <input value="{{editor.title}}" placeholder="标题（80字以内）" maxlength="80" data-field="title" bindinput="field" disabled="{{busy}}" />
+        <picker range="{{categories}}" range-key="name" value="{{editor.categoryIndex}}" bindchange="category" disabled="{{busy}}"><view class="selector">{{categories[editor.categoryIndex].name}} ⌄</view></picker>
+        <textarea value="{{editor.body}}" placeholder="记录自己的自然观察与知识（2000字以内）" maxlength="2000" data-field="body" bindinput="field" disabled="{{busy}}" />
+        <textarea class="source" value="{{editor.source}}" placeholder="参考来源（选填，300字以内）" maxlength="300" data-field="source" bindinput="field" disabled="{{busy}}" />
+        <view class="actions"><button class="primary" bindtap="save" disabled="{{busy}}">保存私人草稿</button><button wx:if="{{enabled && editor.id}}" class="secondary" bindtap="submit" disabled="{{busy}}">提交审核</button></view>
+      </block>
+      <block wx:else><view class="subtitle gap">{{editor.title}}</view><view class="article-body gap">{{editor.body}}</view><view wx:if="{{editor.source}}" class="copy gap">来源：{{editor.source}}</view></block>
+      <view wx:if="{{editor.review_reason}}" class="notice gap">{{editor.review_reason}}</view>
+      <view wx:if="{{enabled}}" class="copy gap">提交的文字将交由微信内容安全检查和管理员审核；通过后公开展示为“生态同行者”。请勿填写他人隐私。</view>
+      <view wx:if="{{editor.id}}" class="actions gap"><button wx:if="{{editor.status === 'pending' || editor.status === 'checking' || editor.status === 'approved'}}" class="secondary" data-action="withdraw" bindtap="action" disabled="{{busy}}">撤回</button><button class="text-button" data-action="delete" bindtap="action" disabled="{{busy}}">删除投稿</button></view>
+    </view>
+    <view wx:for="{{rows}}" wx:key="id" class="card section" data-id="{{item.id}}" bindtap="edit"><view class="subtitle">{{item.title || '未命名草稿'}}</view><view class="row gap"><text class="badge">{{item.status_label}}</text><text class="small muted">{{item.time_label}}</text></view></view>
+    <view wx:if="{{!rows.length && !busy}}" class="copy section">还没有投稿，写下第一份自然观察吧。</view><button wx:if="{{next}}" class="secondary" bindtap="more" disabled="{{busy}}">加载更多</button>
+  </block>
+</view>

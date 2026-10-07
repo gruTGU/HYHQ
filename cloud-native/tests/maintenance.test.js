@@ -22,6 +22,16 @@ async function asset(f, overrides = {}) {
   await f.ctx.store.set('assets', row.id, row); return row;
 }
 const run = (f, kind, limit) => maintenance.runMaintenance(f.ctx, { kind, ...(limit ? { limit } : {}) });
+test('weather AI interpretation drafts expire independently without erasing billing evidence', async () => {
+  const f = await setup();
+  await f.ctx.store.set('weather_ai_drafts', 'expired', { id: 'expired', owner_id: 'admin', expires_at: OLD, proposal: { private: 'old' } });
+  await f.ctx.store.set('weather_ai_drafts', 'valid', { id: 'valid', owner_id: 'admin', expires_at: '2099-01-01T00:00:00Z' });
+  await f.ctx.store.set('llm_days', '2026-10-07', { id: '2026-10-07', reserved_tokens: 0, billed_tokens: 123 });
+  const result = await run(f, 'weather_ai_drafts');
+  assert.equal(result.removed, 1); assert.equal(await f.ctx.store.get('weather_ai_drafts', 'expired'), null);
+  assert.ok(await f.ctx.store.get('weather_ai_drafts', 'valid')); assert.equal((await f.ctx.store.get('llm_days', '2026-10-07')).billed_tokens, 123);
+  assert.doesNotMatch(JSON.stringify(result), /proposal|private/);
+});
 test('maintenance requires fresh configured administrator; forged cron fields confer no authority', async () => {
   const f = await setup();
   for (const config of [{}, { management: { enabled: false, adminUserIds: ['admin'] } }, { management: { enabled: true, adminUserIds: [] } }]) await assert.rejects(maintenance.handle({ ...f.ctx, config, type: 'Timer', trigger: 'trusted' }), e => e.status === 403);

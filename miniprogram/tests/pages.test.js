@@ -41,6 +41,7 @@ test('home obtains real API fixtures, preserves zero values and warns that offic
   };
   const app = { globalData: {}, api: { request: async (url, options) => { calls.push({ url, options }); return { data: fixtures[url] }; } } };
   const instance = page('home', app);
+  instance.data.observationExpanded = true;
   await instance.load();
   assert.equal(instance.data.weather.temp_label, '0°');
   assert.equal(instance.data.air.pm25_label, '0');
@@ -57,6 +58,7 @@ test('home displays partial failure instead of silently replacing upstream data'
     return { data: { source_type: 'simulation', alerts: [] } };
   } } };
   const instance = page('home', app);
+  instance.data.observationExpanded = true;
   await instance.load();
   assert.equal(instance.data.weather, null);
   assert.equal(instance.data.sections[0].key, 'weather');

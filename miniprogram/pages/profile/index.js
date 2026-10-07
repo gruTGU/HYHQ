@@ -1,10 +1,14 @@
+const { withTheme } = require('../../lib/theme');
 const { selectTab } = require('../../lib/tab-bar');
 const { app, toast } = require('../../lib/page');
 const { message } = require('../../lib/format');
-Page({
-  data: { loading: true, error: '', busy: false, user: null, nickname: '', avatar: '', avatarNotice: '', devAvailable: false, authMode: '', editingProfile: false, canManage: false },
+const AGREEMENT_VERSION = '2026-10-07';
+Page(withTheme({
+  openThemeSettings() { wx.navigateTo({ url: '/pages/themes/index' }); },
+  data: { loading: true, error: '', busy: false, user: null, nickname: '', avatar: '', avatarNotice: '', devAvailable: false, authMode: '', editingProfile: false, canManage: false, agreed: false, nicknameNotice: '', cloudMode: false },
   async onShow() {
     selectTab(this, 4);
+    this.setData({ cloudMode: (app().config || {}).transport === 'cloud-function' });
     this._visible = true;
     const shown = this._showVersion = (this._showVersion || 0) + 1;
     if (this._pendingMutation && this._pendingMutation.token === app().session.token()) {
@@ -26,10 +30,11 @@ Page({
     this._showVersion = (this._showVersion || 0) + 1;
     this._profileToken = '';
     this._confirming = false;
+    this._nicknameBlocked = false;
   },
   _clearPrivate(error = '') {
     this._profileToken = '';
-    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', editingProfile: false, canManage: false, error });
+    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', editingProfile: false, canManage: false, agreed: false, nicknameNotice: '', error });
   },
   _start(busy = false) {
     this._confirming = false;
@@ -73,13 +78,18 @@ Page({
     if (!this._active()) return;
     if (this.data.busy || this._hasPendingMutation()) { wx.stopPullDownRefresh(); return; }
     const operation = this._start();
-    this.setData({ loading: true, error: '', user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', devAvailable: false });
+    this.setData({ loading: true, error: '', user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', devAvailable: false, canManage: false });
     try {
-      const health = (await app().api.request('health/')).data;
-      if (!this._current(operation)) return;
-      app().globalData.health = health;
-      this.setData({ devAvailable: app().config.development && health.dev_auth_enabled === true });
-      if (operation.token) await this.loadUser(operation);
+      // Identity does not wait for a public health probe. A failed optional probe
+      // must never hide an otherwise valid account or prevent profile updates.
+      const healthRequest = app().api.request('health/').then((result) => {
+        if (!this._current(operation)) return;
+        app().globalData.health = result.data;
+        this.setData({ devAvailable: app().config.development && result.data.dev_auth_enabled === true });
+      }).catch((error) => {
+        if (this._current(operation) && !operation.token) this.setData({ error: message(error) });
+      });
+      await Promise.all([healthRequest, operation.token ? this.loadUser(operation) : Promise.resolve()]);
     } catch (error) {
       if (this._current(operation)) this._clearPrivate(message(error));
     } finally { this._finish(operation); }
@@ -91,34 +101,46 @@ Page({
     try {
       const user = (await app().api.request('me/')).data;
       if (!this._current(operation)) return;
+      operation.loadAccess = true;
       await this._showUser(operation, user);
     } catch (error) {
       if (context) throw error;
       if (this._current(operation)) this._clearPrivate(message(error));
     } finally { if (!context) this._finish(operation); }
   },
-  async _showUser(operation, user, fallbackAvatar) {
+  async _showUser(operation, user, chosenAvatar) {
     if (!this._current(operation)) return;
     if (!user || typeof user.id !== 'string' || !user.id || (operation.userId && user.id !== operation.userId)) throw new Error('账号资料与登录身份不一致，请重新登录');
+    const previous = this.data.user;
+    const retainedAvatar = previous && previous.id === user.id && previous.avatar_url === user.avatar_url ? this.data.avatar : '';
+    const avatar = chosenAvatar || retainedAvatar || '';
     app().session.updateUser(user);
     this._profileToken = operation.token;
-    this.setData({ user, nickname: user.nickname || '', avatar: '', avatarNotice: '', authMode: (app().session.get() || {}).auth_mode || '' });
-    if (app().config.transport === 'cloud-function') {
-      try { const access = (await app().api.request('personal-admin/status/')).data; if (this._current(operation)) this.setData({ canManage: access.enabled === true }); }
-      catch (_) { if (this._current(operation)) this.setData({ canManage: false }); }
+    this.setData({ user, nickname: user.nickname || '', nicknameNotice: '', avatar, avatarNotice: '', loading: false, authMode: (app().session.get() || {}).auth_mode || '' });
+    const tasks = [];
+    if (operation.loadAccess && app().config.transport === 'cloud-function') {
+      tasks.push(app().api.request('personal-admin/status/').then((result) => {
+        if (this._current(operation)) this.setData({ canManage: result.data.enabled === true });
+      }).catch(() => { if (this._current(operation)) this.setData({ canManage: false }); }));
     }
-    const url = user.avatar_url || fallbackAvatar;
-    if (url) {
-      try {
-        const avatar = await app().api.download(url);
-        if (this._current(operation)) this.setData({ avatar });
-      } catch (error) {
+    if (user.avatar_url && !avatar) {
+      tasks.push(app().api.download(user.avatar_url).then((downloaded) => {
+        if (this._current(operation)) this.setData({ avatar: downloaded });
+      }).catch(() => {
         if (this._current(operation)) this.setData({ avatar: '', avatarNotice: '头像暂不可用，可下拉刷新重试' });
-      }
+      }));
     }
+    await Promise.all(tasks);
+  },
+  agreementChange(event) {
+    if (!this._active() || this.data.busy || this._hasPendingMutation()) return;
+    const values = event && event.detail && event.detail.value;
+    this.setData({ agreed: Array.isArray(values) && values.includes('agreed'), error: '' });
   },
   async login(event) {
     if (!this._active() || this.data.busy || this._confirming || this._hasPendingMutation()) return;
+    if (app().session.token()) return;
+    if (!this.data.agreed) { toast(new Error('请先阅读并勾选同意用户协议与隐私说明')); return; }
     const dev = event.currentTarget.dataset.mode === 'dev';
     if (dev && !this.data.devAvailable) return;
     const operation = this._start(true);
@@ -132,6 +154,7 @@ Page({
         if (!result.code) throw new Error('微信未返回登录 code，请重试');
         path = 'auth/wechat/'; data = { code: result.code };
       }
+      if (app().config.transport === 'cloud-function') data.agreement = { accepted: true, version: AGREEMENT_VERSION };
       const result = (await app().api.request(path, { method: 'POST', data })).data;
       if (!this._current(operation)) return;
       if (!result || typeof result.token !== 'string' || !result.token || !result.user || typeof result.user.id !== 'string') throw new Error('登录返回格式不正确，请重试');
@@ -143,14 +166,29 @@ Page({
     } catch (error) { if (this._current(operation)) this.setData({ error: message(error) }); }
     finally { this._finish(operation); }
   },
-  nicknameInput(event) { if (this._active()) this.setData({ nickname: event.detail.value }); },
+  nicknameInput(event) {
+    if (!this._canChange() || !event || !event.detail || typeof event.detail.value !== 'string') return;
+    this._nicknameBlocked = false;
+    this.setData({ nickname: event.detail.value, nicknameNotice: '' });
+  },
+  nicknameReview(event) {
+    if (!this._canChange()) return;
+    this._nicknameBlocked = !!(event && event.detail && event.detail.pass === false);
+    this.setData({ nicknameNotice: this._nicknameBlocked ? '昵称未通过微信检查，请修改后再保存' : '' });
+  },
   toggleProfileEditor() {
     if (!this._canChange()) return;
-    this.setData({ editingProfile: !this.data.editingProfile, nickname: this.data.user.nickname || '' });
+    this._nicknameBlocked = false;
+    this.setData({ editingProfile: !this.data.editingProfile, nickname: this.data.user.nickname || '', nicknameNotice: '' });
   },
-  async saveProfile() {
+  async saveProfile(event) {
     if (!this._canChange()) return;
-    const nickname = this.data.nickname.trim();
+    if (this._nicknameBlocked) { toast(new Error('昵称未通过微信检查，请修改后再保存')); return; }
+    // Native nickname shortcuts and safety review do not always emit bindinput.
+    // The form carries the final native field value after the user taps submit.
+    const value = event && event.detail && event.detail.value && event.detail.value.nickname;
+    const nickname = typeof value === 'string' ? value.trim() : '';
+    this.setData({ nickname });
     if (!nickname || Array.from(nickname).length > 32) { toast(new Error(nickname ? '昵称最多 32 个字' : '请输入昵称')); return; }
     return this.update({ nickname });
   },
@@ -170,15 +208,22 @@ Page({
       toast(error);
     } finally { this._finish(operation); }
   },
+  avatarError(event) {
+    if (!this._canChange()) return;
+    if (/cancel/i.test(event && event.detail && event.detail.errMsg || '')) return;
+    this.setData({ avatarNotice: '未能选择头像，请重试或检查微信的相册权限' });
+  },
   async chooseAvatar(event) {
-    if (!this._canChange() || !event.detail.avatarUrl) return;
+    if (!this._canChange() || !event || !event.detail || typeof event.detail.avatarUrl !== 'string' || !event.detail.avatarUrl) return;
     const operation = this._start(true);
     try {
       const asset = await app().api.upload(event.detail.avatarUrl, 'avatar');
       if (!this._current(operation)) return;
       const user = (await app().api.request('me/', { method: 'PATCH', data: { avatar_asset_id: asset.id } })).data;
       if (!this._current(operation)) return;
-      await this._showUser(operation, user, asset.thumbnail_url);
+      // Once the server confirms this asset belongs to the account, use the
+      // selected local image immediately; later visits fetch the private copy.
+      await this._showUser(operation, user, event.detail.avatarUrl);
       if (this._current(operation)) wx.showToast({ title: '头像已更新', icon: 'success' });
     } catch (error) { if (this._current(operation)) { this.setData({ error: message(error) }); toast(error); } }
     finally { this._finish(operation); }
@@ -190,6 +235,7 @@ Page({
   },
   legal(event) { if (this._active()) wx.navigateTo({ url: '/pages/legal/index?kind=' + (event.currentTarget.dataset.kind === 'terms' ? 'terms' : 'privacy') }); },
   feedback() { if (this._active()) wx.navigateTo({ url: '/pages/feedback/index' }); },
+  submissions() { if (this._canChange() && app().config.transport === 'cloud-function') wx.navigateTo({ url: '/pages/submissions/index' }); },
   management() { if (this._canChange() && this.data.canManage) wx.navigateTo({ url: '/pages/personal-admin/index' }); },
   aiHistory() { if (this._active()) wx.navigateTo({ url: '/pages/llm-history/index' }); },
   logout() { return this._confirmRemoval(false); },
@@ -223,4 +269,4 @@ Page({
       finally { this._finish(operation); }
     }, fail: () => { if (valid()) this._confirming = false; } });
   },
-});
+}));

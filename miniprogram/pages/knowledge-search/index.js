@@ -1,9 +1,10 @@
+const { withTheme } = require('../../lib/theme');
 const { app, detail } = require('../../lib/page');
 const { loadAll } = require('../../lib/region');
 const { message } = require('../../lib/format');
 const { choices } = require('../../lib/knowledge');
 const { searchData } = require('../../lib/knowledge-search');
-Page({
+Page(withTheme({
   data: { input: '', categoryIndex: 0, plantIndex: 0, placeIndex: 0, categories: choices([], 'category'), plantLabels: choices([], 'plant'), places: [{ id: '', name: '全部地点' }], loading: false, moreLoading: false, filtersError: '', error: '', searched: false, results: [], count: 0, page: 0, hasMore: false, answer: '', notice: '' },
   onLoad() { this._alive = true; this._version = 0; this._filterVersion = 0; return this.loadFilters(); },
   onHide() { if (!this._alive) return; this._hidden = true; this._version += 1; this._filterVersion += 1; this._filtersLoading = false; this.setData({ loading: false, moreLoading: false }); },
@@ -63,4 +64,4 @@ Page({
   open(event) { if (!this.active()) return; const row = this.data.results.find((item) => item.key === event.currentTarget.dataset.key); if (row) detail(row.kind, row.id); },
   async onPullDownRefresh() { if (!this.active()) return; try { if (this._criteria) await this.retry(); else await this.loadFilters(); } finally { wx.stopPullDownRefresh(); } },
   onReachBottom() { return this.more(); },
-});
+}));

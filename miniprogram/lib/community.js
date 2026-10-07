@@ -16,7 +16,7 @@ function requestId() {
 }
 function present(row, reports = false) {
   if (!row || !UUID.test(row.id || '') || (!reports && typeof row.body !== 'string')) throw new Error('记录格式不正确，请刷新重试。');
-  const states = reports ? { pending: '待处理', resolved: '已处理', dismissed: '不予受理' } : { pending: '仅自己可见 · 待审核', approved: '已公开', rejected: '仅自己可见 · 未通过' };
+  const states = reports ? { pending: '待处理', resolved: '已处理', dismissed: '不予受理' } : { checking: '仅自己可见 · 内容检查中', pending: '仅自己可见 · 待审核', approved: '已公开', rejected: '仅自己可见 · 未通过' };
   if (!Object.prototype.hasOwnProperty.call(states, row.status)) throw new Error('记录状态不正确，请刷新重试。');
   return Object.assign({}, row, { status_label: states[row.status], created_label: time(row.created_at), reason_label: reports ? ((reasons.find((r) => r.value === row.reason) || {}).label || '内容问题') : '', is_owner: row.is_owner === true });
 }

@@ -23,6 +23,11 @@ export function compressFunction(functionRoot, { cacheRoot, bootstrapSource } = 
     if (relative.startsWith('models/') || /(?:\.so\.\d|\.node$)/.test(relative)) artifacts.push({ path: name, size: bytes.length, sha256: digest, transform: relative.startsWith('models/') ? 'shuffle4' : 'raw', bytes });
     else { files.push({ path: name, offset, size: bytes.length, sha256: digest }); chunks.push(bytes); offset += bytes.length; }
   } else throw new Error('部署依赖包含不支持的文件类型。'); } };
+  // Small fixtures/legacy build inputs get the same trusted native bridge.
+  if (!fs.existsSync(path.join(functionRoot, 'lib/native-runtime.js'))) {
+    fs.mkdirSync(path.join(functionRoot, 'lib'), { recursive: true });
+    fs.copyFileSync(path.join(repository, 'cloudfunctions/hyhqApi/lib/native-runtime.js'), path.join(functionRoot, 'lib/native-runtime.js'));
+  }
   collect(functionRoot);
   const makeBlob = input => {
     const rawHash = checksum(input), cached = cacheRoot && path.join(cacheRoot, rawHash + '.br'); let bytes;
@@ -49,8 +54,8 @@ export function compressFunction(functionRoot, { cacheRoot, bootstrapSource } = 
   fs.writeFileSync(path.join(functionRoot, 'package.json'), packageJson);
   fs.writeFileSync(path.join(functionRoot, 'config.json'), config);
   fs.writeFileSync(path.join(functionRoot, marker), markerValue);
-  fs.writeFileSync(path.join(functionRoot, 'index.js'), "'use strict';\nconst path = require('node:path');\nconst { prepare } = require('./bootstrap');\nexports.main = async (...args) => {\n  const root = await prepare(__dirname, '" + manifestHash + "');\n  return require(path.join(root, 'application.js')).main(...args);\n};\n");
-  return { manifestHash, compressedBytes: [...resources.values()].reduce((sum, bytes) => sum + bytes.length, 0), restoredBytes: total, restoredFiles: files.length + artifacts.length };
+  fs.writeFileSync(path.join(functionRoot, 'index.js'), "'use strict';\nconst path = require('node:path');\nconst { prepare, ensureNative } = require('./bootstrap');\nlet application;\nexports.main = async (...args) => {\n  if (!application) application = prepare(__dirname, '" + manifestHash + "', { runtimeOnly: true }).then(root => {\n    require(path.join(root, 'lib/native-runtime.js')).configure(() => ensureNative(__dirname, '" + manifestHash + "', root));\n    return require(path.join(root, 'application.js'));\n  });\n  return (await application).main(...args);\n};\n");
+  return { manifestHash, compressedBytes: [...resources.values()].reduce((sum, bytes) => sum + bytes.length, 0), restoredBytes: total, restoredFiles: files.length + artifacts.length, startupBytes: runtime.raw_size, deferredNativeBytes: artifacts.reduce((sum, row) => sum + row.size, 0), startupFiles: files.length };
 }
 
 export function validateDestination(root, output) {
@@ -100,10 +105,21 @@ function command(executable, args, cwd, log) {
   fs.appendFileSync(log, `${executable} ${args.join(' ')}\n${result.stdout || ''}${result.stderr || ''}\n`);
   if (result.error || result.status !== 0) throw new Error('本地打包步骤失败；请检查日志：' + log);
 }
-export async function packagePersonalFunction({ root = repository, appid, output = path.join(root, '.runtime/personal-deploy/hyhqApi'), modelRoot = path.join(root, '.runtime/cloud-migration/models'), env, maintenanceEnabled = false, flowerFileId, riverFileId }) {
+export function schedulingConfiguration({ env, maintenanceEnabled = false, weatherRemindersEnabled = false, weatherRemindersTemplateId = '', weatherRemindersState = 'trial' } = {}) {
+  if (typeof maintenanceEnabled !== 'boolean' || typeof weatherRemindersEnabled !== 'boolean' || ((maintenanceEnabled || weatherRemindersEnabled) && !env)) throw new Error('定时任务必须提供云环境 ID 与明确布尔开关。');
+  const { TEMPLATE_ID } = require(path.join(repository, 'cloudfunctions/hyhqApi/lib/weather-reminders'));
+  if (!['developer', 'trial', 'formal'].includes(weatherRemindersState) || typeof weatherRemindersTemplateId !== 'string' || (weatherRemindersEnabled && weatherRemindersTemplateId !== TEMPLATE_ID)) throw new Error('天气提醒须配置已验证模板及 developer/trial/formal 页面类型。');
+  const triggers = [];
+  if (maintenanceEnabled) triggers.push({ name: 'hyhqMaintenance', type: 'timer', config: '0 */30 * * * * *' });
+  if (weatherRemindersEnabled) triggers.push({ name: 'hyhqWeatherReminders', type: 'timer', config: '0 */5 * * * * *' });
+  return { config: { permissions: { openapi: weatherRemindersEnabled ? ['subscribeMessage.send'] : [] }, triggers },
+    deployment: { maintenanceEnabled, weatherReminders: { enabled: weatherRemindersEnabled, templateId: weatherRemindersEnabled ? weatherRemindersTemplateId : '', state: weatherRemindersState } } };
+}
+export async function packagePersonalFunction({ root = repository, appid, output = path.join(root, '.runtime/personal-deploy/hyhqApi'), modelRoot = path.join(root, '.runtime/cloud-migration/models'), env, maintenanceEnabled = false, weatherRemindersEnabled = false, weatherRemindersTemplateId = '', weatherRemindersState = 'trial', flowerFileId, riverFileId }) {
   if (!/^wx[a-f0-9]{16}$/i.test(appid || '')) throw new Error('必须提供真实 AppID，不接受 AppSecret 或 API Key。');
   if (env !== undefined && !/^[a-z0-9][a-z0-9_-]{0,99}$/i.test(env)) throw new Error('云环境 ID 无效。');
   if (typeof maintenanceEnabled !== 'boolean' || (maintenanceEnabled && !env)) throw new Error('维护定时任务必须提供云环境 ID 与明确布尔开关。');
+  const scheduling = schedulingConfiguration({ env, maintenanceEnabled, weatherRemindersEnabled, weatherRemindersTemplateId, weatherRemindersState });
   output = validateDestination(root, output);
   const source = path.join(root, 'cloudfunctions/hyhqApi'), privateRoot = path.join(root, '.runtime/personal-deploy');
   fs.mkdirSync(privateRoot, { recursive: true });
@@ -131,22 +147,23 @@ export async function packagePersonalFunction({ root = repository, appid, output
     const native = binaries.map(file => ({ ...inspectLinuxElf(path.join(build, file)), path: file }));
     // Keep every dependency's LICENSE/NOTICE and upstream model attribution.
     fs.copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(build, 'THIRD_PARTY_NOTICES.md'));
-    fs.writeFileSync(path.join(build, 'deployment.local.json'), JSON.stringify({ appId: appid, ...(env ? { env } : {}), inferenceEnabled: true, maintenanceEnabled, modelFiles }, null, 2) + '\n', { mode: 0o600 });
-    fs.writeFileSync(path.join(build, 'config.json'), JSON.stringify({ permissions: { openapi: [] }, triggers: maintenanceEnabled ? [{ name: 'hyhqMaintenance', type: 'timer', config: '0 */30 * * * * *' }] : [] }, null, 2) + '\n');
+    fs.writeFileSync(path.join(build, 'deployment.local.json'), JSON.stringify({ appId: appid, ...(env ? { env } : {}), inferenceEnabled: true, ...scheduling.deployment, modelFiles }, null, 2) + '\n', { mode: 0o600 });
+    fs.writeFileSync(path.join(build, 'config.json'), JSON.stringify(scheduling.config, null, 2) + '\n');
     fs.writeFileSync(path.join(build, marker), markerValue);
     const compression = compressFunction(build, { cacheRoot: path.join(root, '.runtime/personal-compression/cache') });
     const archive = path.join(privateRoot, 'hyhqApi-linux-x64.zip');
     fs.rmSync(archive, { force: true });
     command('/usr/bin/zip', ['-q', '-r', '-9', archive, '.', '-x', '.DS_Store'], build, log);
     if (fs.statSync(archive).size > 36 * 1024 * 1024 || Math.ceil(fs.statSync(archive).size / 3) * 4 + 8192 > 50 * 1024 * 1024) throw new Error('压缩包超过 Base64 上传安全上限；已保留原部署目录。');
-    const report = { generated_at: new Date().toISOString(), architecture: 'linux-x64-glibc', runtime: 'Nodejs20.19', timeout: 60, memorySize: 512, installDependency: false, native, model_bytes: 28324531, archive_bytes: fs.statSync(archive).size, archive_sha256: crypto.createHash('sha256').update(fs.readFileSync(archive)).digest('hex'), native_execution_verified: process.platform === 'linux' && process.arch === 'x64' ? 'still requires actual cloud runtime verification' : false, notes: ['config.json only configures permissions/triggers. Set runtime, timeout and memory in the console or cloudbaserc.', 'CPU model results validated locally; ELF architecture is checked here, not executed on macOS.', 'No API keys or session secrets are placed in this artifact.'] };
+    const report = { generated_at: new Date().toISOString(), architecture: 'linux-x64-glibc', runtime: 'Nodejs20.19', timeout: 60, memorySize: 3072, installDependency: false, native, model_bytes: 28324531, archive_bytes: fs.statSync(archive).size, archive_sha256: crypto.createHash('sha256').update(fs.readFileSync(archive)).digest('hex'), native_execution_verified: process.platform === 'linux' && process.arch === 'x64' ? 'still requires actual cloud runtime verification' : false, notes: ['config.json only configures permissions/triggers. Set runtime, timeout and memory in the console or cloudbaserc.', 'CPU model results validated locally; ELF architecture is checked here, not executed on macOS.', 'No API keys or session secrets are placed in this artifact.'] };
     report.compression = compression;
     report.model_storage = 'same-environment-private-cloud-storage';
     report.weights_in_package = false;
     report.upload_base64_bytes = Math.ceil(report.archive_bytes / 3) * 4;
     report.maintenance = { enabled: maintenanceEnabled, schedule_minutes: maintenanceEnabled ? 30 : null, platform_execution_verified: false };
+    report.weatherReminders = { enabled: weatherRemindersEnabled, schedule_minutes: weatherRemindersEnabled ? 5 : null, state: weatherRemindersState, template_id: weatherRemindersEnabled ? weatherRemindersTemplateId : '', platform_execution_verified: false };
     fs.writeFileSync(path.join(privateRoot, 'package-report.json'), JSON.stringify(report, null, 2) + '\n');
-    if (env) fs.writeFileSync(path.join(privateRoot, 'cloudbaserc.local.json'), JSON.stringify({ envId: env, functions: [{ name: 'hyhqApi', dir: output, handler: 'index.main', runtime: report.runtime, timeout: report.timeout, memorySize: report.memorySize, installDependency: false, triggers: maintenanceEnabled ? [{ name: 'hyhqMaintenance', type: 'timer', config: '0 */30 * * * * *' }] : [] }] }, null, 2) + '\n');
+    if (env) fs.writeFileSync(path.join(privateRoot, 'cloudbaserc.local.json'), JSON.stringify({ envId: env, functions: [{ name: 'hyhqApi', dir: output, handler: 'index.main', runtime: report.runtime, timeout: report.timeout, memorySize: report.memorySize, installDependency: false, triggers: scheduling.config.triggers }] }, null, 2) + '\n');
     fs.mkdirSync(path.dirname(output), { recursive: true });
     if (fs.existsSync(output)) fs.rmSync(output, { recursive: true });
     fs.renameSync(build, output);
@@ -156,6 +173,6 @@ export async function packagePersonalFunction({ root = repository, appid, output
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const options = { appid: process.env.HYHQ_PERSONAL_APPID, env: process.env.HYHQ_PERSONAL_ENV, flowerFileId: process.env.HYHQ_FLOWER_MODEL_FILE_ID, riverFileId: process.env.HYHQ_RIVER_MODEL_FILE_ID };
   const args = process.argv.slice(2);
-  if (args.includes('--help')) console.log('node scripts/package-personal-function.mjs --appid wx... --env ENV --flower-file-id cloud://... --river-file-id cloud://... [--models PATH] [--output miniprogram-personal/cloudfunctions/hyhqApi] [--maintenance true|false]\n仅本地生成；模型须预先上传本环境私有存储。选择上传所有文件，关闭云端依赖安装。');
-  else { for (let i = 0; i < args.length; i += 2) { const key = args[i].replace(/^--/, ''); if (!['appid', 'env', 'output', 'models', 'maintenance', 'flower-file-id', 'river-file-id'].includes(key) || !args[i].startsWith('--') || !args[i + 1]) throw new Error('参数无效，使用 --help。'); if (key === 'maintenance') { if (!['true', 'false'].includes(args[i + 1])) throw new Error('maintenance 必须是 true 或 false。'); options.maintenanceEnabled = args[i + 1] === 'true'; } else options[({ models: 'modelRoot', 'flower-file-id': 'flowerFileId', 'river-file-id': 'riverFileId' })[key] || key] = args[i + 1]; } console.log(JSON.stringify(await packagePersonalFunction(options), null, 2)); }
+  if (args.includes('--help')) console.log('node scripts/package-personal-function.mjs --appid wx... --env ENV --flower-file-id cloud://... --river-file-id cloud://... [--models PATH] [--output miniprogram-personal/cloudfunctions/hyhqApi] [--maintenance true|false] [--weather-reminders true|false] [--weather-template-id TEMPLATE_ID] [--weather-state developer|trial|formal]\n两个定时器分别为维护30分钟、天气提醒5分钟，默认均关闭。仅本地生成；模型须预先上传本环境私有存储。选择上传所有文件，关闭云端依赖安装。');
+  else { for (let i = 0; i < args.length; i += 2) { const key = args[i].replace(/^--/, ''); if (!['appid', 'env', 'output', 'models', 'maintenance', 'weather-reminders', 'weather-template-id', 'weather-state', 'flower-file-id', 'river-file-id'].includes(key) || !args[i].startsWith('--') || !args[i + 1]) throw new Error('参数无效，使用 --help。'); if (['maintenance', 'weather-reminders'].includes(key)) { if (!['true', 'false'].includes(args[i + 1])) throw new Error(key + ' 必须是 true 或 false。'); options[key === 'maintenance' ? 'maintenanceEnabled' : 'weatherRemindersEnabled'] = args[i + 1] === 'true'; } else options[({ models: 'modelRoot', 'flower-file-id': 'flowerFileId', 'river-file-id': 'riverFileId', 'weather-template-id': 'weatherRemindersTemplateId', 'weather-state': 'weatherRemindersState' })[key] || key] = args[i + 1]; } console.log(JSON.stringify(await packagePersonalFunction(options), null, 2)); }
 }

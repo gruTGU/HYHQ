@@ -1,3 +1,4 @@
+const { withTheme } = require('../../lib/theme');
 const { selectTab } = require('../../lib/tab-bar');
 const { entryUrl } = require('../../lib/llm');
 const { app, detail } = require('../../lib/page');
@@ -5,7 +6,7 @@ const { message } = require('../../lib/format');
 const { loadAll, loadRegions, selectRegion } = require('../../lib/region');
 const { imageResource, matchesType, mapPoints, geometry, clampPan, zoomPan } = require('../../lib/map-layout');
 
-Page({
+Page(withTheme({
   data: {
     loading: true, error: '', placesError: '', places: [], filtered: [], region: null, regions: [], regionIndex: 0,
     maps: [], mapIndex: 0, activeMap: null, mapImage: '', imageFrames: [], mapNotice: '', imageReady: false, imageGeneration: 0,
@@ -16,7 +17,7 @@ Page({
   onShow() { if (this._destroyed) return; selectTab(this, 1); this._visible = true; return this.load(); },
   onHide() { this._visible = false; this._generation = (this._generation || 0) + 1; },
   onUnload() { this._destroyed = true; this.onHide(); },
-  onPullDownRefresh() { return this.load(); },
+  onPullDownRefresh() { if (app().api.invalidatePublicCache) app().api.invalidatePublicCache(); return this.load(); },
   onResize() { this.resizeMap(); },
   alive() { return !this._destroyed && this._visible !== false; },
   current(generation) { return this.alive() && generation === this._generation; },
@@ -151,4 +152,4 @@ Page({
     const id = point && point.id || this.data.region.id;
     wx.navigateTo({ url: entryUrl('explore', point ? 'place' : 'region', id) });
   },
-});
+}));

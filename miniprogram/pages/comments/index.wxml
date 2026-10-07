@@ -1,4 +1,4 @@
-<view class="page comments-page">
+<view style="{{themeStyle}}" class="page theme-{{themeId}} comments-page">
   <view class="page-heading">{{mode === 'mine' ? '我的评论' : mode === 'reports' ? '我的举报' : '评论'}}</view>
   <view wx:if="{{mode === 'reports'}}" class="small muted">举报仅供你和获授权的管理员查看。</view>
   <view wx:if="{{invalid}}" class="card notice">内容入口无效，请返回原页面重新打开。</view>

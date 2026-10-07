@@ -54,6 +54,7 @@ test('changing region while an earlier weather request is pending cannot overwri
   const pending = deferred();
   const application = { globalData: {}, api: publicAPI(async (path, options) => path === 'weather/' && options.data.region === 'a' ? pending.promise : null) };
   const instance = page('home', application);
+  instance.data.observationExpanded = true;
   const oldLoad = instance.load();
   await new Promise(setImmediate);
   await instance.changeRegion({ detail: { value: '1' } });
@@ -67,6 +68,7 @@ test('changing region while an earlier weather request is pending cannot overwri
 test('returning home respects the region selected by another screen', async () => {
   const application = { globalData: {}, api: publicAPI() };
   const instance = page('home', application);
+  instance.data.observationExpanded = true;
   await instance.onLoad();
   instance.onHide(); application.globalData.region = regions[1];
   await instance.onShow();

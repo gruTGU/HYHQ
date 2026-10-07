@@ -1,9 +1,10 @@
+const { withTheme } = require('../../lib/theme');
 const { entryUrl } = require('../../lib/llm');
 const { app, requireLogin, toast, detail } = require('../../lib/page');
 const { list, time, value, message } = require('../../lib/format');
 const { loadAll } = require('../../lib/region');
 const { routeView } = require('../../lib/route-view');
-Page({
+Page(withTheme({
   data: { communityEnabled: false, loading: true, error: '', item: null, kind: '', busy: false, favoriteId: '', stations: [], stationIndex: 0, observations: [], observationError: '', observationLoading: false, recordError: '', relatedContents: [], relatedCount: 0, relatedLoading: false, relatedError: '', routeStops: [], stopIndex: 0, activeStop: null },
   onLoad(options) {
     this._alive = true;
@@ -217,4 +218,4 @@ Page({
     const url = entryUrl(scope, kind, this.data.item.id);
     if (url) wx.navigateTo({ url });
   },
-});
+}));

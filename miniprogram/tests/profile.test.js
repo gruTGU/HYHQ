@@ -97,7 +97,7 @@ test('avatar download failure preserves the account and offers a visible retry n
 test('old login API responses cannot overwrite another signed-in account', async () => {
   const pending = deferred(); let calls = 0;
   const { page, application } = fixture({ request: () => { calls += 1; return pending.promise; } }, false);
-  Object.assign(page.data, { devAvailable: true });
+  Object.assign(page.data, { devAvailable: true, agreed: true });
   const loggingIn = page.login(event('mode', 'dev'));
   application.session.save({ token: 'B-token', user: user('B') });
   pending.resolve({ data: { token: 'A-token', user: user() } }); await loggingIn;
@@ -108,6 +108,7 @@ test('a delayed native wx.login callback cannot start an API login after hide or
   for (const change of ['hide', 'unload']) {
     let calls = 0;
     const { page, logins } = fixture({ request: async () => { calls += 1; } }, false);
+    page.data.agreed = true;
     const loggingIn = page.login(event('mode', 'wechat'));
     if (change === 'hide') page.onHide(); else page.onUnload();
     logins[0].success({ code: 'only-used-if-active' }); await loggingIn; assert.equal(calls, 0);
@@ -117,7 +118,7 @@ test('a delayed native wx.login callback cannot start an API login after hide or
 test('hidden login responses never save a session or issue a follow-up me request', async () => {
   const pending = deferred(); let calls = 0;
   const { page, application } = fixture({ request: () => { calls += 1; return pending.promise; } }, false);
-  Object.assign(page.data, { devAvailable: true });
+  Object.assign(page.data, { devAvailable: true, agreed: true });
   const loggingIn = page.login(event('mode', 'dev')); page.onHide();
   pending.resolve({ data: { token: 'A-token', user: user() } }); await loggingIn;
   assert.equal(application.session.token(), ''); assert.equal(calls, 1);
@@ -126,21 +127,25 @@ test('hidden login responses never save a session or issue a follow-up me reques
 test('successful development login validates me and duplicate taps do not send more login requests', async () => {
   const pending = deferred(); const calls = [];
   const { page, application } = fixture({ request: async (path) => { calls.push(path); return path === 'auth/dev/' ? pending.promise : { data: user() }; } }, false);
-  Object.assign(page.data, { devAvailable: true });
+  Object.assign(page.data, { devAvailable: true, agreed: true });
   const loggingIn = page.login(event('mode', 'dev')); await page.login(event('mode', 'dev'));
   pending.resolve({ data: { token: 'A-token', user: user() } }); await loggingIn;
   assert.deepEqual(calls, ['auth/dev/', 'me/']); assert.equal(page.data.user.id, 'A'); assert.equal(application.session.get().auth_mode, 'development');
 });
 
-test('login uses the native WeChat action without an extra agreement gate or modal', async () => {
+test('login requires an explicit checkbox while both documents remain readable without agreeing', async () => {
   const calls = [];
   const { page, application, logins, modals, navigation } = fixture({ request: async (path) => {
     calls.push(path);
     return { data: path === 'auth/wechat/' ? { token: 'native-token', user: user() } : user() };
   } }, false);
-  assert.equal(Object.hasOwn(page.data, 'agreed'), false);
+  assert.equal(page.data.agreed, false);
+  await page.login(event('mode', 'wechat'));
+  assert.equal(logins.length, 0);
+  assert.equal(calls.length, 0);
   page.legal(event('kind', 'terms')); page.legal(event('kind', 'privacy'));
   assert.deepEqual(navigation, ['/pages/legal/index?kind=terms', '/pages/legal/index?kind=privacy']);
+  page.agreementChange({ detail: { value: ['agreed'] } });
   const loggingIn = page.login(event('mode', 'wechat'));
   assert.equal(logins.length, 1);
   assert.equal(calls.length, 0);
@@ -221,9 +226,9 @@ test('returning during an accepted privacy change waits before fetching the late
 test('nickname input validation matches the backend limit of 32 Unicode characters', async () => {
   let calls = 0;
   const { page, toasts } = fixture({ request: async (path, options) => { calls += 1; return { data: user('A', { nickname: options.data.nickname }) }; } });
-  page.data.nickname = ' '; await page.saveProfile(); page.data.nickname = '名'.repeat(33); await page.saveProfile();
+  await page.saveProfile({ detail: { value: { nickname: ' ' } } }); await page.saveProfile({ detail: { value: { nickname: '名'.repeat(33) } } });
   assert.equal(calls, 0); assert.ok(toasts.some((text) => text.includes('32')));
-  page.data.nickname = '名'.repeat(32); await page.saveProfile(); assert.equal(calls, 1);
+  await page.saveProfile({ detail: { value: { nickname: '名'.repeat(32) } } }); assert.equal(calls, 1);
 });
 
 test('feedback and legal pages are available to guests while private records cannot be opened', () => {
@@ -248,7 +253,7 @@ test('pull-to-refresh and repeated actions cannot bypass a privacy change still 
   } });
   const saving = page.privacyChange({ detail: { value: false } }); page.onHide(); const showing = page.onShow();
   await page.onPullDownRefresh(); await page.load(); await page.privacyChange({ detail: { value: true } });
-  Object.assign(page.data, { devAvailable: true }); await page.login(event('mode', 'dev'));
+  Object.assign(page.data, { devAvailable: true, agreed: true }); await page.login(event('mode', 'dev'));
   assert.deepEqual(calls, [['me/', 'PATCH']]); assert.equal(page.data.loading, true); assert.equal(page.data.user, null);
   pending.resolve(); await saving; await showing;
   assert.deepEqual(calls, [['me/', 'PATCH'], ['health/', undefined], ['me/', undefined]]);
@@ -264,4 +269,76 @@ test('profile editor opens for the current account, resets abandoned nickname ed
   page._visible = true; page.data.user = user(); page._profileToken = 'A-token';
   application.session.save({ token: 'B-token', user: user('B') });
   page.toggleProfileEditor(); assert.equal(page.data.user, null); assert.equal(page.data.editingProfile, false);
+});
+
+
+test('native nickname form value wins over stale bindinput and rejected nicknames never PATCH', async () => {
+  const calls = [];
+  const { page } = fixture({ request: async (path, options) => { calls.push(options.data); return { data: user('A', { nickname: options.data.nickname }) }; } });
+  page.data.nickname = '输入事件仍是旧值';
+  await page.saveProfile({ detail: { value: { nickname: ' 微信快捷昵称 ' } } });
+  assert.deepEqual(calls, [{ nickname: '微信快捷昵称' }]);
+  page.nicknameReview({ detail: { pass: false } });
+  await page.saveProfile({ detail: { value: { nickname: '未通过昵称' } } });
+  assert.equal(calls.length, 1); assert.match(page.data.nicknameNotice, /未通过/);
+  page.nicknameInput({ detail: { value: '修改后的昵称' } });
+  await page.saveProfile({ detail: { value: { nickname: '修改后的昵称' } } });
+  assert.equal(calls.length, 2);
+});
+
+test('failed nickname save retains the native draft and can retry without old account data', async () => {
+  let attempts = 0;
+  const { page } = fixture({ request: async (path, options) => {
+    if (++attempts === 1) throw new Error('网络中断');
+    return { data: user('A', { nickname: options.data.nickname }) };
+  } });
+  const form = { detail: { value: { nickname: '我的新昵称' } } };
+  await page.saveProfile(form);
+  assert.equal(page.data.nickname, '我的新昵称'); assert.equal(page.data.user.nickname, '昵称 A'); assert.equal(page.data.busy, false);
+  await page.saveProfile(form); assert.equal(page.data.user.nickname, '我的新昵称');
+});
+
+test('native avatar success displays the confirmed local selection without a redundant cloud download', async () => {
+  let downloads = 0, uploads = 0;
+  const { page } = fixture({ upload: async (path, purpose) => { uploads++; assert.equal(purpose, 'avatar'); return { id: 'asset-new' }; }, request: async (path, options) => {
+    assert.deepEqual(options.data, { avatar_asset_id: 'asset-new' });
+    return { data: user('A', { avatar_url: '/api/v1/uploads/new/content/?variant=thumbnail' }) };
+  }, download: async () => { downloads++; return 'cloud-copy.jpg'; } });
+  await page.chooseAvatar({ detail: { avatarUrl: 'chosen-avatar.jpg' } });
+  assert.equal(page.data.avatar, 'chosen-avatar.jpg'); assert.equal(uploads, 1); assert.equal(downloads, 0);
+});
+
+test('failed avatar upload keeps the previous image and supports a deliberate retry', async () => {
+  let uploads = 0, patches = 0;
+  const { page } = fixture({ upload: async () => { if (++uploads === 1) throw new Error('上传中断'); return { id: 'new' }; }, request: async () => { patches++; return { data: user('A', { avatar_url: '/new/' }) }; } });
+  page.data.avatar = 'previous.jpg';
+  await page.chooseAvatar({ detail: { avatarUrl: 'new.jpg' } });
+  assert.equal(page.data.avatar, 'previous.jpg'); assert.equal(patches, 0); assert.equal(page.data.busy, false);
+  await page.chooseAvatar({ detail: { avatarUrl: 'new.jpg' } });
+  assert.equal(page.data.avatar, 'new.jpg'); assert.equal(patches, 1);
+});
+
+test('profile identity and avatar do not wait for health or administrator status requests', async () => {
+  const health = deferred(), access = deferred(); const calls = [];
+  const { page, application } = fixture({ request: async (path) => { calls.push(path); if (path === 'health/') return health.promise; if (path === 'personal-admin/status/') return access.promise; return { data: user('A', { avatar_url: '/avatar/' }) }; }, download: async () => 'private-avatar.jpg' });
+  application.config.transport = 'cloud-function';
+  const loading = page.load();
+  for (let i = 0; i < 8; i++) await Promise.resolve();
+  assert.deepEqual(calls.slice(0, 2), ['health/', 'me/']);
+  assert.equal(page.data.user.id, 'A'); assert.equal(page.data.loading, false); assert.equal(page.data.avatar, 'private-avatar.jpg');
+  access.resolve({ data: { enabled: true } }); health.reject(new Error('health unavailable'));
+  await loading; assert.equal(page.data.user.id, 'A'); assert.equal(page.data.error, ''); assert.equal(page.data.canManage, true);
+});
+
+test('cloud login carries explicit agreement version and logout clears the checkbox', async () => {
+  let submitted;
+  const { page, application, logins, modals } = fixture({ request: async (path, options) => {
+    if (path === 'auth/wechat/') { submitted = options.data; return { data: { token: 'cloud-token', user: user() } }; }
+    if (path === 'personal-admin/status/') return { data: { enabled: false } };
+    return { data: path === 'me/' ? user() : null };
+  } }, false);
+  application.config.transport = 'cloud-function'; page.agreementChange({ detail: { value: ['agreed'] } });
+  const loggingIn = page.login(event('mode', 'wechat')); logins[0].success({ code: 'code' }); await loggingIn;
+  assert.deepEqual(submitted.agreement, { accepted: true, version: '2026-10-07' });
+  page.logout(); await modals[0].success({ confirm: true }); assert.equal(page.data.agreed, false);
 });

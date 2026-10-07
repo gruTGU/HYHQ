@@ -1,0 +1,29 @@
+/* Shared by the page and isolated river component: class selectors only. */
+.flow-steps { display: flex; align-items: center; justify-content: center; padding: 6rpx 0; margin: 0; }
+.flow-step { display: flex; align-items: center; color: var(--hyhq-muted, #768677); gap: 8rpx; font-size: 22rpx; white-space: nowrap; }
+.step-number { display: inline-flex; width: 34rpx; height: 34rpx; justify-content: center; align-items: center; border-radius: 50%; background: var(--hyhq-secondary, #e1e9dd); color: var(--hyhq-muted, #75856e); font-size: 20rpx; }
+.flow-steps .current { color: var(--hyhq-primary, #3a7d5c); font-weight: 600; }
+.current .step-number, .done .step-number { background: var(--hyhq-primary, #3a7d5c); color: var(--hyhq-surface, #fffefa); }
+.step-line { width: 30rpx; height: 2rpx; background: var(--hyhq-border, #cfddc9); margin: 0 12rpx; }
+.upload-panel { min-height: 426rpx; padding: 32rpx 24rpx; box-sizing: border-box; border: 2rpx solid var(--hyhq-border, #d9e6d3); border-radius: 32rpx; background: linear-gradient(155deg, var(--hyhq-surface, #fbfdf7), var(--hyhq-secondary, #e5efdf)); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+.upload-panel .leaf-camera { width: 216rpx; min-width: 216rpx; max-width: 216rpx; height: 216rpx; min-height: 216rpx; padding: 0; line-height: 1; margin: 12rpx 0 20rpx; border-radius: 64% 18% 62% 20%; background: var(--hyhq-primary, #3a7d5c); color: #fffefa; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 18rpx 35rpx rgba(58,125,92,.15); transition: transform .16s ease; }
+.leaf-camera::after { border: 0; }
+.leaf-camera-pressed { transform: scale(.97); }
+.camera-icon { width: 78rpx; height: 78rpx; flex: 0 0 78rpx; display: block; }
+.camera-label { margin-top: 10rpx; font-size: 25rpx; line-height: 1.6; }
+.upload-title { margin-top: 12rpx; color: var(--hyhq-text, #2c3e33); text-align: center; }
+.upload-panel .replace, .image-wrap .replace { position: absolute; bottom: 22rpx; left: 50%; transform: translateX(-50%); width: auto; min-width: 220rpx; background: rgba(44,62,51,.8); color: #fffefa; border-radius: 99rpx; padding: 12rpx 24rpx; font-size: 24rpx; line-height: 1.5; margin: 0; }
+.replace::after { border: 0; }
+.privacy-link { color: var(--hyhq-primary, #3a7d5c); margin-left: 8rpx; }
+.centered { text-align: center; }
+.ai-next { background: linear-gradient(135deg, var(--hyhq-surface, #fdfefb), var(--hyhq-secondary, #e8f0e5)); }
+.ai-model { color: var(--hyhq-primary, #3a7d5c); font-size: 22rpx; letter-spacing: .6rpx; }
+.ai-orbit { color: var(--hyhq-primary, #3a7d5c); width: 72rpx; height: 72rpx; flex: 0 0 72rpx; display: flex; align-items: center; justify-content: center; line-height: 1; border-radius: 50%; background: var(--hyhq-secondary, #dfeada); text-align: center; font-size: 27rpx; }
+.history-row { display: flex; align-items: center; gap: 20rpx; }
+.record-symbol { width: 46rpx; height: 46rpx; flex: 0 0 46rpx; }
+.loading-leaf { width: 24rpx; height: 32rpx; background: var(--hyhq-primary, #3a7d5c); border-radius: 80% 0 80% 0; animation: observe-leaf-turn 1.4s ease-in-out infinite; }
+@keyframes observe-leaf-turn { 0% { transform: rotate(0); opacity: .6; } 50% { opacity: 1; } 100% { transform: rotate(360deg); opacity: .6; } }
+@media (prefers-reduced-motion: reduce) { .loading-leaf { animation: none; } .upload-panel .leaf-camera { transition: none; } }
+
+/* Override WeChat native button:not([size=mini]) sizing consistently. */
+.recognition-page .primary, .recognition-page .secondary, .assessment-page .primary, .assessment-page .secondary { width: 100%; box-sizing: border-box; }

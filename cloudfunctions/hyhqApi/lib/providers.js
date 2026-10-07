@@ -6,7 +6,7 @@ const crypto = require('node:crypto');
 const { TextDecoder } = require('node:util');
 const MODEL = 'deepseek-flash';
 const WEATHER_HOST = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.){1,3}qweatherapi\.com$/;
-const WEATHER_PATHS = Object.freeze({ weather: '/weather/v1/current/', air: '/airquality/v1/current/', alerts: '/weatheralert/v1/current/' });
+const WEATHER_PATHS = Object.freeze({ weather: '/weather/v1/current/', air: '/airquality/v1/current/', alerts: '/weatheralert/v1/current/', daily: '/weather/v1/daily/' });
 class ProviderError extends Error {
   constructor(code, { status = null, ambiguous = false, usage = null } = {}) { super(code); this.name = 'ProviderError'; Object.assign(this, { code, status, ambiguous, usage }); }
 }
@@ -67,6 +67,21 @@ function text(value, limit = 500, complete = false, key = '') {
 }
 function number(value) { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
 function object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
+function forecastTime(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return null;
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number), date = new Date(Date.UTC(year, month - 1, day)), ms = Date.parse(value);
+  return Number.isFinite(ms) && date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? ms : null;
+}
+function normalizeDayPart(raw, clean) {
+  const x = object(raw), wind = object(x.wind), speed = object(wind.speed), precipitation = object(x.precipitation), amount = object(precipitation.amount);
+  const probability = number(precipitation.probability), scale = number(wind.scale), start = forecastTime(x.forecastStartTime), end = forecastTime(x.forecastEndTime);
+  return { starts_at: start === null ? null : new Date(start).toISOString(), ends_at: end === null ? null : new Date(end).toISOString(),
+    condition: clean(object(x.condition).text, 80), condition_code: clean(object(x.condition).code, 16),
+    precipitation_probability_percent: probability !== null && probability >= 0 && probability <= 1 ? Math.round(probability * 1000) / 10 : null,
+    precipitation_amount: number(amount.value) !== null && amount.value >= 0 ? amount.value : null, precipitation_unit: clean(amount.unit, 20),
+    wind_direction: clean(object(wind.direction).compass, 10), wind_speed: number(speed.value) !== null && speed.value >= 0 ? speed.value : null,
+    wind_unit: clean(speed.unit, 20), wind_scale: scale !== null && Number.isInteger(scale) && scale >= 0 && scale <= 17 ? scale : null };
+}
 function normalizeWeather(kind, input, key = '') {
   const body = object(input), metadata = object(body.metadata), clean = (v, size = 500, complete = false) => text(v, size, complete, key);
   let attribution = metadata.attributions;
@@ -87,6 +102,22 @@ function normalizeWeather(kind, input, key = '') {
     data = { aqi: number(index.aqi), aqi_display: clean(index.aqiDisplay, 30), category: clean(index.category, 100), index_name: clean(index.name, 80), index_code: clean(index.code, 30), primary_pollutant: clean(object(index.primaryPollutant).name, 80),
       pollutants: (body.pollutants || []).slice(0, 30).map((raw) => { const x = object(raw), c = object(x.concentration); return { code: clean(x.code, 30), name: clean(x.name, 50), value: number(c.value), unit: clean(c.unit, 30) }; }),
       advice: clean(object(object(index.health).advice).generalPopulation, 1500) };
+  } else if (kind === 'daily') {
+    if (!Array.isArray(body.days) || !body.days.length || body.days.length > 3) throw new ProviderError('invalid_response');
+    const days = body.days.map(raw => {
+      const x = object(raw), start = forecastTime(x.forecastStartTime), end = forecastTime(x.forecastEndTime);
+      if (start === null || end === null || end <= start || end - start > 30 * 3600000) throw new ProviderError('invalid_response');
+      const low = object(x.temperatureMin), high = object(x.temperatureMax), lowUnit = clean(low.unit, 20).trim(), highUnit = clean(high.unit, 20).trim();
+      let min = number(low.value), max = number(high.value), unit = lowUnit || highUnit;
+      // Missing or conflicting measurements remain missing; never substitute
+      // current/minute temperatures for a provider's daily extrema.
+      if (!lowUnit) min = null;
+      if (!highUnit) max = null;
+      if (lowUnit && highUnit && lowUnit !== highUnit || min !== null && max !== null && min > max) { min = null; max = null; unit = ''; }
+      return { date: new Date(start + 8 * 3600000).toISOString().slice(0, 10), starts_at: new Date(start).toISOString(), ends_at: new Date(end).toISOString(), temperature_min: min, temperature_max: max, temperature_unit: unit, daytime: normalizeDayPart(x.daytime, clean), nighttime: normalizeDayPart(x.nighttime, clean) };
+    }).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+    if (days.some((item, index) => index > 0 && Date.parse(item.starts_at) < Date.parse(days[index - 1].ends_at))) throw new ProviderError('invalid_response');
+    data = { days, timezone: 'Asia/Shanghai', schema_version: 2 };
   } else if (kind === 'alerts') {
     const zero = metadata.zeroResult, entries = body.alerts === undefined && zero === true ? [] : body.alerts;
     if (typeof zero !== 'boolean' || !Array.isArray(entries) || entries.length > 100 || (zero && entries.length) || (!zero && !entries.length)) throw new ProviderError('invalid_response');
@@ -101,7 +132,7 @@ async function fetchWeather(config, kind, location, transport = exchange) {
   if (!config.qweatherEnabled || !config.qweatherApiKey || !WEATHER_HOST.test(config.qweatherApiHost || '')) throw new ProviderError('not_configured');
   const lat = location.latitude, lon = location.longitude;
   if (number(lat) === null || number(lon) === null || Math.abs(lat) > 90 || Math.abs(lon) > 180) throw new ProviderError('invalid_point');
-  const body = await transport({ hostname: config.qweatherApiHost, path: WEATHER_PATHS[kind] + lat.toFixed(2) + '/' + lon.toFixed(2) + '?lang=zh', method: 'GET', headers: { 'X-QW-Api-Key': config.qweatherApiKey, Accept: 'application/json', 'Accept-Encoding': 'gzip', 'User-Agent': 'HYHQ-NativeWeather/1.0' } }, undefined, { timeoutMs: 5000, maxBytes: 262144, gzip: true });
+  const body = await transport({ hostname: config.qweatherApiHost, path: WEATHER_PATHS[kind] + lat.toFixed(2) + '/' + lon.toFixed(2) + (kind === 'daily' ? '?days=3&lang=zh' : '?lang=zh'), method: 'GET', headers: { 'X-QW-Api-Key': config.qweatherApiKey, Accept: 'application/json', 'Accept-Encoding': 'gzip', 'User-Agent': 'HYHQ-NativeWeather/1.0' } }, undefined, { timeoutMs: 5000, maxBytes: 262144, gzip: true });
   return normalizeWeather(kind, body, config.qweatherApiKey);
 }
 function validMessages(messages) {

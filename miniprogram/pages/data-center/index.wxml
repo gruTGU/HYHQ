@@ -1,4 +1,4 @@
-<view class="page measurement-page">
+<view style="{{themeStyle}}" class="page theme-{{themeId}} measurement-page">
   <view class="page-heading">数据中心</view>
   <view class="learning-note"><text class="learning-badge">科普模拟体验</text><view>模拟数据帮助理解指标变化；缺测、存疑数据保持断线，不用于认定水质等级或官方 AQI。</view></view>
   <view class="card section filters">

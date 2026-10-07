@@ -62,3 +62,63 @@ test('symlinked resources and reused cache cannot redirect writes or reads outsi
 test('failed initialization stays latched and cannot repeat expensive extraction on each request', async t => {
   const f = await fixture(t), load = createLoader({ availableBytes: () => 0 }); const first = load(f.root, f.hash, { tmpRoot: f.tmpRoot }); await assert.rejects(first); const second = load(f.root, f.hash, { tmpRoot: f.tmpRoot }); assert.equal(first, second); await assert.rejects(second); noStaging(f);
 });
+
+test('runtime-only startup preserves signed runtime but defers every native/model artifact until needed', async t => {
+  const { createNativeLoader } = require('../../cloudfunctions/hyhqApi/lib/bootstrap');
+  const f = await fixture(t), load = createLoader(), runtime = await load(f.root, f.hash, { tmpRoot: f.tmpRoot, runtimeOnly: true });
+  assert.ok(path.basename(runtime).startsWith('hyhq-runtime-'));
+  assert.deepEqual(await require(path.join(runtime, 'application.js')).main(7), { value: 7, from: 'verified' });
+  for (const row of f.manifest.artifacts) assert.equal(fs.existsSync(path.join(runtime, row.path)), false);
+  const native = createNativeLoader(), first = native(f.root, f.hash, runtime, { tmpRoot: f.tmpRoot });
+  const second = native(f.root, f.hash, runtime, { tmpRoot: f.tmpRoot }); assert.equal(first, second);
+  assert.equal(await first, runtime);
+  for (const row of f.manifest.artifacts) assert.equal(sha(fs.readFileSync(path.join(runtime, row.path))), row.sha256);
+  assert.equal(await createNativeLoader()(f.root, f.hash, runtime, { tmpRoot: f.tmpRoot }), runtime);
+  // The default API remains the old complete bundle, in its own cache namespace.
+  const full = await load(f.root, f.hash, { tmpRoot: f.tmpRoot }); assert.notEqual(full, runtime);
+  for (const row of f.manifest.artifacts) assert.equal(fs.existsSync(path.join(full, row.path)), true);
+  noStaging(f);
+});
+test('native corruption stays latched without preventing verified public runtime calls', async t => {
+  const { createNativeLoader } = require('../../cloudfunctions/hyhqApi/lib/bootstrap');
+  const f = await fixture(t), load = createLoader(), runtime = await load(f.root, f.hash, { tmpRoot: f.tmpRoot, runtimeOnly: true });
+  const bad = path.join(f.root, f.manifest.artifacts[0].blob.path); fs.writeFileSync(bad, Buffer.alloc(f.manifest.artifacts[0].blob.size));
+  const native = createNativeLoader(), first = native(f.root, f.hash, runtime, { tmpRoot: f.tmpRoot });
+  await assert.rejects(first, { code: 'NATIVE_BUNDLE_UNAVAILABLE' });
+  assert.equal(native(f.root, f.hash, runtime, { tmpRoot: f.tmpRoot }), first);
+  await assert.rejects(first); assert.equal(fs.existsSync(path.join(runtime, '.native-complete')), false);
+  assert.equal(await load(f.root, f.hash, { tmpRoot: f.tmpRoot, runtimeOnly: true }), runtime);
+  assert.equal((await require(path.join(runtime, 'application.js')).main(9)).value, 9); noStaging(f);
+});
+test('deferred native cannot write outside the verified runtime or through parent/file symlinks', async t => {
+  const { createNativeLoader } = require('../../cloudfunctions/hyhqApi/lib/bootstrap');
+  for (const mode of ['foreign-root', 'parent-symlink', 'file-symlink', 'existing-tamper']) {
+    const f = await fixture(t), runtime = await createLoader()(f.root, f.hash, { tmpRoot: f.tmpRoot, runtimeOnly: true });
+    const row = f.manifest.artifacts[0], target = path.join(runtime, row.path), directory = path.dirname(target), outside = path.join(f.parent, 'outside'); fs.mkdirSync(outside);
+    if (mode === 'parent-symlink') { fs.mkdirSync(path.dirname(directory), { recursive: true }); fs.rmSync(directory, { recursive: true, force: true }); fs.symlinkSync(outside, directory); }
+    else if (mode !== 'foreign-root') { fs.mkdirSync(directory, { recursive: true }); if (mode === 'file-symlink') { put(outside, 'keep', Buffer.alloc(row.size)); fs.symlinkSync(path.join(outside, 'keep'), target); } else fs.writeFileSync(target, Buffer.alloc(row.size)); }
+    await assert.rejects(createNativeLoader()(f.root, f.hash, mode === 'foreign-root' ? outside : runtime, { tmpRoot: f.tmpRoot }), { code: 'NATIVE_BUNDLE_UNAVAILABLE' });
+    assert.equal(fs.existsSync(path.join(runtime, '.native-complete')), false); noStaging(f);
+  }
+});
+test('deferred native space check and new-loader hash validation remain mandatory', async t => {
+  const { createNativeLoader } = require('../../cloudfunctions/hyhqApi/lib/bootstrap');
+  const f = await fixture(t), runtime = await createLoader()(f.root, f.hash, { tmpRoot: f.tmpRoot, runtimeOnly: true });
+  await assert.rejects(createNativeLoader({ availableBytes: () => 0 })(f.root, f.hash, runtime, { tmpRoot: f.tmpRoot }), { code: 'NATIVE_BUNDLE_UNAVAILABLE' });
+  await createNativeLoader()(f.root, f.hash, runtime, { tmpRoot: f.tmpRoot });
+  fs.writeFileSync(path.join(runtime, f.manifest.artifacts[0].path), Buffer.alloc(f.manifest.artifacts[0].size));
+  await assert.rejects(createNativeLoader()(f.root, f.hash, runtime, { tmpRoot: f.tmpRoot }), { code: 'NATIVE_BUNDLE_UNAVAILABLE' }); noStaging(f);
+});
+test('generated wrapper configures native preparation without extracting for public entry or trusting event flags', async t => {
+  const f = await fixture(t), wrapper = fs.readFileSync(path.join(f.root, 'index.js'), 'utf8');
+  assert.match(wrapper, /runtimeOnly: true/); assert.match(wrapper, /\.configure\(\(\) => ensureNative/);
+  // Point the wrapper preparation at an isolated temporary root while keeping
+  // the signed manifest and every byte/hash check from the production loader.
+  const bootstrap = require(path.join(f.root, 'bootstrap.js')), original = bootstrap.prepare;
+  bootstrap.prepare = (root, hash, options) => original(root, hash, { ...options, tmpRoot: f.tmpRoot });
+  const result = await require(path.join(f.root, 'index.js')).main({ native: true, runtimeOnly: false });
+  assert.equal(result.from, 'verified');
+  const runtime = path.join(f.tmpRoot, 'hyhq-runtime-' + f.hash);
+  for (const row of f.manifest.artifacts) assert.equal(fs.existsSync(path.join(runtime, row.path)), false);
+  assert.equal(fs.existsSync(path.join(runtime, '.native-complete')), false);
+});

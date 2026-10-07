@@ -66,6 +66,7 @@ async function main() {
   article.openAssociatedPlace();
   assert.ok(navigation.some((url) => url.includes('kind=place&id=' + waterArticle.place_summary.id)));
   checks.push('B01_place_related_articles_and_public_association');
+  await learn.changeTab({ currentTarget: { dataset: { tab: 'routes' } } });
   const route = learn.data.routes.find((item) => item.slug === 'campus-eco-walk');
   assert.ok(route); assert.equal(route.public_stop_count, 6); assert.ok(route.source);
   const routePage = page('detail'); await routePage.onLoad({ kind: 'route', id: route.id });

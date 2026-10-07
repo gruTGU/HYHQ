@@ -1,3 +1,4 @@
+const { withTheme } = require('../../lib/theme');
 const { app } = require('../../lib/page');
 const { message, time } = require('../../lib/format');
 function pageKey(path) {
@@ -14,7 +15,7 @@ function present(record) {
     reply: resolved ? record.reply || '' : '', resolved_label: resolved && record.resolved_at ? time(record.resolved_at) : '',
   });
 }
-Page({
+Page(withTheme({
   data: { loggedIn: false, body: '', bodyCount: 0, records: [], next: '', loading: false, loadingMore: false, listError: '', moreError: '', actionError: '', notice: '', busy: false },
   onLoad() { this._alive = true; },
   onShow() { if (this._alive === false) return; this._hidden = false; return this.load(); },
@@ -136,4 +137,4 @@ Page({
       } finally { if (this.accepted(action, token, true)) this.setData({ busy: false }); }
     }, fail: () => { if (this.accepted(action, token, true)) this._confirming = false; } });
   },
-});
+}));

@@ -13,7 +13,8 @@
     "postcss": true,
     "minified": true,
     "minifyWXSS": true,
-    "minifyWXML": true
+    "minifyWXML": true,
+    "uploadWithSourceMap": false
   },
   "packOptions": {
     "ignore": [
@@ -44,6 +45,10 @@
       {
         "type": "file",
         "value": "config/personal.example.js"
+      },
+      {
+        "type": "file",
+        "value": "assets/maps/demo-campus-v1.png"
       }
     ]
   }

@@ -1,3 +1,4 @@
+const { withTheme } = require('../../lib/theme');
 const { createSeriesPage } = require('../../lib/series');
 const { entryUrl } = require('../../lib/llm');
 const definition = createSeriesPage('data-center');
@@ -20,4 +21,4 @@ definition.openAI = function () {
   const url = this.data.region && entryUrl('explore', 'region', this.data.region.id);
   if (url) wx.navigateTo({ url });
 };
-Page(definition);
+Page(withTheme(definition));

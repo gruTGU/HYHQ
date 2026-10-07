@@ -1,7 +1,8 @@
+const { withTheme } = require('../../lib/theme');
 const { app } = require('../../lib/page');
 const { message } = require('../../lib/format');
 const community = require('../../lib/community');
-Page({
+Page(withTheme({
   data: { mode: 'target', enabled: false, statusKnown: false, unavailable: '', loggedIn: false, records: [], next: '', loading: false, loadingMore: false, busy: false, listError: '', moreError: '', actionError: '', notice: '', body: '', bodyCount: 0, reportTarget: null, reasons: community.reasons, reasonIndex: 0, reportDetail: '', invalid: false },
   onLoad(options) {
     this._alive = true; this._target = community.target(options);
@@ -107,7 +108,7 @@ Page({
     if (!this.data.records.some((row) => row.id === id && row.is_owner)) return;
     const token = app().session.token(), version = this._actionVersion = (this._actionVersion || 0) + 1;
     this._confirming = true; let handled = false;
-    wx.showModal({ title: '删除这条评论', content: '删除后无法恢复，对应的评论举报记录也会清除。', confirmText: '删除', confirmColor: '#d97b4f', success: async (result) => {
+    wx.showModal({ title: '删除这条评论', content: '删除后无法恢复，评论将不再展示。相关举报保留供管理员处理。', confirmText: '删除', confirmColor: '#d97b4f', success: async (result) => {
       if (handled) return; handled = true;
       if (!this.accepted(version, token, true)) return;
       this._confirming = false; if (!result.confirm) return;
@@ -145,4 +146,4 @@ Page({
     } catch (error) { this.actionFailure(error, token, version); }
     finally { if (this.accepted(version, token, true)) this.setData({ busy: false }); }
   },
-});
+}));

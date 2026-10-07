@@ -42,3 +42,20 @@ test('platform pruning retains Linux CPU runtime and licenses, removes host/GPU 
   put(root, 'node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime_providers_cuda.so');
   assert.throws(() => prunePlatforms(root), /非 CPU/);
 });
+test('optional reminder packaging grants only its send API and independent five-minute trigger', async () => {
+  const { schedulingConfiguration } = await packaging;
+  const { TEMPLATE_ID } = require('../../cloudfunctions/hyhqApi/lib/weather-reminders');
+  const defaults = schedulingConfiguration();
+  assert.deepEqual(defaults.config, { permissions: { openapi: [] }, triggers: [] });
+  assert.equal(defaults.deployment.weatherReminders.enabled, false);
+  const options = { env: 'unit-env', maintenanceEnabled: true, weatherRemindersEnabled: true, weatherRemindersTemplateId: TEMPLATE_ID, weatherRemindersState: 'developer' };
+  const scheduled = schedulingConfiguration(options);
+  assert.deepEqual(scheduled.config.permissions.openapi, ['subscribeMessage.send']);
+  assert.deepEqual(scheduled.config.triggers, [
+    { name: 'hyhqMaintenance', type: 'timer', config: '0 */30 * * * * *' },
+    { name: 'hyhqWeatherReminders', type: 'timer', config: '0 */5 * * * * *' },
+  ]);
+  assert.deepEqual(scheduled.deployment.weatherReminders, { enabled: true, templateId: TEMPLATE_ID, state: 'developer' });
+  for (const patch of [{ env: undefined }, { weatherRemindersEnabled: 'true' }, { weatherRemindersTemplateId: 'another-template' }, { weatherRemindersState: 'production' }]) assert.throws(() => schedulingConfiguration({ ...options, ...patch }));
+  assert.equal(schedulingConfiguration({ ...options, maintenanceEnabled: false }).config.triggers.length, 1);
+});

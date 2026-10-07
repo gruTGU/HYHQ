@@ -640,3 +640,84 @@ test('first send attaches the requested weather only when its slug is in the ser
     assert.equal(body.scope, 'explore');
   }
 });
+
+test('new public chat dispatches independent status, fresh source and weather-directory reads together', async () => {
+  const status = deferred(), source = deferred(), weather = deferred();
+  const { page, calls } = fixture(async path => {
+    if (path === 'llm/status/') return status.promise;
+    if (path === 'regions/') return source.promise;
+    if (path === 'weather-data/locations/') return weather.promise;
+  }, { scope: 'explore', source_type: 'region', source_id: 'r1' });
+  const loading = page.onShow(); await flush();
+  assert.deepEqual(calls.map(row => row.path), ['llm/status/', 'regions/', 'weather-data/locations/']);
+  assert.equal(calls.find(row => row.path === 'regions/').options.cache, false);
+  assert.equal(page.data.loading, true); assert.equal(page.data.session, null);
+  status.resolve({ data: { enabled: true, model: 'deepseek-flash' } });
+  source.resolve({ data: [{ id: 'r1', name: '当前公开区域' }] });
+  weather.resolve({ data: { items: [{ slug: 'tianjin', name: '天津市' }] } }); await loading;
+  assert.equal(page.data.loading, false); assert.equal(page.data.source.id, 'r1');
+  assert.equal(page.data.question, ''); assert.equal(calls.some(row => row.options && row.options.method), false);
+});
+
+
+function imageFixture(status = 'failed', extra = {}) {
+  return fixture(async (path, options) => {
+    if (path === 'assessment-jobs/a1/') return { data: { id: 'a1', status, asset_id: 'asset-a1', ...extra } };
+    if (path === 'llm/sessions/' && options && options.method === 'POST') return { data: session('s1', { kind: 'assessment', assessment_job_id: 'a1', recognition_job_id: null, interpretation_mode: 'image', include_image: true, image_available: true, title: '河道 AI 看图', context_summary: '原图观察' }) };
+  }, { kind: 'assessment', jobId: 'a1', interpretation_mode: 'image' });
+}
+
+test('river image mode accepts terminal failed/succeeded local tasks and opening never sends or creates a session', async () => {
+  for (const state of ['failed', 'succeeded']) {
+    const { page, calls } = imageFixture(state);
+    await page.onShow(); assert.equal(page.data.isImageMode, true); assert.equal(page.data.scopeLabel, '河道 AI 看图');
+    assert.equal(page.data.includeImage, true); assert.equal(page.data.question, ''); assert.equal(page.data.source.id, 'a1');
+    assert.equal(calls.some(row => row.options && row.options.method), false);
+    page.imageChange(change(false)); assert.equal(page.data.includeImage, true);
+    await firstQuestion(page);
+    const posts = calls.filter(row => row.options && row.options.method === 'POST');
+    assert.equal(posts.length, 2);
+    assert.deepEqual(posts[0].options.data, { scope: 'recognition', assessment_job_id: 'a1', interpretation_mode: 'image', include_image: true });
+    assert.equal(posts[1].path, 'llm/sessions/s1/turns/'); assert.equal(posts[1].options.data.question, '请解释这份资料中的观察重点');
+  }
+});
+
+test('queued, running, missing and expired river sources never reach image mode mutations', async () => {
+  for (const [state, fields] of [['queued', {}], ['running', {}], ['failed', { asset_id: '' }], ['succeeded', { expires_at: '2020-01-01T00:00:00Z' }], ['failed', { expires_at: 'invalid' }], ['failed', { id: 'another-task' }]]) {
+    const { page, calls } = imageFixture(state, fields); await page.onShow();
+    assert.equal(page.data.imageModeBlocked, true); assert.equal(page.data.source, null);
+    await firstQuestion(page); assert.equal(calls.some(row => row.options && row.options.method), false);
+  }
+  const flower = fixture(undefined, { kind: 'recognition', jobId: 'j1', interpretation_mode: 'image' });
+  await flower.page.onShow(); assert.equal(flower.page.data.entryValid, false); assert.equal(flower.calls.length, 0);
+});
+
+test('an unavailable image mode keeps the question and never offers a text-only fallback', async () => {
+  const { page, calls } = fixture(async (path, options) => {
+    if (path === 'assessment-jobs/a1/') return { data: { id: 'a1', status: 'failed', asset_id: 'asset-a1' } };
+    if (path === 'llm/sessions/' && options && options.method === 'POST') throw Object.assign(new Error('原图已清理'), { code: 'IMAGE_UNAVAILABLE', status: 409 });
+  }, { kind: 'assessment', jobId: 'a1', interpretation_mode: 'image' });
+  await page.onShow(); page.inputQuestion(change('请观察这张河道照片')); await page.send();
+  assert.equal(page.data.question, '请观察这张河道照片'); assert.equal(page.data.imageModeBlocked, true);
+  assert.match(page.data.actionError, /重新上传/); assert.doesNotMatch(page.data.actionError, /关闭附图|仅文字/);
+  page.imageChange(change(false)); await page.send();
+  assert.equal(page.data.includeImage, true); assert.equal(calls.filter(row => row.options && row.options.method === 'POST').length, 1);
+});
+
+test('an old image conversation with no original remains readable but cannot send another paid turn', async () => {
+  const { page, calls } = fixture(async path => {
+    if (path === 'llm/sessions/s1/') return { data: session('s1', { kind: 'assessment', assessment_job_id: 'a1', interpretation_mode: 'image', include_image: true, image_available: false, title: '河道 AI 看图' }) };
+    if (path === 'llm/sessions/s1/turns/') return { data: [turn('old-image', { used_image: true })] };
+  });
+  await page.onShow(); assert.equal(page.data.isImageMode, true); assert.equal(page.data.imageModeBlocked, true);
+  assert.equal(page.data.turns[0].id, 'old-image'); assert.equal(page.data.session.kind_label, '河道 AI 看图');
+  await firstQuestion(page); assert.equal(calls.some(row => row.options && row.options.method), false);
+  assert.throws(() => sessionView(session('bad', { interpretation_mode: 'image', include_image: true })), /格式不正确/);
+});
+
+test('image-session mismatch never dispatches a paid turn and stays recoverable through history', async () => {
+  const { page, calls } = fixture(async path => path === 'assessment-jobs/a1/' ? { data: { id: 'a1', status: 'failed', asset_id: 'asset' } } : undefined, { kind: 'assessment', jobId: 'a1', interpretation_mode: 'image' });
+  await page.onShow(); await firstQuestion(page); await page.send();
+  assert.equal(calls.filter(row => row.options && row.options.method === 'POST').length, 1);
+  assert.equal(page.data.creationUncertain, true); assert.equal(page.data.question, '请解释这份资料中的观察重点');
+});

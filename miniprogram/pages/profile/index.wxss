@@ -9,11 +9,11 @@
 .profile-name { font-size: 37rpx; line-height: 1.4; font-weight: 600; word-break: break-all; }
 .profile-test { display: inline-block; margin-top: 8rpx; border: 1rpx solid #a8c99b; padding: 2rpx 12rpx; border-radius: 20rpx; color: #e5efe0; font-size: 20rpx; }
 .profile-content { position: relative; margin-top: 28rpx; }
-.card { background: #fff; border-radius: 32rpx; }
+.card { background: var(--hyhq-surface, #fffefa); border-radius: var(--hyhq-card-radius, 32rpx); }
 .login-card { padding: 34rpx; }
 .login-notice { font-size: 22rpx; line-height: 1.9; margin: 26rpx 0 8rpx; color: #718278; }
 .legal-link { color: #3a7d5c; text-decoration: underline; }
-.avatar-button { flex: 0 0 120rpx; min-width: 120rpx; max-width: 120rpx; width: 120rpx; height: 120rpx; min-height: 120rpx; padding: 0; display: flex; align-items: center; justify-content: center; line-height: 1; border-radius: 50%; margin: 0 24rpx 0 0; border: 6rpx solid rgba(255, 255, 255, .8); background: #e5efdf; overflow: hidden; }
+.avatar-frame { box-sizing: border-box; flex: 0 0 120rpx; width: 120rpx; height: 120rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-right: 24rpx; border: 6rpx solid rgba(255, 255, 255, .8); background: #e5efdf; overflow: hidden; }
 .avatar { display: block; width: 108rpx; height: 108rpx; flex-shrink: 0; border-radius: 50%; overflow: hidden; }
 .avatar-placeholder { position: relative; width: 108rpx; height: 108rpx; border-radius: 50%; overflow: hidden; }
 .avatar-head { position: absolute; left: 36rpx; top: 20rpx; width: 36rpx; height: 36rpx; background: #7ca58d; border-radius: 50%; }
@@ -33,9 +33,26 @@
 .icon-visit { width: 36rpx; height: 44rpx; border: 3rpx solid #3a7d5c; border-radius: 50% 50% 48% 48%; }
 .icon-visit::before { content: ''; position: absolute; top: 9rpx; left: 9rpx; width: 12rpx; height: 12rpx; border: 3rpx solid #3a7d5c; border-radius: 50%; }.icon-visit::after { content: ''; position: absolute; bottom: -5rpx; left: 10rpx; width: 11rpx; height: 11rpx; background: #fff; border-right: 3rpx solid #3a7d5c; border-bottom: 3rpx solid #3a7d5c; transform: rotate(45deg); }
 .icon-chat { height: 39rpx; margin-top: 3rpx; margin-bottom: 22rpx; border: 3rpx solid #3a7d5c; border-radius: 12rpx; text-align: center; font-size: 32rpx; line-height: 21rpx; }.icon-chat::after { content: ''; position: absolute; left: 8rpx; bottom: -9rpx; width: 11rpx; height: 11rpx; background: #fff; border-right: 3rpx solid #3a7d5c; border-bottom: 3rpx solid #3a7d5c; transform: skewY(35deg); }
-.setting-button { width: 100%; padding: 13rpx 0; background: transparent; color: #2c3e33; font-size: 27rpx; line-height: 1.6; text-align: left; font-weight: 400; }
-.setting-button .chevron { transition: transform .18s; }.chevron-open { transform: rotate(90deg); }
-.profile-editor { border-top: 1rpx solid #e8eee4; margin-top: 20rpx; padding-top: 24rpx; }
-.privacy-card switch { flex-shrink: 0; margin-left: 18rpx; transform: scale(.9); transform-origin: right center; }
-.support-card { padding-top: 18rpx; padding-bottom: 18rpx; }
+.menu-card { padding: 0 28rpx; overflow: hidden; }
+.menu-row { box-sizing: border-box; display: flex; align-items: center; gap: 16rpx; min-height: 100rpx; padding: 22rpx 0; }
+.profile-page .menu-card .setting-button { width: 100%; margin: 0; border-radius: 0; background: transparent; color: var(--hyhq-text, #2c3e33); font-size: 28rpx; line-height: 1.6; text-align: left; font-weight: 400; }
+.menu-card .setting-button + .setting-button, .history-setting + .setting-button { border-top: 1rpx solid var(--hyhq-border, #dbe5d6); }
+.setting-label { flex: 1; min-width: 0; font-size: 28rpx; line-height: 1.6; white-space: nowrap; }
+.setting-value { flex: 0 1 auto; max-width: 42%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--hyhq-muted, #65796c); font-size: 24rpx; }
+.menu-row .chevron { flex: 0 0 20rpx; margin: 0; text-align: right; line-height: 1; color: var(--hyhq-muted, #65796c); }
+.profile-editor { margin-bottom: 28rpx; }
+.editor-avatar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 16rpx; }
+.editor-avatar-note, .avatar-notice { color: var(--hyhq-muted, #65796c); font-size: 24rpx; line-height: 1.6; }
+.avatar-notice { margin-bottom: 24rpx; }
+.privacy-card switch { flex: none; margin-left: 0; transform: scale(.9); transform-origin: right center; }
+.history-setting .menu-row { padding-bottom: 12rpx; }
+.setting-help { padding-bottom: 24rpx; color: var(--hyhq-muted, #65796c); font-size: 24rpx; line-height: 1.6; }
 .account-actions { margin-top: 30rpx; }.account-delete { margin: 22rpx auto 0; color: #b46237; padding: 12rpx 24rpx; }
+
+.profile-page .profile-edit-link { display: inline-block; width: auto; padding: 4rpx 0; margin: 8rpx 0 0; background: transparent; color: #e5efe0; font-weight: 400; font-size: 23rpx; line-height: 1.6; text-align: left; }
+.profile-edit-chevron { display: inline-block; margin-left: 12rpx; transition: transform .18s; }
+.chevron-open { transform: rotate(90deg); }
+.agreement-label { display: flex; align-items: center; min-height: 56rpx; }
+.agreement-label checkbox { flex-shrink: 0; transform: scale(.8); transform-origin: left center; }
+.agreement-links { margin-left: 58rpx; }
+.profile-page .avatar-edit { width: auto; margin: 0; padding: 15rpx 24rpx; font-size: 25rpx; }

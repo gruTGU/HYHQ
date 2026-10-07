@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+test.beforeEach(t => t.mock.method(Date, 'now', () => Date.parse('2026-10-03T12:01:00Z')));
 
 function home(summary) {
   let definition;
@@ -39,22 +40,23 @@ test('home warning disclosure starts collapsed and preserves the complete bullet
   assert.match(item.expires_label, /2026-10-04 18:00/);
   assert.equal(instance.data.citySummary.alerts.sources, '气象台');
   assert.equal(instance.data.citySummary.alerts.attribution, '气象资料署名');
-  assert.equal(instance.data.citySummary.weather.temp_label, '0°C');
+  assert.equal(instance.data.citySummary.weather.temp_label, '0℃');
   instance.toggleAlerts(); assert.equal(instance.data.alertsExpanded, false);
   assert.deepEqual(calls, ['weather-data/summary/']);
 });
 
 test('home warning badge never turns stale, unavailable or ambiguous empty results into a fresh no-warning claim', async () => {
   for (const [status, items, tone, label] of [
-    ['empty', [], 'empty', '暂无预警'], ['stale', [], 'stale', '历史缓存'],
+    ['empty', [], 'empty', '暂无预警'], ['stale', [], 'stale', '状态待更新'],
     ['stale', [announcement], 'stale', '历史公告 1 条'], ['unavailable', [], 'unavailable', '查询不可用'],
     ['fresh', [], 'unavailable', '状态待确认'],
-    ['fresh', [{ ...announcement, message_type: 'cancel' }], 'active', '1 条公告'],
+    ['fresh', [{ ...announcement, message_type: 'cancel' }], 'unavailable', '状态待确认'],
   ]) {
     const { instance } = home(summary(status, items));
     await instance.loadCitySummary('tianjin', 1);
     assert.equal(instance.data.alertBadge.tone, tone, status);
     assert.equal(instance.data.alertBadge.label, label, status);
+    assert.equal(instance.data.alertBadge.visible, status !== 'empty');
     if (items.length && items[0].message_type === 'cancel') assert.equal(instance.data.citySummary.alerts.items[0].message_label, '已取消');
   }
 });
@@ -71,6 +73,7 @@ test('switching city closes old warning and air disclosures immediately even whe
   assert.equal(instance.data.alertBadge, null);
   assert.equal(instance.data.citySummary, null);
   instance.toggleAlerts(); assert.equal(instance.data.alertsExpanded, false);
+  await new Promise(setImmediate);
   reject(new Error('新城市暂不可用')); await changing;
   assert.equal(instance.data.citySummary, null);
   assert.equal(instance.data.cityError, '新城市暂不可用');

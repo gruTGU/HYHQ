@@ -276,6 +276,7 @@ async function handle(ctx) {
         deleted: row.deleted, published: publicState(kind, row), category: row.value.category || '', updated_at: row.value.updated_at || row.value._updated_at || null })));
       result.data.meta.revision = revision; return result;
     }
+    if (existing && existing.value._community_submission === true && ['PUT', 'PATCH', 'DELETE'].includes(ctx.method)) fail('COMMUNITY_REVIEW_REQUIRED', '用户投稿请到投稿审核页处理，不能绕过内容检查修改公开正文');
     if ((!id && ctx.method === 'POST') || (id && ['PUT', 'PATCH'].includes(ctx.method))) {
       const body = strictBody(ctx.body, ['value', 'publish', 'expected_revision']);
       if (own(body, 'publish') && typeof body.publish !== 'boolean') bad('publish必须为布尔值');

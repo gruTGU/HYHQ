@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { DEMO_IMAGE, dimensions, imageResource, mapPoints, geometry, projection, clampPan, zoomPan } = require('../lib/map-layout');
+const { DEMO_IMAGE, DEMO_RESOURCE, dimensions, imageResource, mapPoints, geometry, projection, clampPan, zoomPan } = require('../lib/map-layout');
 
 const region = { id: 'demo', slug: 'demo-campus', name: '虚构校园', is_demo: true };
 const otherRegion = { id: 'other', slug: 'another', name: '其他区域', is_demo: false };
@@ -53,12 +53,14 @@ test('real city landmarks without coordinates stay browsable without a fictional
   assert.deepEqual(instance.data.filtered.map((item) => item.id), ['campus']);
 });
 
-test('original PNG dimensions agree with its strict registered region and version', () => {
-  const png = fs.readFileSync(path.join(__dirname, '../assets/maps/demo-campus-v1.png'));
-  assert.equal(png.subarray(1, 4).toString(), 'PNG');
-  assert.equal(png.readUInt32BE(16), 1000);
-  assert.equal(png.readUInt32BE(20), 700);
-  assert.equal(imageResource(map(), region).src, DEMO_IMAGE);
+test('lossless local map preserves dimensions and strict registered region and version', () => {
+  const webp = fs.readFileSync(path.join(__dirname, '..', DEMO_RESOURCE));
+  assert.equal(webp.subarray(0, 4).toString(), 'RIFF');
+  assert.equal(webp.subarray(8, 16).toString(), 'WEBPVP8L');
+  const dimensionBits = webp.readUInt32LE(21);
+  assert.equal((dimensionBits & 0x3fff) + 1, 1000);
+  assert.equal(((dimensionBits >>> 14) & 0x3fff) + 1, 700);
+  assert.equal(imageResource(map(), region).src, DEMO_RESOURCE);
   for (const [layout, area] of [[map({ version: 2 }), region], [map(), { ...region, is_demo: false }], [map(), { ...region, slug: 'different' }], [map(), otherRegion], [map({ image_width: 900 }), region], [map({ image_url: '/arbitrary.png' }), region]]) {
     assert.equal(imageResource(layout, area).src, '');
     assert.ok(imageResource(layout, area).notice);
@@ -97,7 +99,7 @@ test('map load renders matching markers, shared filtering and detail navigation 
   const { instance, application, navigation } = page(fixtureApi());
   await instance.onShow();
   assert.equal(application.globalData.region.id, region.id);
-  assert.equal(instance.data.mapImage, DEMO_IMAGE);
+  assert.equal(instance.data.mapImage, DEMO_RESOURCE);
   assert.equal(instance.data.imageReady, false);
   assert.equal(instance.data.markers.length, 2);
   assert.equal(instance.data.markers[0].left, 26);
@@ -284,7 +286,7 @@ test('late movement from an old zoom or resized native node cannot shift the nex
   instance.panMap(beforeResize);
   assert.deepEqual(instance._pan, panAfterResize);
   instance.imageFailed(beforeResize);
-  assert.equal(instance.data.mapImage, DEMO_IMAGE);
+  assert.equal(instance.data.mapImage, DEMO_RESOURCE);
   assert.equal(instance.data.imageReady, true);
   // The native node must be replaced, not reused with a new global dataset value.
   const template = fs.readFileSync(path.join(__dirname, '../pages/explore/index.wxml'), 'utf8');

@@ -13,7 +13,7 @@ function setup() {
   const identity = name => ({ APPID: config.appId, OPENID: 'openid-test-' + name });
   const call = (path, method = 'GET', body = null, token, name = 'alice') => app({ path: '/api/v1/' + path, method, body, headers: token ? { Authorization: 'Bearer ' + token } : {} }, identity(name));
   const login = async (name = 'alice') => { const result = await call('auth/wechat/', 'POST', { code: 'wx-sdk-login-code' }, null, name); assert.equal(result.statusCode, 200, JSON.stringify(result)); return result.data.data; };
-  return { store, objects, app, call, login, identity, config, setClock: value => { clock = value; }, uploads: () => uploads };
+  return { store, objects, cloud, app, call, login, identity, config, setClock: value => { clock = value; }, uploads: () => uploads };
 }
 async function upload(f, token, purpose = 'recognition', image, name = 'alice') {
   const bytes = image || await sharp({ create: { width: 80, height: 60, channels: 3, background: '#3a7d5c' } }).png().toBuffer();
@@ -102,4 +102,54 @@ test('original expires independently from thumbnail and account deletion purges 
 test('configuration never enables paid APIs by default and caps user limits', () => {
   const config = configFromEnvironment({}); assert.equal(config.llmEnabled, false); assert.equal(config.qweatherMonthlyLimit, 0); assert.equal(config.inferenceEnabled, false);
   assert.equal(configFromEnvironment({ HYHQ_LLM_DAILY_LIMIT: '50' }).llmDailyLimit, 5);
+});
+
+
+test('explicit agreement records trusted time and version without inventing consent for legacy clients', async () => {
+  const f = setup(), legacy = await f.login();
+  assert.equal((await f.store.get('users', legacy.user.id)).agreement_acceptance, undefined);
+  const result = await f.call('auth/wechat/', 'POST', { code: 'native-code', agreement: { accepted: true, version: '2026-10-07' } });
+  assert.equal(result.statusCode, 200, JSON.stringify(result)); assert.equal(result.data.data.user.id, legacy.user.id);
+  assert.deepEqual((await f.store.get('users', legacy.user.id)).agreement_acceptance, { version: '2026-10-07', accepted_at: '2026-10-03T12:00:00.000Z' });
+  for (const agreement of [null, false, {}, [], { accepted: false, version: '2026-10-07' }, { accepted: true, version: 'old' }, { accepted: true, version: '2026-10-07', accepted_at: 'forged' }]) {
+    const denied = await f.call('auth/wechat/', 'POST', { code: 'native-code', agreement }, null, 'bob');
+    assert.equal(denied.statusCode, 400); assert.equal(denied.data.error.code, 'AGREEMENT_REQUIRED');
+  }
+  assert.equal((await f.store.list('users')).length, 1);
+});
+
+test('cloud nickname validation matches Unicode codepoints and rejects blank or control input', async () => {
+  const f = setup(), alice = await f.login();
+  for (const nickname of ['', '   ', '名'.repeat(33), '昵称\n内容', 123, null]) assert.equal((await f.call('me/', 'PATCH', { nickname }, alice.token)).statusCode, 400);
+  const unicode = '🌿'.repeat(32);
+  const saved = await f.call('me/', 'PATCH', { nickname: ' ' + unicode + ' ' }, alice.token);
+  assert.equal(saved.statusCode, 200); assert.equal(saved.data.data.nickname, unicode);
+  assert.equal((await f.call('me/', 'GET', null, alice.token)).data.data.nickname, unicode);
+});
+
+test('accepted avatar change remains successful when deleting replaced files fails and leaves retryable cleanup', async () => {
+  const f = setup(), alice = await f.login();
+  const first = (await upload(f, alice.token, 'avatar')).result.data.data;
+  assert.equal((await f.call('me/', 'PATCH', { avatar_asset_id: first.id }, alice.token)).statusCode, 200);
+  const next = (await upload(f, alice.token, 'avatar')).result.data.data;
+  f.cloud.deleteFile = async () => { throw new Error('temporary storage outage'); };
+  const saved = await f.call('me/', 'PATCH', { avatar_asset_id: next.id }, alice.token);
+  assert.equal(saved.statusCode, 200); assert.match(saved.data.data.avatar_url, new RegExp(next.id));
+  assert.equal((await f.store.get('users', alice.user.id)).avatar_id, next.id);
+  assert.equal((await f.store.get('assets', first.id)).deleting, true);
+  assert.ok((await f.store.list('storage_cleanup')).length > 0);
+});
+
+
+test('account deletion also removes private community drafts comments and reports without borrowing another owner', async () => {
+  const f = setup(), alice = await f.login(), bob = await f.login('bob');
+  for (const kind of ['community_submissions', 'community_comments', 'community_reports']) {
+    await f.store.set(kind, 'alice-' + kind, { id: 'alice-' + kind, owner_id: alice.user.id, status: 'draft' });
+    await f.store.set(kind, 'bob-' + kind, { id: 'bob-' + kind, owner_id: bob.user.id, status: 'draft' });
+  }
+  assert.equal((await f.call('me/', 'DELETE', {}, alice.token)).statusCode, 204);
+  for (const kind of ['community_submissions', 'community_comments', 'community_reports']) {
+    assert.equal(await f.store.get(kind, 'alice-' + kind), null);
+    assert.equal((await f.store.get(kind, 'bob-' + kind)).owner_id, bob.user.id);
+  }
 });

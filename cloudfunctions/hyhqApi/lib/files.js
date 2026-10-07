@@ -1,5 +1,5 @@
 'use strict';
-const sharp = require('sharp');
+const { ensureNative } = require('./native-runtime');
 const { ApiError, response, requireUser, uuid, sha256, dateCN } = require('./core');
 const CHUNK = 196608, MAX = 5 * 1024 * 1024;
 const validId = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value);
@@ -147,6 +147,8 @@ function storageFor(ctx, cloud) {
       for (let index = 0; index < Math.ceil(upload.total_size / CHUNK); index++) { const part = await ctx.store.get('upload_chunks', id + '_' + index); if (!part) throw new ApiError('UPLOAD_INCOMPLETE', '图片分块已失效'); const bytes = Buffer.from(part.data_base64, 'base64'); if (sha256(bytes) !== upload.received[index]) throw new ApiError('UPLOAD_INCOMPLETE', '图片分块校验失败'); parts.push(bytes); }
       const bytes = Buffer.concat(parts);
       let original, thumbnail, info;
+      await ensureNative();
+      const sharp = require('sharp');
       try {
         const metadata = await sharp(bytes, { limitInputPixels: 16000000, animated: true }).metadata();
         if (!['jpeg', 'png', 'webp'].includes(metadata.format) || (metadata.pages || 1) > 1) throw new Error('format');

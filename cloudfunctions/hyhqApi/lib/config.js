@@ -1,6 +1,8 @@
 'use strict';
 function configFromEnvironment(env = process.env, deployment = {}) {
   const integer = (name, fallback, max) => { const value = env[name]; return value === undefined || value === '' ? fallback : /^\d+$/.test(value) ? Math.min(+value, max) : 0; };
+  const reminderDeployment = deployment.weatherReminders || {};
+  const reminderState = env.HYHQ_WEATHER_REMINDERS_STATE || reminderDeployment.state || 'trial';
   return {
     appId: env.HYHQ_APP_ID || deployment.appId || '',
     sessionSecret: env.HYHQ_SESSION_SECRET || '',
@@ -19,6 +21,13 @@ function configFromEnvironment(env = process.env, deployment = {}) {
     inferenceEnabled: env.HYHQ_INFERENCE_ENABLED === 'true' || deployment.inferenceEnabled === true,
     modelRoot: env.HYHQ_MODEL_ROOT || undefined,
     management: { enabled: env.HYHQ_MANAGEMENT_ENABLED === 'true', adminUserIds: String(env.HYHQ_ADMIN_USER_IDS || '').split(',').map(value => value.trim()).filter(value => /^[a-f0-9-]{36}$/.test(value)) },
+    community: { enabled: env.HYHQ_COMMUNITY_ENABLED === 'true', qualificationConfirmed: env.HYHQ_COMMUNITY_QUALIFIED === 'true',
+      qualificationReference: env.HYHQ_COMMUNITY_QUALIFICATION_REFERENCE || '', qualificationDate: env.HYHQ_COMMUNITY_QUALIFICATION_DATE || '',
+      moderationReady: env.HYHQ_COMMUNITY_MODERATION_READY === 'true' },
+    weatherReminders: { enabled: env.HYHQ_WEATHER_REMINDERS_ENABLED === undefined || env.HYHQ_WEATHER_REMINDERS_ENABLED === ''
+      ? reminderDeployment.enabled === true : env.HYHQ_WEATHER_REMINDERS_ENABLED === 'true',
+      templateId: env.HYHQ_WEATHER_REMINDERS_TEMPLATE_ID || reminderDeployment.templateId || '',
+      state: ['developer', 'trial', 'formal'].includes(reminderState) ? reminderState : '' },
     maintenanceEnabled: env.HYHQ_MAINTENANCE_ENABLED === 'true' || deployment.maintenanceEnabled === true,
     deploymentEnv: typeof deployment.env === 'string' ? deployment.env : '',
     recognitionDailyLimit: 20, recognitionGlobalDailyLimit: 200, inferenceMaxConcurrency: 1, inferenceTimeoutSeconds: 35,

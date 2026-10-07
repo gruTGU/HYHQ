@@ -23,11 +23,12 @@ function setup(handler, globalData = {}) {
   return { instance, application, calls };
 }
 const change = (value) => ({ detail: { value } });
+const tab = value => ({ currentTarget: { dataset: { tab: value } } });
 
 test('all-route shortcut removes campus filter while preserving shared region and active tab', async () => {
   const { instance, calls, application } = setup(undefined, { region: regions[0] });
   await instance.onLoad();
-  instance.changeTab({ currentTarget: { dataset: { tab: 'routes' } } });
+  await instance.changeTab(tab('routes'));
   await instance.allRoutes();
   assert.equal(instance.data.regionId, '');
   assert.equal(instance.data.tab, 'routes');
@@ -42,6 +43,8 @@ test('public knowledge shows Chinese categories, plant labels, source and visibl
   assert.equal(instance.data.contents[0].category_name, '植物知识');
   assert.equal(instance.data.contents[0].plant_name, '雏菊类花卉');
   assert.equal(instance.data.contents[0].source, '校园植物手册');
+  assert.equal(calls.some(item => item.path === 'routes/'), false);
+  await instance.changeTab(tab('routes'));
   assert.equal(instance.data.routes[0].public_stop_count, 2);
   assert.deepEqual(calls.find((item) => item.path === 'contents/').options.data, { page_size: 20 });
   assert.equal(instance.data.regions[0].name, '全部区域');
@@ -88,12 +91,14 @@ test('a failed content list or tag directory leaves independent routes browsable
     if (path === 'content-tags/') throw new Error('标签不可用');
   });
   await instance.onLoad(); assert.equal(instance.data.contentsError, '科普不可用'); assert.equal(instance.data.tagsError, '标签不可用');
+  await instance.changeTab(tab('routes'));
   assert.equal(instance.data.routes[0].id, 'route'); assert.equal(instance.data.routesError, '');
 });
 test('route failure never hides successful content and retry only reloads its failed list', async () => {
   let fail = true;
   const { instance, calls } = setup(async (path) => { if (path === 'routes/' && fail) throw new Error('路线不可用'); });
-  await instance.onLoad(); assert.equal(instance.data.contents.length, 1); assert.equal(instance.data.routesError, '路线不可用');
+  await instance.onLoad(); assert.equal(instance.data.contents.length, 1); assert.equal(instance.data.routesError, '');
+  await instance.changeTab(tab('routes')); assert.equal(instance.data.routesError, '路线不可用');
   const before = calls.filter((item) => item.path === 'contents/').length;
   fail = false; await instance.retryRoutes();
   assert.equal(instance.data.routes.length, 1); assert.equal(calls.filter((item) => item.path === 'contents/').length, before);
@@ -137,7 +142,7 @@ test('rapid content filters accept only the latest response and keep route reque
   });
   await instance.onLoad(); const old = instance.changeCategory(change(1)); await instance.changeCategory(change(2));
   pending.resolve({ data: [{ id: 'plants' }] }); await old;
-  assert.equal(instance.data.contents[0].id, 'water'); assert.equal(calls.filter((item) => item.path === 'routes/').length, 1);
+  assert.equal(instance.data.contents[0].id, 'water'); assert.equal(calls.filter((item) => item.path === 'routes/').length, 0);
 });
 test('region switches discard old catalogue and content responses without overriding the selected global region', async () => {
   const oldList = deferred(), oldTags = deferred();
@@ -172,12 +177,14 @@ test('malformed or cyclic page links stop visibly while preserving earlier pages
 });
 test('empty lists are successful empty states and malformed list data is an explicit error', async () => {
   const { instance } = setup(async (path) => path === 'contents/' ? { data: [] } : path === 'routes/' ? { data: {} } : undefined);
-  await instance.onLoad(); assert.equal(instance.data.contentsError, ''); assert.deepEqual(instance.data.contents, []); assert.match(instance.data.routesError, /返回格式/);
+  await instance.onLoad(); assert.equal(instance.data.contentsError, ''); assert.deepEqual(instance.data.contents, []);
+  await instance.changeTab(tab('routes')); assert.match(instance.data.routesError, /返回格式/);
 });
 test('only visible content and route records can trigger supported detail links', async () => {
   const { instance } = setup(); await instance.onLoad(); const urls = []; global.wx.navigateTo = ({ url }) => urls.push(url);
   const open = (kind, id) => instance.open({ currentTarget: { dataset: { kind, id } } });
-  open('content', 'article'); open('route', 'route'); open('place', 'article'); open('content', 'missing'); instance.onHide(); open('route', 'route');
+  open('content', 'article'); open('route', 'route'); open('place', 'article'); open('content', 'missing');
+  await instance.changeTab(tab('routes')); open('content', 'article'); open('route', 'route'); instance.onHide(); open('route', 'route');
   assert.deepEqual(urls, ['/pages/detail/index?kind=content&id=article', '/pages/detail/index?kind=route&id=route']);
 });
 test('known labels are Chinese while administrator-defined tags and unknown stop counts remain honest', () => {
@@ -198,4 +205,73 @@ test('deep-link selections stay visible even when the region and tag catalogues 
   assert.equal(instance.data.regions[instance.data.regionIndex].id, 'a');
   assert.equal(instance.data.plantLabels[instance.data.plantIndex].name, '蔷薇属花卉');
   assert.equal(instance.data.contents.length, 1);
+});
+
+test('initial articles never request unseen routes; switching requests routes without article tags', async () => {
+  const { instance, calls } = setup(); await instance.onLoad();
+  assert.deepEqual(calls.map(call => call.path).sort(), ['content-tags/', 'contents/', 'regions/']);
+  const before = calls.length; await instance.changeTab(tab('routes'));
+  assert.deepEqual(calls.slice(before).map(call => call.path).sort(), ['regions/', 'routes/']);
+  const after = calls.length; await instance.changeTab(tab('routes')); await instance.retryContents(); await instance.retryTags();
+  assert.equal(calls.length, after); assert.equal(instance.data.routes[0].id, 'route'); assert.deepEqual(instance.data.contents, []);
+});
+
+test('pending route deep-link requests only target-region routes and defers tags until articles selected', async () => {
+  const { instance, calls } = setup(undefined, { pendingKnowledgeFilter: { tab: 'routes', region: 'b' } }); await instance.onLoad();
+  assert.deepEqual(calls.map(call => call.path).sort(), ['regions/', 'routes/']);
+  assert.deepEqual(calls.find(call => call.path === 'routes/').options.data, { page_size: 20, region: 'b' });
+  await instance.changeTab(tab('contents'));
+  assert.deepEqual(calls.find(call => call.path === 'content-tags/').options.data, { region: 'b' });
+  assert.deepEqual(calls.find(call => call.path === 'contents/').options.data, { page_size: 20, region: 'b' });
+});
+
+test('slow unseen article and tag responses cannot repopulate state after switching to routes', async () => {
+  const article = deferred(), labels = deferred();
+  const { instance } = setup(path => path === 'contents/' ? article.promise : path === 'content-tags/' ? labels.promise : undefined);
+  const initial = instance.onLoad(); await instance.changeTab(tab('routes'));
+  article.resolve({ data: [{ id: 'late-article' }], meta: { next: '/api/v1/contents/?page=2' } });
+  labels.resolve({ data: { categories: [{ value: 'late-category' }], plant_labels: [] } }); await initial;
+  assert.equal(instance.data.tab, 'routes'); assert.deepEqual(instance.data.contents, []); assert.equal(instance.data.contentsNext, '');
+  assert.equal(instance.data.contentsLoading, false); assert.equal(instance.data.tagsLoading, false);
+  assert.equal(instance.data.categories.some(item => item.value === 'late-category'), false); assert.equal(instance.data.routes[0].id, 'route');
+});
+
+test('slow route response cannot repopulate another tab or older region after rapid navigation', async () => {
+  const oldRoute = deferred();
+  const { instance, calls } = setup((path, options) => {
+    if (path === 'routes/' && options.data.region === 'a') return oldRoute.promise;
+    if (path === 'routes/') return { data: [{ id: 'route-' + options.data.region }] };
+  }, { region: regions[0] });
+  await instance.onLoad(); const older = instance.changeTab(tab('routes'));
+  await instance.changeRegion(change(2)); assert.equal(instance.data.routes[0].id, 'route-b');
+  const contentRequests = calls.filter(call => call.path === 'contents/').length;
+  await instance.changeTab(tab('contents')); oldRoute.resolve({ data: [{ id: 'late-route-a' }] }); await older;
+  assert.deepEqual(instance.data.routes, []); assert.equal(instance.data.routesLoading, false); assert.equal(instance.data.regionId, 'b');
+  assert.equal(calls.filter(call => call.path === 'contents/').length, contentRequests + 1);
+  await instance.changeTab(tab('routes')); assert.equal(instance.data.routes[0].id, 'route-b');
+});
+
+test('pagination restarts at page one after tab return and rejects an older in-flight page', async () => {
+  const oldPage = deferred(); let hold = true;
+  const { instance, calls } = setup(path => {
+    if (path === 'routes/') return { data: [{ id: 'route-first' }], meta: { next: '/api/v1/routes/?page=2' } };
+    if (path === '/api/v1/routes/?page=2') return hold ? oldPage.promise : { data: [{ id: 'route-next' }] };
+  });
+  await instance.onLoad(); await instance.changeTab(tab('routes')); const more = instance.moreRoutes();
+  await instance.changeTab(tab('contents')); await instance.changeTab(tab('routes'));
+  assert.deepEqual(instance.data.routes.map(row => row.id), ['route-first']); assert.equal(instance.data.routesLoadingMore, false);
+  oldPage.resolve({ data: [{ id: 'obsolete-second-page' }] }); await more;
+  assert.deepEqual(instance.data.routes.map(row => row.id), ['route-first']); assert.equal(instance.data.routesNext, '/api/v1/routes/?page=2');
+  hold = false; await instance.onReachBottom(); assert.deepEqual(instance.data.routes.map(row => row.id), ['route-first', 'route-next']);
+  assert.equal(calls.filter(call => call.path === 'routes/').length, 2);
+});
+
+test('an abandoned route error cannot replace current article state and no page-local cache bypasses API expiry', async () => {
+  const wait = deferred(); let routeCalls = 0;
+  const { instance, calls } = setup(path => { if (path === 'routes/') { routeCalls++; return routeCalls === 1 ? wait.promise : { data: [{ id: 'fresh-route' }] }; } });
+  await instance.onLoad(); const routeLoad = instance.changeTab(tab('routes')); await instance.changeTab(tab('contents'));
+  wait.reject(new Error('obsolete failure')); await routeLoad;
+  assert.equal(instance.data.routesError, ''); assert.equal(instance.data.contents[0].id, 'article');
+  await instance.changeTab(tab('routes')); assert.equal(instance.data.routes[0].id, 'fresh-route');
+  assert.equal(calls.filter(call => call.path === 'routes/').length, 2);
 });

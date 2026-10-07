@@ -1,4 +1,5 @@
 // Domain-free WeChat container / native function transport. No fallback to HTTP or public file URLs.
+const { publicRead } = require('./public-read-policy');
 const CHUNK_BYTES = 196608;
 const MAX_UPLOAD = 5 * 1024 * 1024;
 const MAX_DOWNLOAD = 8 * 1024 * 1024;
@@ -22,6 +23,7 @@ function createCloudClient(platform, config, session, apiError) {
   let initialized;
   let fs;
   let diagnosticCounter = 0;
+  let unauthorizedSession = null;
   const originalOrigin = String(config.baseURL || '').match(/^https?:\/\/[^/?#]+/i);
   const revision = () => typeof session.revision === 'function' ? session.revision() : 0;
   const problem = (code, message) => apiError(code, message);
@@ -122,13 +124,16 @@ function createCloudClient(platform, config, session, apiError) {
     const timeout = /timeout/i.test(error && error.errMsg || '');
     return problem(timeout ? 'TIMEOUT' : 'NETWORK_ERROR', timeout ? '请求超时，请稍后重试' : '云服务连接失败，请稍后重试');
   }
-  function unwrap(response, context, cleanup) {
+  function unwrap(response, context, cleanup, sentToken = context.token) {
     if (!response || !Number.isInteger(response.statusCode)) throw problem('INVALID_RESPONSE', '云服务返回格式不正确');
     let body = response.data;
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch (error) { body = null; } }
-    if (response.statusCode === 401 && !cleanup && context.token && session.token() === context.token && revision() === context.revision) {
+    if (response.statusCode === 401 && !cleanup && sentToken && session.token() === sentToken && revision() === context.revision) {
       context.invalidating = true;
-      try { session.clear(); } finally { context.invalidating = false; }
+      try {
+        session.clear();
+        unauthorizedSession = { token: context.token, before: context.revision, after: revision() };
+      } finally { context.invalidating = false; }
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       const detail = body && body.error || {};
@@ -159,6 +164,9 @@ function createCloudClient(platform, config, session, apiError) {
       if (query.length) target = pathOf(target + (target.includes('?') ? '&' : '?') + query.join('&'));
       body = undefined;
     }
+    // Classify the original path plus original query data, before normalized
+    // absolute URLs could masquerade as one of the narrow public endpoints.
+    const sentToken = !cleanup && publicRead(path, opts) ? '' : context.token;
     const diagnose = diagnostic(method, target);
     try {
       if (!cleanup) context.check();
@@ -198,14 +206,14 @@ function createCloudClient(platform, config, session, apiError) {
           if (!cleanup) context.check();
           let result = functionMode ? response && response.result : response;
           if (functionMode && typeof result === 'string') { try { result = JSON.parse(result); } catch (error) { result = null; } }
-          settle(null, unwrap(result, context, cleanup));
+          settle(null, unwrap(result, context, cleanup, sentToken));
         } catch (error) { settle(error, undefined, error && error.code === 'SESSION_CHANGED' ? 'sessionChanged' : 'response'); }
       }
       function sdkFailure(error) { settle(networkError(error), undefined, 'SDKfailure', error); }
       const parameters = {
         config: { env: cloud.env }, path: target,
         method, data: body,
-        header: Object.assign({ 'content-type': 'application/json', 'X-WX-SERVICE': cloud.service }, context.token ? { Authorization: 'Bearer ' + context.token } : {}),
+        header: Object.assign({ 'content-type': 'application/json', 'X-WX-SERVICE': cloud.service }, sentToken ? { Authorization: 'Bearer ' + sentToken } : {}),
         timeout, followRedirect: false, dataType: 'json', responseType: 'text',
         success, fail: sdkFailure,
       };
@@ -215,7 +223,7 @@ function createCloudClient(platform, config, session, apiError) {
           // openid/appid or URL redirects; only the existing business token crosses this bridge.
           task = platform.cloud.callFunction({
             name: cloud.function, config: { env: cloud.env },
-            data: { method, path: target, body: body === undefined ? null : body, headers: context.token ? { Authorization: 'Bearer ' + context.token } : {} },
+            data: { method, path: target, body: body === undefined ? null : body, headers: sentToken ? { Authorization: 'Bearer ' + sentToken } : {} },
             success, fail: parameters.fail,
           });
         } else task = platform.cloud.callContainer(parameters);
@@ -230,6 +238,10 @@ function createCloudClient(platform, config, session, apiError) {
     });
   }
   return {
+    canRetryPublicAfterUnauthorized(identity) {
+      return !!(unauthorizedSession && identity.token && unauthorizedSession.token === identity.token
+        && unauthorizedSession.before === identity.revision && unauthorizedSession.after === revision() && !session.token());
+    },
     request(path, options) { return operation((context) => send(path, options, context)); },
     upload(filePath, purpose) {
       return operation(async (context) => {

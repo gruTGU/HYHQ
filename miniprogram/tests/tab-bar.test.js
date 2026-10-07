@@ -65,8 +65,9 @@ test('central circle, full-width label and selected indicator share the screen c
 });
 
 test('AI sprite compensates measured artwork whitespace without changing the original green image', () => {
+  // Lossless JPEG entropy optimization preserves every decoded pixel and sprite bound.
   const asset = fs.readFileSync(path.resolve(__dirname, '../assets/brand/icons-green.jpg'));
-  assert.equal(createHash('sha256').update(asset).digest('hex'), 'e386bce3848034f8556e9b6952cf9c54a0886844fa92ee2aa122a0f0f91dc2ef', 'remeasure visible artwork bounds when replacing the sprite');
+  assert.equal(createHash('sha256').update(asset).digest('hex'), 'ec5d4a9dd21a208093e9d9e79ddc65bd554ab3e2f017160dc4a8f7ca906df32d', 'remeasure visible artwork bounds when replacing the sprite');
   // Measured green pixels in this 1536×1024 source: x=[1082,1445),
   // y=[127,449). Include the scanning corners, not just the camera body.
   const inkCenter = { x: (1082 + 1445) / 2, y: (127 + 449) / 2 };

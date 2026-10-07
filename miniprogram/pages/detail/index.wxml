@@ -1,4 +1,4 @@
-<view class="page detail-page">
+<view style="{{themeStyle}}" class="page theme-{{themeId}} detail-page">
   <page-state loading="{{loading}}" error="{{error}}" bindretry="load" />
   <block wx:if="{{!loading && !error && item}}">
     <text class="eyebrow">{{kind === 'place' ? '生态地点' : kind === 'content' ? '科普手记' : '漫步路线'}}</text>

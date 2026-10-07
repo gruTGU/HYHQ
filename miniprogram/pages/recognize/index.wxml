@@ -1,6 +1,6 @@
-<view class="page recognition-page">
+<view style="{{themeStyle}}" class="page theme-{{themeId}} recognition-page">
 
-  <view class="observe-tabs"><button class="observe-tab {{mode === 'recognition' ? 'active' : ''}}" disabled="{{busy || riverBusy}}" data-mode="recognition" bindtap="changeMode" aria-pressed="{{mode === 'recognition'}}">花卉识别</button><button class="observe-tab {{mode === 'assessment' ? 'active' : ''}}" disabled="{{busy || riverBusy}}" data-mode="assessment" bindtap="changeMode" aria-pressed="{{mode === 'assessment'}}">河道观察</button></view>
+  <view class="observe-tabs"><button class="observe-tab {{mode === 'recognition' ? 'active' : ''}}" disabled="{{busy || riverBusy}}" data-mode="recognition" bindtap="changeMode" aria-pressed="{{mode === 'recognition'}}"><image class="observe-tab-icon" src="/assets/icons/observe-flower.png" mode="aspectFit" />花卉识别</button><button class="observe-tab {{mode === 'assessment' ? 'active' : ''}}" disabled="{{busy || riverBusy}}" data-mode="assessment" bindtap="changeMode" aria-pressed="{{mode === 'assessment'}}"><image class="observe-tab-icon" src="/assets/icons/observe-river.png" mode="aspectFit" />河道观察</button></view>
   <river-observer wx:if="{{mode === 'assessment'}}" id="river-observer" bindbusychange="riverBusyChange" />
   <block wx:else>
   <view class="flow-steps"><view class="flow-step {{!imagePath ? 'current' : 'done'}}"><text class="step-number">1</text><text>选择照片</text></view><view class="step-line"></view><view class="flow-step {{imagePath && !task.result_view ? 'current' : ''}}"><text class="step-number">2</text><text>开始识别</text></view><view class="step-line"></view><view class="flow-step {{task.result_view ? 'current' : ''}}"><text class="step-number">3</text><text>认识花卉</text></view></view>
@@ -8,7 +8,7 @@
   <view class="error-inline" wx:if="{{capabilityError}}">{{capabilityError}}</view>
   <view class="upload-panel section">
     <block wx:if="{{imagePath}}"><image class="preview" src="{{imagePath}}" mode="aspectFit" /><button class="replace" disabled="{{busy}}" bindtap="choose">重新选择照片</button></block>
-    <block wx:else><button class="leaf-camera" hover-class="leaf-camera-pressed" bindtap="choose" disabled="{{busy}}" aria-label="拍照或从相册选择花卉照片"><view class="camera-glyph"><view class="camera-lens"></view></view><text>拍照 / 选图</text></button><view class="title upload-title">让花朵成为画面的主角</view><view class="copy">对焦清晰，保留花瓣与叶片细节</view><view class="file-tip">JPEG / PNG / WebP · 最大 5MB</view></block>
+    <block wx:else><button class="leaf-camera" hover-class="leaf-camera-pressed" bindtap="choose" disabled="{{busy}}" aria-label="拍照或从相册选择花卉照片"><image class="camera-icon" src="/assets/icons/observe-camera.png" mode="aspectFit" /><text class="camera-label">拍照 / 选图</text></button><view class="title upload-title">让花朵成为画面的主角</view></block>
   </view>
   <view class="small muted gap" wx:if="{{imageUnavailable}}">{{imageUnavailable}}</view>
   <view wx:if="{{!loggedIn}}" class="gap"><button class="primary" bindtap="login">登录，开启自然观察</button><view class="small muted centered gap">登录后可保存和查看自己的识别记录。</view></view>
@@ -18,7 +18,7 @@
   <recognition-result wx:if="{{task && task.result_view}}" result="{{task.result_view}}" bindcontent="openContent" bindretake="choose" />
   <view wx:if="{{task.result_view}}" class="card section ai-next"><view class="row"><view><text class="ai-model">✦ DeepSeek Flash</text><view class="title gap">听听这朵花的故事</view></view><text class="ai-orbit">AI</text></view><view class="copy">核对候选特征，了解更多植物知识。原图可由你主动选择附带。</view><button class="secondary gap" bindtap="openAI" disabled="{{busy}}">问问 AI</button></view>
   <page-state loading="{{loading}}" error="{{error}}" bindretry="refreshTask" />
-  <view class="section" wx:if="{{jobs.length}}"><view class="section-head"><text class="section-title">最近的发现</text><text class="small muted">仅自己可见</text></view><view class="card history-row" wx:for="{{jobs}}" wx:key="id" data-id="{{item.id}}" bindtap="openJob"><view class="record-leaf"></view><view class="grow"><view class="title">{{item.result_view ? item.result_view.heading : item.status_label}}</view><view class="copy" wx:if="{{item.error_label}}">{{item.error_label}}</view><view class="small muted gap">{{item.created_label}}</view></view><text class="chevron">›</text></view></view>
+  <view class="section" wx:if="{{jobs.length}}"><view class="section-head"><text class="section-title">最近的发现</text></view><view class="card history-row" wx:for="{{jobs}}" wx:key="id" data-id="{{item.id}}" bindtap="openJob"><image class="record-symbol" src="/assets/icons/observe-flower.png" mode="aspectFit" /><view class="grow"><view class="title">{{item.result_view ? item.result_view.heading : item.status_label}}</view><view class="copy" wx:if="{{item.error_label}}">{{item.error_label}}</view><view class="small muted gap">{{item.created_label}}</view></view><text class="chevron">›</text></view></view>
   <view class="footer-note">慢慢观察，自然会给你答案</view>
   </block>
 </view>

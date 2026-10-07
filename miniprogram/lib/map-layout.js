@@ -1,5 +1,6 @@
 /** Static artwork coordinates are image-relative; they are never latitude/longitude. */
 const DEMO_IMAGE = '/assets/maps/demo-campus-v1.png';
+const DEMO_RESOURCE = '/assets/maps/demo-campus-v1.webp';
 const GROUPS = { water: ['river', 'lake'], park: ['park'], campus: ['campus', 'plant', 'waste'], walk: ['trail', 'landmark'] };
 
 function dimensions(layout) {
@@ -13,7 +14,7 @@ function imageResource(layout, region) {
   if (!dimensions(layout)) return { src: '', notice: '底图尺寸配置无效，可先浏览下方地点。' };
   const src = layout.image_url;
   if (!src) return { src: '', notice: '此版本尚未配置底图，可先浏览下方地点。' };
-  if (src === DEMO_IMAGE && region && region.slug === 'demo-campus' && region.is_demo === true && layout.region === region.id && layout.version === 1 && layout.image_width === 1000 && layout.image_height === 700) return { src, notice: '' };
+  if (src === DEMO_IMAGE && region && region.slug === 'demo-campus' && region.is_demo === true && layout.region === region.id && layout.version === 1 && layout.image_width === 1000 && layout.image_height === 700) return { src: DEMO_RESOURCE, notice: '' };
   // Local resources must be explicitly registered. Never swap in a demo image for another map.
   if (typeof src === 'string' && /^https:\/\/[a-z0-9.-]+(?::\d+)?\/[^\s\\<>]*$/i.test(src)) return { src, notice: '' };
   return { src: '', notice: '当前底图地址尚未受支持，请管理员配置 HTTPS 图片或已登记的本地底图。地点列表仍可使用。' };
@@ -47,4 +48,4 @@ function zoomPan(oldMetrics, nextMetrics, oldX, oldY) {
   const ratio = nextMetrics.mapWidth / oldMetrics.mapWidth;
   return clampPan(nextMetrics.viewportWidth / 2 - (oldMetrics.viewportWidth / 2 - oldX) * ratio, nextMetrics.viewportHeight / 2 - (oldMetrics.viewportHeight / 2 - oldY) * ratio, nextMetrics);
 }
-module.exports = { DEMO_IMAGE, dimensions, imageResource, matchesType, mapPoints, geometry, projection, clampPan, zoomPan };
+module.exports = { DEMO_IMAGE, DEMO_RESOURCE, dimensions, imageResource, matchesType, mapPoints, geometry, projection, clampPan, zoomPan };

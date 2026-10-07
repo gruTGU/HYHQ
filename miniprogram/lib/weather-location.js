@@ -1,4 +1,4 @@
-// Weather GPS is ephemeral: match on-device and send only an allowed city slug.
+// Weather uses a one-shot fuzzy WGS84 point only after a tap. Match on-device; send only an allowed city slug.
 const CITY_SLUGS = Object.freeze(['beijing', 'tianjin', 'shanghai', 'guangzhou', 'shenzhen', 'hangzhou', 'chengdu', 'chongqing', 'wuhan', 'nanjing']);
 const MAX_DISTANCE_KM = 100;
 function validPoint(point) {
@@ -21,14 +21,15 @@ function nearestWeatherCity(point, locations) {
   return selected;
 }
 function locateWeatherCity(wxApi, locations) {
-  if (!wxApi || typeof wxApi.getLocation !== 'function') return Promise.resolve({ status: 'unavailable' });
+  if (!wxApi || typeof wxApi.getFuzzyLocation !== 'function') return Promise.resolve({ status: 'unavailable' });
   return new Promise(resolve => {
     let completed = false;
     const finish = result => { if (completed) return; completed = true; clearTimeout(timer); resolve(result); };
     const timer = setTimeout(() => finish({ status: 'timeout' }), 12000);
     try {
-      // Invoked only by the explicit tap handler, without high-accuracy polling.
-      wxApi.getLocation({ type: 'wgs84', isHighAccuracy: false,
+      // Never escalate a denied or unsupported fuzzy request to precise location.
+      // This API is callback-only; older SDKs retain the manual city picker.
+      wxApi.getFuzzyLocation({ type: 'wgs84',
         success: point => {
           if (completed) return;
           const city = nearestWeatherCity(point, locations);

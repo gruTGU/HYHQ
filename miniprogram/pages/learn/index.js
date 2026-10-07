@@ -1,11 +1,13 @@
+const { withTheme } = require('../../lib/theme');
 const { selectTab } = require('../../lib/tab-bar');
 const { entryUrl } = require('../../lib/llm');
 const { app, detail } = require('../../lib/page');
 const { message } = require('../../lib/format');
 const { loadAll, selectRegion } = require('../../lib/region');
 const { contentView, routeView, choices, pageData, appendUnique } = require('../../lib/knowledge');
-Page({
+Page(withTheme({
   data: {
+    draftsAvailable: false,
     regions: [{ id: '', name: '全部区域' }], regionIndex: 0, regionId: '', regionError: '',
     categories: [{ value: '', name: '全部分类' }], categoryIndex: 0, category: '',
     plantLabels: [{ value: '', name: '全部植物标签' }], plantIndex: 0, plant_label: '',
@@ -15,6 +17,7 @@ Page({
   },
   onLoad() {
     this._alive = true;
+    this.setData({ draftsAvailable: app().config && app().config.transport === 'cloud-function' });
     this._sharedRegionId = app().globalData.region && app().globalData.region.id || '';
     this.setData(this.regionSelection(this._sharedRegionId));
     this.consumePending();
@@ -56,13 +59,20 @@ Page({
     this.setData(Object.assign(this.regionSelection(string(pending.region)), { tab: pending.tab === 'routes' ? 'routes' : 'contents', place: string(pending.place), plant_label: label, category: '', search: '', searchInput: '', categories: choices([], 'category'), categoryIndex: 0, plantLabels, plantIndex: label ? 1 : 0 }));
     return true;
   },
-  onPullDownRefresh() { return this.load(); },
+  onPullDownRefresh() { if (app().api.invalidatePublicCache) app().api.invalidatePublicCache(); return this.load(); },
   async load() {
     if (!this.visible()) return;
     const generation = this._generation = (this._generation || 0) + 1;
     this._requests = this._requests || {};
     this._seen = this._seen || {};
-    try { await Promise.all([this.loadRegions(generation), this.loadTags(generation), this.loadList('contents', false, generation), this.loadList('routes', false, generation)]); }
+    const kind = this.data.tab, inactive = kind === 'contents' ? 'routes' : 'contents';
+    // Do not fetch an unseen tab. Each transition starts a fresh page-one view;
+    // only the API client's bounded public cache may reuse a response.
+    this.setData({ [inactive]: [], [inactive + 'Next']: '', [inactive + 'Loading']: false, [inactive + 'LoadingMore']: false,
+      [inactive + 'Error']: '', [inactive + 'MoreError']: '', tagsLoading: false, tagsError: '' });
+    const work = [this.loadRegions(generation), this.loadList(kind, false, generation)];
+    if (kind === 'contents') work.push(this.loadTags(generation));
+    try { await Promise.all(work); }
     finally { if (this.current(generation)) wx.stopPullDownRefresh(); }
   },
   async loadRegions(generation) {
@@ -77,7 +87,7 @@ Page({
     } catch (error) { if (this.current(generation)) this.setData({ regionError: message(error) }); }
   },
   async loadTags(generation = this._generation) {
-    if (!this.current(generation)) return;
+    if (!this.current(generation) || this.data.tab !== 'contents') return;
     const request = this._tagRequest = (this._tagRequest || 0) + 1;
     this.setData({ tagsLoading: true, tagsError: '' });
     try {
@@ -99,7 +109,7 @@ Page({
     return data;
   },
   async loadList(kind, more = false, generation = this._generation) {
-    if (!this.current(generation) || !['contents', 'routes'].includes(kind)) return;
+    if (!this.current(generation) || !['contents', 'routes'].includes(kind) || this.data.tab !== kind) return;
     if (more && (this.data[kind + 'Loading'] || this.data[kind + 'LoadingMore'] || !this.data[kind + 'Next'])) return;
     this._requests = this._requests || {}; this._seen = this._seen || {};
     const request = this._requests[kind] = (this._requests[kind] || 0) + 1;
@@ -126,7 +136,11 @@ Page({
   moreRoutes() { return this.loadList('routes', true); },
   onReachBottom() { return this.loadList(this.data.tab, true); },
   toggleFilters() { if (this.visible()) this.setData({ showFilters: !this.data.showFilters }); },
-  changeTab(event) { if (this.visible() && ['contents', 'routes'].includes(event.currentTarget.dataset.tab)) this.setData({ tab: event.currentTarget.dataset.tab }); },
+  changeTab(event) {
+    const tab = event.currentTarget.dataset.tab;
+    if (!this.visible() || !['contents', 'routes'].includes(tab) || tab === this.data.tab) return;
+    this.setData({ tab }); return this.load();
+  },
   allRoutes() { return this.changeRegion({ detail: { value: 0 } }); },
   changeRegion(event) {
     if (!this.visible()) return;
@@ -160,9 +174,10 @@ Page({
   open(event) {
     if (!this.visible()) return;
     const { kind, id } = event.currentTarget.dataset;
-    const items = kind === 'content' ? this.data.contents : kind === 'route' ? this.data.routes : [];
+    const items = kind === 'content' && this.data.tab === 'contents' ? this.data.contents : kind === 'route' && this.data.tab === 'routes' ? this.data.routes : [];
     if (items.some((item) => item.id === id)) detail(kind, id);
   },
+  openSubmissions() { if (this.visible() && this.data.draftsAvailable) wx.navigateTo({ url: '/pages/submissions/index' }); },
   openSearch() { if (this.visible()) wx.navigateTo({ url: '/pages/knowledge-search/index' }); },
   openAI() {
     if (!this.visible() || this.data.regionError) return;
@@ -171,4 +186,4 @@ Page({
     const region = regions.find((item) => item.id === this.data.regionId || item.slug === this.data.regionId) || regions.find((item) => shared && item.id === shared.id) || regions[0];
     if (region) wx.navigateTo({ url: entryUrl('learn', 'region', region.id) });
   },
-});
+}));

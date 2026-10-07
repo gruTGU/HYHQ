@@ -83,7 +83,7 @@ test('callbacks, promises and SDKs that invoke both resolve only once', async ()
   for (const style of ['callback', 'promise', 'both']) {
     const f = fixture(); f.login(); f.handler(() => ok({ version: 'm5' }), style);
     assert.equal((await f.client.request('health/')).data.version, 'm5');
-    assert.equal(f.calls[0].header.Authorization, 'Bearer token-A');
+    assert.equal(f.calls[0].header.Authorization, undefined);
   }
 });
 
@@ -339,4 +339,61 @@ test('releaseFile removes only completed files owned by this client cache', asyn
   f.client.releaseFile('/private/other.jpg'); assert.equal(f.files.get('/private/other.jpg').toString(), 'keep');
   f.client.releaseFile(local); assert.equal(f.files.has(local), false);
   f.client.releaseFile(local); assert.equal(f.deleted.filter((path) => path === local).length, 1);
+});
+
+test('public reads omit even an expired business token without changing the stored login', async () => {
+  const f = fixture(); f.login();
+  f.handler(o => o.header.Authorization ? { statusCode: 401, data: { error: { code: 'AUTH_REQUIRED', message: 'expired' } } } : ok({ public: true }));
+  const results = await Promise.all([f.client.request('health/'), f.client.request('regions/')]);
+  assert.ok(results.every(item => item.data.public)); assert.equal(f.session.token(), 'token-A');
+  assert.equal(f.calls.filter(o => !o.header.Authorization).length, 2);
+  assert.equal(f.calls.length, 2);
+});
+test('a public anonymous 401 neither clears an unrelated login nor retries', async () => {
+  const f = fixture(); f.login();
+  f.handler(() => ({ statusCode: 401, data: { error: { code: 'AUTH_REQUIRED', message: 'expired' } } }));
+  await assert.rejects(f.client.request('regions/'), { status: 401 });
+  assert.equal(f.calls.length, 1); assert.equal(f.session.token(), 'token-A');
+});
+test('manual logout or a different login cannot turn an old public request into an anonymous retry', async () => {
+  for (const next of ['', 'token-B']) {
+    const f = fixture(); f.login();
+    const pending = f.client.request('regions/'); await tick();
+    const rejected = assert.rejects(pending, { code: 'SESSION_CHANGED' });
+    if (next) f.login(next); else f.session.clear();
+    f.calls[0].success({ statusCode: 401, data: { error: { code: 'AUTH_REQUIRED' } } });
+    await rejected; assert.equal(f.calls.length, 1); assert.equal(f.session.token(), next);
+  }
+});
+
+test('public GET policy removes only unneeded business auth and preserves private/detail/search/AI/admin/write auth', async () => {
+  const f = fixture(); f.login(); f.handler(() => ok({}));
+  for (const [path, options] of [
+    ['health/'], ['regions/', { data: { page_size: 100 } }], ['/api/v1/contents/?category=plants&page=2&page_size=20'],
+    ['contents/', { data: { search: '叶子 与水面', region: 'demo-campus' } }], ['maps/', { data: { region: 'demo-campus' } }],
+    ['routes/'], ['weather-data/locations/'], ['weather-data/summary/', { data: { location: 'tianjin' } }],
+    ['places/', { data: { kind: 'river', region: 'demo-campus' }, cache: false }],
+  ]) { await f.client.request(path, options); assert.equal(f.calls.at(-1).header.Authorization, undefined, path); }
+  for (const [path, options] of [
+    ['me/'], ['llm/status/'], ['llm/sessions/'], ['recognition-jobs/'], ['assessment-jobs/'], ['community/comments/'],
+    ['contents/' + ASSET_ID + '/'], ['knowledge-search/'], ['personal-admin/status/'], ['unreviewed/'],
+    ['regions/', { method: 'POST' }], ['health/', { method: 'HEAD' }],
+    ['https://campus.example/api/v1/health/'], ['regions/?private=true'], ['regions/?page=0'], ['regions/?page=1&page=2'],
+    ['regions/?%70age=2'], ['contents/?search=%ZZ'], ['contents/?search=%00'], ['weather-data/summary/'],
+    ['weather-data/summary/', { data: { location: 'tianjin', latitude: 39.09 } }], ['regions/?page=1', { data: { page: 2 } }],
+  ]) { await f.client.request(path, options); assert.equal(f.calls.at(-1).header.Authorization, 'Bearer token-A', path); }
+  const before = f.calls.length;
+  for (const path of ['/api/v1/%72egions/', '/api/v1/../regions/', '//campus.example/api/v1/regions/']) await assert.rejects(f.client.request(path), { code: 'UNSAFE_FILE_URL' });
+  assert.equal(f.calls.length, before);
+});
+test('private 401 still clears its login and permits one safe recovery for a concurrent cancelled public read', async () => {
+  const f = fixture(); f.login();
+  const privateResult = assert.rejects(f.client.request('me/'), { code: 'AUTH_REQUIRED' });
+  const publicResult = f.client.request('regions/'); await tick();
+  assert.equal(f.calls[0].header.Authorization, 'Bearer token-A'); assert.equal(f.calls[1].header.Authorization, undefined);
+  f.calls[0].success({ statusCode: 401, data: { error: { code: 'AUTH_REQUIRED', message: 'expired' } } });
+  await tick(); assert.equal(f.calls.length, 3); assert.equal(f.calls[2].header.Authorization, undefined);
+  f.calls[2].success(ok([{ id: 'public-region' }]));
+  await privateResult; assert.equal((await publicResult).data[0].id, 'public-region'); assert.equal(f.session.token(), '');
+  f.calls[1].success(ok([{ id: 'late-old-response' }]));
 });

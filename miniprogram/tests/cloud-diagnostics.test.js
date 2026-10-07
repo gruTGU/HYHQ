@@ -9,7 +9,7 @@ const PRIVATE = 'alice@example.test-secret';
 const UUID = '12345678-1234-4567-8123-123456789abc';
 function fixture(options = {}, logger) {
   const events = [], calls = [], storage = new Map();
-  const sandbox = { module: { exports: {} }, setTimeout, clearTimeout, console: { info: logger || ((...args) => events.push(JSON.parse(JSON.stringify(args)))) } };
+  const sandbox = { module: { exports: {} }, require: name => { assert.equal(name, './public-read-policy'); return require('../lib/public-read-policy'); }, setTimeout, clearTimeout, console: { info: logger || ((...args) => events.push(JSON.parse(JSON.stringify(args)))) } };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../lib/cloud-client.js'), 'utf8'), sandbox);
   const platform = { cloud: { init() {}, callFunction: request => { calls.push(request); } }, getStorageSync: key => storage.get(key), setStorageSync: (key, value) => storage.set(key, value), removeStorageSync: key => storage.delete(key) };
   const session = createSession(platform, 'diagnostic-fixture'); session.save({ token: PRIVATE, user: { id: PRIVATE } });

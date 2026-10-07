@@ -19,7 +19,7 @@ const sample = (temperature) => ({ weather: { status: 'fresh', data: { temperatu
 
 test('weather preserves zero, missing values, stale status and full attribution', () => {
   const view = weatherView({ ...sample(0), air: { status: 'stale', fetched_at: '2026-09-21T00:00:00Z', data: { aqi: 0, pollutants: [{ code: 'pm25', value: null, unit: 'μg/m³' }] }, attributions: ['first', 'second'], refer: { sources: ['source1', 'source2'] } } });
-  assert.equal(view.weather.temp_label, '0°C');
+  assert.equal(view.weather.temp_label, '0℃');
   assert.equal(view.weather.humidity_label, '0%');
   assert.equal(view.air.aqi_label, '0');
   assert.equal(view.air.pollutants[0].value_label, '—');
@@ -53,12 +53,14 @@ test('city switching discards delayed response from a previous city and hides on
   instance.data.cityEnabled = true;
   const first = instance.changeCity({ detail: { value: 0 } });
   const second = instance.changeCity({ detail: { value: 1 } });
+  await new Promise(setImmediate);
   pending[1]({ data: sample(18) }); await second;
   pending[0]({ data: sample(29) }); await first;
   assert.equal(instance.data.city.name, '北京市');
-  assert.equal(instance.data.citySummary.weather.temp_label, '18°C');
+  assert.equal(instance.data.citySummary.weather.temp_label, '18℃');
   const third = instance.changeCity({ detail: { value: 0 } });
   instance.onHide();
+  await new Promise(setImmediate);
   pending[2]({ data: sample(21) }); await third;
   assert.equal(instance.data.citySummary, null);
 });
@@ -81,7 +83,7 @@ test('home weather artwork follows the actual condition and an unknown condition
     instance._cityGeneration = 1;
     await instance.loadCitySummary('tianjin', 1);
     assert.equal(instance.data.weatherTheme, theme, condition || 'missing condition');
-    assert.equal(instance.data.citySummary.weather.temp_label, '0°C');
+    assert.equal(instance.data.citySummary.weather.temp_label, '0℃');
   }
 });
 

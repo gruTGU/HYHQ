@@ -41,9 +41,13 @@ test('personal transport uses named native function and JSON bridge, with no cli
   assert.equal(result.data.version, 'personal');
   assert.deepEqual(f.init, [{ env: 'test-env', traceUser: false }]);
   assert.equal(f.calls[0].name, 'hyhqApi'); assert.deepEqual(f.calls[0].config, { env: 'test-env' });
-  assert.deepEqual(f.calls[0].data, { method: 'GET', path: '/api/v1/health/', body: null, headers: { Authorization: 'Bearer business-token-A' } });
+  assert.deepEqual(f.calls[0].data, { method: 'GET', path: '/api/v1/health/', body: null, headers: {} });
   assert.equal(f.calls[0].header, undefined); assert.equal(f.calls[0].url, undefined);
   assert.ok(!JSON.stringify(f.calls[0].data).includes('openid'));
+  assert.ok(!JSON.stringify(f.calls[0].data).includes('appid'));
+  await f.client.request('me/');
+  assert.deepEqual(f.calls[1].data.headers, { Authorization: 'Bearer business-token-A' });
+  assert.ok(!JSON.stringify(f.calls[1].data).includes('openid'));
 });
 
 test('native task reads can outlive the normal request deadline, remain cancellable, and never retry', async () => {
@@ -164,7 +168,7 @@ test('App startup selects actual function-specific storage and leaves HTTP/conta
   const wx = { getStorageSync: (key) => storage.get(key), setStorageSync: (key, value) => storage.set(key, value), removeStorageSync: (key) => storage.delete(key) };
   function startup(config) {
     let application;
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8'), { wx, App: (value) => { application = value; }, require: (name) => name === './config/index' ? config : name === './lib/session' ? { createSession } : { createClient: () => ({}) } });
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8'), { wx, App: (value) => { application = value; }, require: (name) => name === './config/index' ? config : name === './lib/session' ? { createSession } : name === './lib/theme' ? require('../lib/theme') : { createClient: () => ({}) } });
     application.onLaunch(); return application;
   }
   const a = startup({ transport: 'cloud-function', cloud: { env: 'test-env', function: 'hyhqApi' } }); a.session.save({ token: 'fn-A' });
@@ -178,7 +182,7 @@ test('personal legal page enables existing cloud-only retention and cache explan
   const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
   for (const transport of ['http', 'cloud', 'cloud-function']) {
     let page;
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../pages/legal/index.js'), 'utf8'), { Page: (value) => { page = value; }, getApp: () => ({ config: { transport } }), wx: { setNavigationBarTitle() {} } });
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../pages/legal/index.js'), 'utf8'), { require: (name) => { assert.equal(name, '../../lib/theme'); return require('../lib/theme'); }, Page: (value) => { page = value; }, getApp: () => ({ config: { transport } }), wx: { setNavigationBarTitle() {} } });
     page.setData = (value) => Object.assign(page.data, value);
     page.onLoad({ kind: 'privacy' }); assert.equal(page.data.cloudMode, transport !== 'http'); assert.equal(page.data.privacy, true);
   }

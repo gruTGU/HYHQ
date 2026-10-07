@@ -1,4 +1,5 @@
-Page({
+const { withTheme } = require('../../lib/theme');
+Page(withTheme({
   data: { privacy: true, cloudMode: false },
   onLoad(options) {
     const config = getApp().config || {};
@@ -11,4 +12,4 @@ Page({
   },
   switchDocument(event) { this.showDocument(event.currentTarget.dataset.kind !== 'terms'); },
   feedback() { wx.navigateTo({ url: '/pages/feedback/index' }); },
-});
+}));

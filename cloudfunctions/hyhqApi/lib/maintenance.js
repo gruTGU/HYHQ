@@ -4,7 +4,7 @@
 const { ApiError, response, requireUser, uuid } = require('./core');
 const llm = require('./llm');
 const DAY = 86400000, CHUNK = 196608;
-const KINDS = Object.freeze(['sessions', 'uploads', 'upload_chunks', 'assets', 'storage_cleanup', 'llm_sessions', 'llm_turns', 'recognition_jobs', 'assessment_jobs', 'asset_usage', 'llm_owners', 'llm_ledger', 'llm_quotas', 'llm_days', 'upload_budget', 'inference_daily', 'weather_requests', 'auth_gates']);
+const KINDS = Object.freeze(['sessions', 'uploads', 'upload_chunks', 'assets', 'storage_cleanup', 'llm_sessions', 'llm_turns', 'recognition_jobs', 'assessment_jobs', 'asset_usage', 'llm_owners', 'llm_ledger', 'llm_quotas', 'llm_days', 'upload_budget', 'inference_daily', 'weather_requests', 'auth_gates', 'weather_ai_drafts']);
 const POLICY = Object.freeze({ original_hours: 24, recognition_thumbnail_days: 30, pinned_avatar: 'until_replaced_or_account_deleted', login_session_days: 7, upload_hours: 1, accounting_days: 90, max_batch_size: 20, automatic_schedule_enabled: false });
 function stamp(value) { const n = Date.parse(value); return Number.isFinite(n) ? n : null; }
 function due(value, now) { const n = stamp(value); return n !== null && n <= now; }
@@ -100,7 +100,7 @@ async function cleanRow(ctx, kind, row, now, alive) {
   if (kind === 'llm_sessions') return llm.expireSession(ctx, row.id);
   if (kind === 'recognition_jobs' || kind === 'assessment_jobs') return cleanupJob(ctx, kind, row, now);
   return removeIf(ctx, kind, row.id, async (fresh, tx) => {
-    if (kind === 'sessions') return due(fresh.expires_at, now);
+    if (kind === 'sessions' || kind === 'weather_ai_drafts') return due(fresh.expires_at, now);
     if (kind === 'upload_chunks') {
       const match = /^([a-f0-9-]{36})_(\d+)$/.exec(row.id);
       return !!match && !await tx.get('uploads', match[1]);
@@ -149,7 +149,7 @@ async function runMaintenance(ctx, options = {}) {
     await ctx.store.transaction(async tx => {
       const fresh = await tx.get('maintenance_state', 'global'); if (!fresh || fresh.lease_token !== token) return;
       const offsets = { ...fresh.offsets, [state.kind]: summary.complete_cycle ? 0 : state.offset + summary.scanned - summary.removed };
-      await tx.set('maintenance_state', 'global', { id: 'global', offsets, next_kind: (KINDS.indexOf(state.kind) + 1) % KINDS.length, recent: [{ ...summary, aborted: !!fatal }, ...(fresh.recent || [])].slice(0, 20), lease_token: null, lease_until: null, timer_verified_at: fresh.timer_verified_at || null });
+      await tx.set('maintenance_state', 'global', { id: 'global', offsets, next_kind: (KINDS.indexOf(state.kind) + 1) % KINDS.length, recent: [{ ...summary, aborted: !!fatal }, ...(fresh.recent || [])].slice(0, 20), lease_token: null, lease_until: null, timer_verified_at: fresh.timer_verified_at || null, reminder_cleanup: fresh.reminder_cleanup || null });
     });
   }
   if (fatal) throw fatal;
@@ -161,7 +161,7 @@ async function handle(ctx) {
   if (ctx.query && [...ctx.query.keys()].length) throw new ApiError('VALIDATION_ERROR', '维护接口不接受查询参数');
   if (ctx.method === 'GET') {
     const state = await ctx.store.get('maintenance_state', 'global');
-    return response({ policy: { ...POLICY, automatic_schedule_enabled: ctx.config.maintenanceEnabled === true && !!(state && state.timer_verified_at) }, kinds: KINDS, recent: state && state.recent || [], timer_verified_at: state && state.timer_verified_at || null, running: !!(state && state.lease_token && state.lease_until > ctx.now) });
+    return response({ policy: { ...POLICY, automatic_schedule_enabled: ctx.config.maintenanceEnabled === true && !!(state && state.timer_verified_at) }, kinds: KINDS, recent: state && state.recent || [], timer_verified_at: state && state.timer_verified_at || null, reminder_cleanup: state && state.reminder_cleanup || null, running: !!(state && state.lease_token && state.lease_until > ctx.now) });
   }
   if (ctx.method === 'POST') return response(await runMaintenance(ctx, ctx.body));
   throw new ApiError('METHOD_NOT_ALLOWED', '不支持此维护操作', 405);

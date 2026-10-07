@@ -1,4 +1,4 @@
-<view class="page records-page">
+<view style="{{themeStyle}}" class="page theme-{{themeId}} records-page">
   <view class="records-header"><view class="page-heading">{{title}}</view><view class="private-label"><view class="privacy-dot"></view><text>仅当前账号可见</text></view></view>
   <view class="section"><page-state loading="{{loading}}" error="{{error && !records.length ? error : ''}}" bindretry="load" /></view>
   <view wx:if="{{!loading && !error && !records.length}}" class="card records-empty">

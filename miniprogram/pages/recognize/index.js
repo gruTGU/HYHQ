@@ -1,8 +1,9 @@
+const { withTheme } = require('../../lib/theme');
 const { selectTab } = require('../../lib/tab-bar');
 const { app, requireLogin, toast, finish, detail } = require('../../lib/page');
 const { list, task, message } = require('../../lib/format');
 const { capability } = require('../../lib/recognition');
-Page({
+Page(withTheme({
   data: { mode: 'recognition', riverBusy: false, loading: false, error: '', busy: false, imagePath: '', imageOrigin: '', imageUnavailable: '', task: null, jobs: [], loggedIn: false, capability: capability(null), capabilityKnown: false, capabilityError: '', helpExpanded: false },
   onShow() {
     this._destroyed = false;
@@ -205,4 +206,4 @@ Page({
   },
   assessment() { return this.changeMode({ currentTarget: { dataset: { mode: 'assessment' } } }); },
   privacy() { wx.navigateTo({ url: '/pages/legal/index?kind=privacy' }); },
-});
+}));

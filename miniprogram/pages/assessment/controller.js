@@ -1,7 +1,8 @@
 const { app, requireLogin, toast, finish } = require('../../lib/page');
 const { list, message } = require('../../lib/format');
-const { capability, assessmentTask: baseAssessmentTask } = require('../../lib/assessment');
+const { capability, imageEligible, assessmentTask: baseAssessmentTask } = require('../../lib/assessment');
 const { summaryView } = require('./summary');
+const { requestObservationLocation } = require('../../lib/observation-location');
 const assessmentTask = (job) => Object.assign(baseAssessmentTask(job), { summary_view: summaryView(job) });
 const NONE = { id: '', name: '不关联水体（可直接上传）' };
 const pending = (job) => job && ['queued', 'running'].includes(job.status);
@@ -11,7 +12,7 @@ function createAssessmentController() { return {
     loading: false, error: '', busy: false, loggedIn: false, helpExpanded: false, associationExpanded: false, metadataExpanded: false,
     capability: capability(null), capabilityKnown: false, capabilityError: '',
     imagePath: '', imageOrigin: '', imageReady: false, imageUnavailable: '', task: null, jobs: [],
-    waterBodies: [NONE], waterIndex: 0, waterNotice: '', location: null, locating: false, locationNotice: '', nearby: null,
+    waterBodies: [NONE], waterIndex: 0, waterNotice: '', location: null, locating: false, locationNotice: '', locationLabel: '', locationSource: '', referenceLabel: '', referenceAccuracy: '', nearby: null,
   },
   onLoad(options) { this._requestedJob = options && options.jobId || ''; },
   onShow() {
@@ -21,12 +22,23 @@ function createAssessmentController() { return {
     const token = app().session.token();
     if (token !== this._sessionToken) this.clearPrivate();
     this._sessionToken = token;
-    return this.load();
+    const deferred = this._pendingLocationResult;
+    this._pendingLocationResult = null;
+    return Promise.all([this.load(), deferred ? this.applyObservationLocation(deferred.result, deferred.token, deferred.version) : Promise.resolve()]);
   },
-  onHide() { this._visible = false; this.stopPolling(); },
+  onHide() {
+    this._visible = false; this.stopPolling();
+    // Opening the native map/POI picker can hide this page. Keep that explicit
+    // choice pending, but never query or apply its result until the page returns.
+    if (this._locationRequest && this._locationIntent && this._locationIntent.kind !== 'current') return;
+    this._locationVersion = (this._locationVersion || 0) + 1;
+    this.cancelLocationWork();
+    if (this.data.locating) this.setData({ locating: false });
+  },
   onUnload() {
     this._destroyed = true;
     this._visible = false;
+    this.cancelLocationWork();
     this._loadGeneration = (this._loadGeneration || 0) + 1;
     this._selectionVersion = (this._selectionVersion || 0) + 1;
     this._locationVersion = (this._locationVersion || 0) + 1;
@@ -45,8 +57,9 @@ function createAssessmentController() { return {
   },
   clearPrivate() {
     this.clearSelection();
+    this.cancelLocationWork();
     this._locationVersion = (this._locationVersion || 0) + 1;
-    this.setData({ jobs: [], location: null, nearby: null, locating: false, locationNotice: '', waterIndex: 0 });
+    this.setData({ jobs: [], location: null, nearby: null, locating: false, locationNotice: '', locationLabel: '', locationSource: '', referenceLabel: '', referenceAccuracy: '', waterIndex: 0 });
   },
   current(token) {
     if (this._destroyed) return false;
@@ -127,7 +140,8 @@ function createAssessmentController() { return {
     const token = app().session.token();
     const version = this._selectionVersion;
     const selected = this.data.waterBodies[this.data.waterIndex];
-    const payload = Object.assign({}, this.data.location || {});
+    // A fuzzy query is only a nearby search reference, never an observation point.
+    const payload = Object.assign({}, ['map', 'poi'].includes(this.data.locationSource) ? this.data.location || {} : {});
     if (selected && selected.id) payload.water_body_id = selected.id;
     this.setData({ busy: true, error: '' });
     try {
@@ -217,28 +231,56 @@ function createAssessmentController() { return {
     const index = Number(event.detail.value);
     if (Number.isInteger(index) && this.data.waterBodies[index]) this.setData({ waterIndex: index });
   },
-  locate() {
-    if (this._destroyed || this.data.busy || this.data.locating || !requireLogin()) return;
+  cancelLocationWork() {
+    if (this._locationRequest && this._locationRequest.cancel) this._locationRequest.cancel();
+    this._locationRequest = null; this._locationIntent = null; this._pendingLocationResult = null;
+  },
+  locate() { return this.pickObservationLocation('current'); },
+  chooseMapLocation() { return this.pickObservationLocation('map'); },
+  choosePoiLocation() { return this.pickObservationLocation('poi'); },
+  async pickObservationLocation(kind) {
+    if (this._destroyed || this._visible === false || this.data.busy || this.data.locating || !requireLogin()) return;
     const token = app().session.token();
     const version = this._locationVersion = (this._locationVersion || 0) + 1;
-    this.setData({ locating: true, nearby: null, location: null, locationNotice: '' });
-    wx.getLocation({ type: 'gcj02', success: async (position) => {
-      if (!this.current(token) || version !== this._locationVersion) return;
-      const latitude = position.latitude, longitude = position.longitude;
-      if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
-        this.setData({ locating: false, locationNotice: '未取得有效位置，仍可手选水体或直接上传。' }); return;
-      }
-      const location = { latitude, longitude, coordinate_system: 'GCJ02' };
-      this.setData({ location, locationNotice: '已取得本次可选位置；上传时会保存到仅本人可见的记录。' });
-      try {
-        const response = await app().api.request('nearby-water-bodies/', { data: location });
-        if (!this.current(token) || version !== this._locationVersion) return;
-        this.setData({ nearby: response.data && response.data.match || null, locationNotice: response.data && response.data.match ? '找到一个候选水体，请自行确认；不代表到访认证。' : '没有同坐标系的附近候选，仍可手选水体或直接上传。' });
-      } catch (error) { if (this.current(token) && version === this._locationVersion) this.setData({ locationNotice: '附近水体查询暂不可用，仍可手选水体或直接上传。' }); }
-      finally { if (!this._destroyed && version === this._locationVersion && app().session.token() === token) this.setData({ locating: false }); }
-    }, fail: () => {
-      if (this.current(token) && version === this._locationVersion) this.setData({ locating: false, location: null, locationNotice: '未授权或未取得位置，仍可手选水体或直接上传。' });
-    } });
+    this.cancelLocationWork();
+    this.setData({ locating: true, locationNotice: '' });
+    this._locationIntent = { kind, token, version };
+    const request = requestObservationLocation(wx, kind);
+    this._locationRequest = request;
+    const result = await request;
+    if (this._locationRequest === request) this._locationRequest = null;
+    if (this._destroyed || version !== this._locationVersion || !this.current(token)) return;
+    if (this._visible === false) {
+      if (kind !== 'current') this._pendingLocationResult = { result, token, version };
+      return;
+    }
+    return this.applyObservationLocation(result, token, version);
+  },
+  async applyObservationLocation(result, token, version) {
+    if (this._destroyed || this._visible === false || version !== this._locationVersion || !this.current(token)) return;
+    this._locationIntent = null;
+    if (result.status !== 'selected') {
+      const notice = result.status === 'cancelled' ? '已取消选择，本次位置保持不变。'
+        : result.status === 'city-only' ? '选择的是城市，不能作为河道观察点；可改用地图选点，或不附位置继续。'
+          : result.status === 'invalid' ? '没有返回有效的具体位置，可改用地图选点，或不附位置继续。'
+            : result.status === 'timeout' ? '定位超时，仍可手选水体或直接上传。'
+              : '未授权或当前微信不支持此选点方式，仍可手选水体或直接上传。';
+      this.setData({ locating: false, locationNotice: notice }); return;
+    }
+    const location = result.location, approximate = result.source === 'fuzzy';
+    const referenceNotice = approximate ? '模糊位置仅用于查找候选，不保存为观察位置。' + (this.data.location ? '已选的具体观察点保持不变。' : '') : '';
+    if (approximate) this.setData({ referenceLabel: '模糊参考位置',
+      referenceAccuracy: result.accuracy_m === null ? '定位精度未提供' : '定位精度约 ' + Math.ceil(result.accuracy_m) + ' 米',
+      nearby: null, locationNotice: referenceNotice });
+    else if (['map', 'poi'].includes(result.source)) this.setData({ location, locationSource: result.source, locationLabel: result.label,
+      referenceLabel: '', referenceAccuracy: '', nearby: null, locationNotice: '已选择本次位置，提交观察时才保存到记录。' });
+    else { this.setData({ locating: false, locationNotice: '位置来源无法确认，请重新从地图或地点列表选择。' }); return; }
+    try {
+      const response = await app().api.request('nearby-water-bodies/', { data: location });
+      if (this._destroyed || this._visible === false || version !== this._locationVersion || !this.current(token)) return;
+      this.setData({ nearby: response.data && response.data.match || null, locationNotice: referenceNotice + (response.data && response.data.match ? '找到一个候选水体，请自行确认；不代表到访认证。' : '没有同坐标系的附近候选，仍可手选水体或直接上传。') });
+    } catch (error) { if (!this._destroyed && this._visible !== false && version === this._locationVersion && this.current(token)) this.setData({ locationNotice: referenceNotice + '附近水体查询暂不可用，仍可手选水体或直接上传。' }); }
+    finally { if (!this._destroyed && this._visible !== false && version === this._locationVersion && app().session.token() === token) this.setData({ locating: false }); }
   },
   acceptNearby() {
     const match = this.data.nearby;
@@ -251,12 +293,17 @@ function createAssessmentController() { return {
   clearLocation() {
     if (this.data.busy) return;
     this._locationVersion = (this._locationVersion || 0) + 1;
-    this.setData({ location: null, nearby: null, locating: false, locationNotice: '本次不保存位置；手选水体关联仍可独立修改。' });
+    this.cancelLocationWork();
+    this.setData({ location: null, locationLabel: '', locationSource: '', referenceLabel: '', referenceAccuracy: '', nearby: null, locating: false, locationNotice: '本次不保存位置；手选水体关联仍可独立修改。' });
   },
   imageLoaded() { if (!this._destroyed) this.setData({ imageReady: true }); },
   imageError() { if (!this._destroyed) this.setData({ imageReady: false, imageUnavailable: '图片暂时无法显示，观察记录仍可查看。' }); },
   refreshTask() { this._pollCount = 0; return this.data.task ? this.poll(this.data.task.id) : this.load(); },
   allRecords() { wx.navigateTo({ url: '/pages/records/index?kind=assessment-jobs' }); },
+  openImageAI() {
+    if (this._destroyed || !this._visible || this.data.busy || !imageEligible(this.data.task) || this._sessionToken !== app().session.token() || !requireLogin()) return;
+    wx.navigateTo({ url: '/pages/llm/index?kind=assessment&jobId=' + encodeURIComponent(this.data.task.id) + '&interpretation_mode=image' });
+  },
   openAI() {
     if (this._destroyed || !this._visible || this.data.busy || !this.data.task || this.data.task.status !== 'succeeded' || this._sessionToken !== app().session.token() || !requireLogin()) return;
     wx.navigateTo({ url: '/pages/llm/index?kind=assessment&jobId=' + encodeURIComponent(this.data.task.id) });

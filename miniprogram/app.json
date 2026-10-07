@@ -17,7 +17,9 @@
     "pages/knowledge-search/index",
     "pages/comments/index",
     "pages/weather/index",
-    "pages/personal-admin/index"
+    "pages/personal-admin/index",
+    "pages/themes/index",
+    "pages/submissions/index"
   ],
   "window": {
     "navigationBarTitleText": "HYHQ 海晏河清",
@@ -62,12 +64,17 @@
     "recognition-result": "/components/recognition-result/index"
   },
   "permission": {
+    "scope.userFuzzyLocation": {
+      "desc": "用于选择邻近天气城市及查找附近水体"
+    },
     "scope.userLocation": {
-      "desc": "用于选择天气城市、查找附近水体及记录观察位置"
+      "desc": "用于自主选择河道观察位置"
     }
   },
   "requiredPrivateInfos": [
-    "getLocation"
+    "getFuzzyLocation",
+    "chooseLocation",
+    "choosePoi"
   ],
   "style": "v2",
   "lazyCodeLoading": "requiredComponents",

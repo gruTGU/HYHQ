@@ -19,7 +19,7 @@ function setup(handler, guest = false) {
     download: async () => '/private/thumbnail.jpg',
   } };
   global.getApp = () => app;
-  global.wx = { nextTick: callback => nextTicks.push(callback), stopPullDownRefresh() {}, showToast() {}, showModal() {}, navigateTo: options => navigations.push(options.url), switchTab: options => navigations.push(options.url), chooseMedia: options => media.push(options), getLocation: options => locations.push(options) };
+  global.wx = { nextTick: callback => nextTicks.push(callback), stopPullDownRefresh() {}, showToast() {}, showModal() {}, navigateTo: options => navigations.push(options.url), switchTab: options => navigations.push(options.url), chooseMedia: options => media.push(options), getFuzzyLocation: options => locations.push(options) };
   let pageDef; global.Page = definition => { pageDef = definition; };
   const filename = require.resolve('../pages/recognize/index'); delete require.cache[filename]; require(filename);
   const page = { ...pageDef, data: structuredClone(pageDef.data) }; page.setData = patch => Object.assign(page.data, patch);
