@@ -2,7 +2,7 @@
   <view class="title">平台管理</view><view class="copy">仅授权管理员可访问，关键操作保留记录。</view>
   <page-state loading="{{loading}}" error="{{error}}" bindretry="load" />
   <block wx:if="{{allowed}}">
-    <view class="admin-tabs"><button data-tab="stats" bindtap="tab">概览</button><button data-tab="contents" bindtap="tab">科普</button><button data-tab="routes" bindtap="tab">路线</button><button data-tab="places" bindtap="tab">地点</button><button data-tab="feedback" bindtap="tab">反馈</button><button data-tab="submissions" bindtap="tab">投稿审核</button><button data-tab="comments" bindtap="tab">评论审核</button><button data-tab="reports" bindtap="tab">举报处理</button><button data-tab="audit" bindtap="tab">审计</button><button data-tab="maintenance" bindtap="tab">维护</button></view>
+    <view class="admin-tabs"><button data-tab="stats" bindtap="tab">概览</button><button data-tab="contents" bindtap="tab">科普</button><button data-tab="routes" bindtap="tab">路线</button><button data-tab="places" bindtap="tab">地点</button><button data-tab="feedback" bindtap="tab">反馈</button><button data-tab="submissions" bindtap="tab">资料反馈编辑</button><button data-tab="audit" bindtap="tab">审计</button><button data-tab="maintenance" bindtap="tab">维护</button></view>
     <view wx:if="{{notice}}" class="admin-notice">{{notice}}</view>
     <block wx:if="{{tab === 'stats'}}">
       <view class="copy">统计时间：{{asOf}}</view>
@@ -17,13 +17,20 @@
       <textarea value="{{editor.source}}" maxlength="500" data-field="source" bindinput="field" placeholder="可核对的公开来源" />
       <view class="admin-actions"><button class="primary" disabled="{{busy || editor.deleted}}" bindtap="save">保存</button><button wx:if="{{!editor.published}}" class="secondary" disabled="{{busy}}" data-publish="true" bindtap="save">核对并发布</button><button wx:if="{{!editor.deleted}}" class="secondary" disabled="{{busy}}" bindtap="withdraw">撤下</button></view>
     </view>
+    <view wx:if="{{editorial && tab === 'submissions'}}" class="card admin-editor section">
+      <view class="title">编辑官方文章</view><view class="copy">请独立整理并核实公开来源，移除个人信息。原始反馈不会自动填入或直接发布。</view>
+      <input value="{{editorial.title}}" maxlength="80" data-field="title" bindinput="editorialField" placeholder="编辑后标题（80字以内）" />
+      <textarea value="{{editorial.body}}" maxlength="2000" data-field="body" bindinput="editorialField" placeholder="编辑后正文（2000字以内）" />
+      <textarea value="{{editorial.source}}" maxlength="300" data-field="source" bindinput="editorialField" placeholder="已核实的公开来源（必填）" />
+      <button class="primary" disabled="{{busy}}" bindtap="publishFeedback">检查编辑稿并发布</button>
+    </view>
     <view wx:for="{{rows}}" wx:key="id" class="card section admin-row">
       <view class="admin-row-heading"><view class="title">{{item.title_label}}</view><text class="admin-status">{{item.status_label}}</text></view><view class="copy">{{item.time_label}}</view>
       <view wx:if="{{tab === 'feedback'}}" class="admin-body">{{item.body}}</view><view wx:if="{{item.reply}}" class="admin-notice">答复：{{item.reply}}</view>
       <block wx:if="{{tab === 'submissions' || tab === 'comments' || tab === 'reports'}}">
-        <view class="admin-body">{{item.body || item.detail}}</view><view wx:if="{{item.source}}" class="copy">来源：{{item.source}}</view><view wx:if="{{item.review_reason}}" class="admin-notice">审核说明：{{item.review_reason}}</view>
+        <view wx:if="{{tab === 'submissions'}}" class="copy">私密原始反馈 · 仅授权编辑可见</view><view class="admin-body">{{item.body || item.detail}}</view><view wx:if="{{item.source}}" class="copy">来源：{{item.source}}</view><view wx:if="{{item.review_reason}}" class="admin-notice">审核说明：{{item.review_reason}}</view>
         <view wx:if="{{tab !== 'reports'}}" class="copy">内容检查：{{item.safety_status}}</view><view wx:if="{{tab === 'reports'}}" class="copy">举报对象：{{item.kind}} / {{item.target_id}} · 原因：{{item.reason}}</view>
-        <view wx:if="{{tab !== 'reports' && (item.status === 'pending' || item.status === 'approved')}}" class="admin-actions"><button wx:if="{{item.status === 'pending' && item.safety_status === 'pass'}}" class="primary" data-id="{{item.id}}" data-decision="approved" bindtap="reviewCommunity" disabled="{{busy}}">核对并通过</button><button class="secondary" data-id="{{item.id}}" data-decision="rejected" bindtap="reviewCommunity" disabled="{{busy}}">{{item.status === 'approved' ? '撤下内容' : '驳回并说明'}}</button></view>
+        <button wx:if="{{tab === 'submissions' && item.status === 'pending' && item.safety_status === 'pass'}}" class="primary" data-id="{{item.id}}" bindtap="editFeedback" disabled="{{busy}}">独立编辑官方文章</button><view wx:if="{{tab !== 'reports' && (item.status === 'pending' || item.status === 'approved' || item.status === 'reviewing')}}" class="admin-actions"><button wx:if="{{tab !== 'submissions' && item.status === 'pending' && item.safety_status === 'pass'}}" class="primary" data-id="{{item.id}}" data-decision="approved" bindtap="reviewCommunity" disabled="{{busy}}">核对并通过</button><button class="secondary" data-id="{{item.id}}" data-decision="rejected" bindtap="reviewCommunity" disabled="{{busy}}">{{item.status === 'approved' ? '撤下内容' : '驳回并说明'}}</button></view>
         <view wx:if="{{tab === 'reports'}}" class="admin-actions"><button class="secondary" data-id="{{item.id}}" data-decision="resolved" bindtap="reviewCommunity" disabled="{{busy}}">标为已处理</button><button class="secondary" data-id="{{item.id}}" data-decision="dismissed" bindtap="reviewCommunity" disabled="{{busy}}">不予受理</button></view>
       </block>
       <view wx:if="{{item.detail_label}}" class="copy admin-note">{{item.detail_label}}</view><view wx:if="{{item.fields_label}}" class="copy">变更字段：{{item.fields_label}}</view>

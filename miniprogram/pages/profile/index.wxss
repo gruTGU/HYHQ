@@ -11,7 +11,7 @@
 .profile-content { position: relative; margin-top: 28rpx; }
 .card { background: var(--hyhq-surface, #fffefa); border-radius: var(--hyhq-card-radius, 32rpx); }
 .login-card { padding: 34rpx; }
-.login-notice { font-size: 22rpx; line-height: 1.9; margin: 26rpx 0 8rpx; color: #718278; }
+.login-notice { display: flex; align-items: center; flex-wrap: nowrap; gap: 0; white-space: nowrap; font-size: 22rpx; line-height: 1.5; margin: 26rpx 0 8rpx; color: #718278; }
 .legal-link { color: #3a7d5c; text-decoration: underline; }
 .avatar-frame { box-sizing: border-box; flex: 0 0 120rpx; width: 120rpx; height: 120rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-right: 24rpx; border: 6rpx solid rgba(255, 255, 255, .8); background: #e5efdf; overflow: hidden; }
 .avatar { display: block; width: 108rpx; height: 108rpx; flex-shrink: 0; border-radius: 50%; overflow: hidden; }
@@ -47,12 +47,15 @@
 .privacy-card switch { flex: none; margin-left: 0; transform: scale(.9); transform-origin: right center; }
 .history-setting .menu-row { padding-bottom: 12rpx; }
 .setting-help { padding-bottom: 24rpx; color: var(--hyhq-muted, #65796c); font-size: 24rpx; line-height: 1.6; }
-.account-actions { margin-top: 30rpx; }.account-delete { margin: 22rpx auto 0; color: #b46237; padding: 12rpx 24rpx; }
+.account-actions { margin-top: 30rpx; }
+.profile-page .account-button { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 88rpx; padding: 20rpx 22rpx; line-height: 1.5; text-align: center; }
+.profile-page .privacy-card .account-delete { color: #b46237; }
 
 .profile-page .profile-edit-link { display: inline-block; width: auto; padding: 4rpx 0; margin: 8rpx 0 0; background: transparent; color: #e5efe0; font-weight: 400; font-size: 23rpx; line-height: 1.6; text-align: left; }
 .profile-edit-chevron { display: inline-block; margin-left: 12rpx; transition: transform .18s; }
 .chevron-open { transform: rotate(90deg); }
-.agreement-label { display: flex; align-items: center; min-height: 56rpx; }
-.agreement-label checkbox { flex-shrink: 0; transform: scale(.8); transform-origin: left center; }
-.agreement-links { margin-left: 58rpx; }
+.login-notice checkbox-group { flex: none; }
+.agreement-label { display: flex; align-items: center; min-height: 56rpx; white-space: nowrap; }
+.agreement-label checkbox { flex: 0 0 42rpx; width: 42rpx; margin-right: 4rpx; transform: scale(.7); transform-origin: left center; }
+.agreement-links { display: flex; align-items: center; flex: none; margin-left: 0; white-space: nowrap; }
 .profile-page .avatar-edit { width: auto; margin: 0; padding: 15rpx 24rpx; font-size: 25rpx; }

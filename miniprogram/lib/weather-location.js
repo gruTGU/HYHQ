@@ -1,6 +1,9 @@
 // Weather uses a one-shot fuzzy WGS84 point only after a tap. Match on-device; send only an allowed city slug.
 const CITY_SLUGS = Object.freeze(['beijing', 'tianjin', 'shanghai', 'guangzhou', 'shenzhen', 'hangzhou', 'chengdu', 'chongqing', 'wuhan', 'nanjing']);
 const MAX_DISTANCE_KM = 100;
+const CAMPUS_SLUGS = ['tiangong', 'tianjin-normal', 'tianjin-technology'];
+function weatherCityOptions(locations) { return (Array.isArray(locations) ? locations : []).filter(item => item && item.kind !== 'campus' && !CAMPUS_SLUGS.includes(item.slug)); }
+function weatherCitySlug(slug) { return CAMPUS_SLUGS.includes(slug) ? 'tianjin' : slug; }
 function validPoint(point) {
   return point && typeof point.latitude === 'number' && typeof point.longitude === 'number'
     && Number.isFinite(point.latitude) && Number.isFinite(point.longitude) && Math.abs(point.latitude) <= 90 && Math.abs(point.longitude) <= 180;
@@ -40,4 +43,4 @@ function locateWeatherCity(wxApi, locations) {
     } catch (_) { finish({ status: 'unavailable' }); }
   });
 }
-module.exports = { CITY_SLUGS, MAX_DISTANCE_KM, nearestWeatherCity, locateWeatherCity };
+module.exports = { CITY_SLUGS, MAX_DISTANCE_KM, nearestWeatherCity, locateWeatherCity, weatherCityOptions, weatherCitySlug };

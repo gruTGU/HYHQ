@@ -4,11 +4,13 @@
 const { ApiError, response, requireUser, uuid, sha256, paginate, dateCN } = require('./core');
 const catalog = require('./catalog');
 const bundle = require('../data/catalog.json');
-const EDITABLE = ['contents', 'routes', 'places'];
+const mapGeometry = require('./map-geometry');
+const EDITABLE = ['contents', 'routes', 'places', 'rivers'];
 const FIELDS = {
+  rivers: ['slug', 'name', 'description', 'region', 'path', 'coordinate_system', 'geometry_verified', 'source_url', 'source_note', 'checked_at', 'access_note'],
   contents: ['title', 'slug', 'body', 'summary', 'category', 'place', 'plant_label', 'source', 'is_demo'],
   routes: ['title', 'slug', 'region', 'description', 'source', 'is_demo', 'stops'],
-  places: ['slug', 'name', 'kind', 'description', 'region', 'map_layout', 'x_ratio', 'y_ratio', 'latitude', 'longitude', 'coordinate_system', 'source_note'],
+  places: ['slug', 'name', 'kind', 'description', 'region', 'map_layout', 'x_ratio', 'y_ratio', 'latitude', 'longitude', 'coordinate_system', 'source_note', 'coordinates_verified', 'source_url', 'checked_at', 'access_note', 'river_id'],
 };
 const bad = (message) => { throw new ApiError('VALIDATION_ERROR', message, 400); };
 const fail = (code, message, status = 409) => { throw new ApiError(code, message, status); };
@@ -73,7 +75,7 @@ function validateValue(kind, previous, change, publication, current, now, id) {
   const value = { ...(previous || {}), ...change, id };
   value.slug = text(value.slug, 'slug', 100, true);
   if (!/^[-a-zA-Z0-9_]+$/.test(value.slug)) bad('slug只能包含字母、数字、短横线或下划线');
-  for (const key of kind === 'places' ? ['name'] : ['title']) value[key] = text(value[key], key, kind === 'places' ? 120 : 180, true);
+  for (const key of ['places', 'rivers'].includes(kind) ? ['name'] : ['title']) value[key] = text(value[key], key, ['places', 'rivers'].includes(kind) ? 120 : 180, true);
   const longField = kind === 'contents' ? 'body' : 'description'; value[longField] = text(value[longField], longField, 20000, kind === 'contents');
   if (own(change, 'is_demo') && typeof change.is_demo !== 'boolean') bad('is_demo必须为布尔值');
   if (kind === 'contents') {
@@ -89,10 +91,26 @@ function validateValue(kind, previous, change, publication, current, now, id) {
     value._created_at ||= now; value.updated_at = now;
   } else {
     if (!current.regions.some((region) => region.id === value.region)) bad('所属区域不存在');
-    if (previous && kind === 'places' && previous.region !== value.region) bad('已有地点不能直接跨区域移动，请新建地点');
+    if (previous && ['places', 'rivers'].includes(kind) && previous.region !== value.region) bad('已有地点不能直接跨区域移动，请新建地点');
     value.region_name = current.regions.find((region) => region.id === value.region).name;
     value._updated_at = now;
-    if (kind === 'routes') {
+    if (kind === 'rivers') {
+      value.is_demo = false;
+      if (current.regions.find(row => row.id === value.region).is_demo !== false) bad('河道折线只能属于真实城市');
+      value.is_published = publication === undefined ? Boolean(previous && previous.is_published === true) : publication;
+      value.source_note = text(value.source_note, '河道来源', 500);
+      value.source_url = text(value.source_url, '来源链接', 1000);
+      value.access_note = text(value.access_note, '访问说明', 1000);
+      value.checked_at = text(value.checked_at, '核对日期', 10);
+      value.coordinate_system ||= 'GCJ02'; value.path ||= [];
+      if (!Array.isArray(value.path) || value.path.length > 200 || !value.path.every(mapGeometry.coordinate)) bad('河道折线须为不超过200个有效经纬度点');
+      value.path = value.path.map(({ latitude, longitude }) => ({ latitude, longitude }));
+      if (value.coordinate_system !== 'GCJ02') bad('真实地图折线仅接受已转换并核对的GCJ02坐标');
+      if (previous && ['path', 'coordinate_system', 'source_url'].some(key => own(change, key)) && !own(change, 'geometry_verified')) value.geometry_verified = false;
+      value.geometry_verified ??= false;
+      if (typeof value.geometry_verified !== 'boolean') bad('geometry_verified必须为布尔值');
+      if ((value.geometry_verified || value.is_published) && (!mapGeometry.verifiedRiver(value) || value.checked_at > dateCN(now))) bad('发布前须核验至少两个折线点、来源与核对日期');
+    } else if (kind === 'routes') {
       value.source = text(value.source, '来源', 500);
       value.published = publication === undefined ? Boolean(previous && previous.published !== false) : publication;
       if (value.published && !value.source) bad('发布路线前请填写可核对来源');
@@ -122,6 +140,15 @@ function validateValue(kind, previous, change, publication, current, now, id) {
       value.coordinate_system ||= '';
       if (!['', 'GCJ02', 'WGS84', 'BD09'].includes(value.coordinate_system)) bad('坐标系无效');
       if (value.latitude !== null && !['GCJ02', 'WGS84', 'BD09'].includes(value.coordinate_system)) bad('实际坐标必须注明坐标系');
+      value.source_url = text(value.source_url, '坐标来源', 1000);
+      value.access_note = text(value.access_note, '访问说明', 1000);
+      value.checked_at = text(value.checked_at, '核对日期', 10);
+      if (previous && ['latitude', 'longitude', 'coordinate_system', 'source_url'].some(key => own(change, key)) && !own(change, 'coordinates_verified')) value.coordinates_verified = false;
+      value.coordinates_verified ??= false;
+      if (typeof value.coordinates_verified !== 'boolean') bad('coordinates_verified必须为布尔值');
+      if (value.coordinates_verified && (value.is_demo || !mapGeometry.verifiedPoint(value) || value.checked_at > dateCN(now))) bad('导航坐标须核对GCJ02、来源及日期，模拟地点不可导航');
+      value.river_id ||= null;
+      if (value.river_id && !current.rivers.some(row => row.id === value.river_id && row.region === value.region)) bad('关联河道须为本城市已发布河道');
       if (value.map_layout && !current.maps.some((map) => map.id === value.map_layout && map.region === value.region)) bad('底图须属于所选区域');
       if (value.x_ratio !== null && !value.map_layout) bad('示意坐标须关联具体底图');
     }

@@ -4,8 +4,9 @@ const { app, requireLogin, toast, detail } = require('../../lib/page');
 const { list, time, value, message } = require('../../lib/format');
 const { loadAll } = require('../../lib/region');
 const { routeView } = require('../../lib/route-view');
+const { navigable, openLocation } = require('../../lib/real-map');
 Page(withTheme({
-  data: { communityEnabled: false, loading: true, error: '', item: null, kind: '', busy: false, favoriteId: '', stations: [], stationIndex: 0, observations: [], observationError: '', observationLoading: false, recordError: '', relatedContents: [], relatedCount: 0, relatedLoading: false, relatedError: '', routeStops: [], stopIndex: 0, activeStop: null },
+  data: { communityEnabled: false, loading: true, error: '', item: null, kind: '', busy: false, favoriteId: '', stations: [], stationIndex: 0, observations: [], observationError: '', observationLoading: false, recordError: '', relatedContents: [], relatedCount: 0, relatedLoading: false, relatedError: '', routeStops: [], stopIndex: 0, activeStop: null, canNavigate: false, navigationNotice: '' },
   onLoad(options) {
     this._alive = true;
     const paths = { place: 'places/', content: 'contents/', route: 'routes/' };
@@ -30,11 +31,11 @@ Page(withTheme({
     this._hidden = false;
     const generation = this._generation = (this._generation || 0) + 1;
     const token = this._identity = app().session.token();
-    this.setData({ communityEnabled: false, loading: true, error: '', recordError: '', favoriteId: '', busy: false, stations: [], observations: [], observationError: '', observationLoading: false, relatedContents: [], relatedCount: 0, relatedLoading: false, relatedError: '', routeStops: [], stopIndex: 0, activeStop: null });
+    this.setData({ communityEnabled: false, loading: true, error: '', recordError: '', favoriteId: '', busy: false, stations: [], observations: [], observationError: '', observationLoading: false, relatedContents: [], relatedCount: 0, relatedLoading: false, relatedError: '', routeStops: [], stopIndex: 0, activeStop: null, canNavigate: false, navigationNotice: '' });
     try {
       const item = (await app().api.request(this._path)).data;
       if (!this.current(generation)) return;
-      this.setData({ item: Object.assign({}, item, { updated_label: time(item.updated_at || item.published_at) }) });
+      this.setData({ item: Object.assign({}, item, { updated_label: time(item.updated_at || item.published_at) }), canNavigate: this.data.kind === 'place' && navigable(item) });
       if (this.data.kind === 'route') {
         const selection = routeView(item, this._selectedStopId);
         this._selectedStopId = selection.activeStop && selection.activeStop.id;
@@ -66,7 +67,7 @@ Page(withTheme({
   async loadCommunity(generation) {
     try {
       const response = await app().api.request('community/status/');
-      if (this.current(generation)) this.setData({ communityEnabled: !!(response.data && response.data.enabled === true) });
+      if (this.current(generation)) this.setData({ communityEnabled: !!(response.data && response.data.mode !== 'official-editorial' && response.data.enabled === true) });
     } catch (_) { if (this.current(generation)) this.setData({ communityEnabled: false }); }
   },
   openComments() {
@@ -135,6 +136,7 @@ Page(withTheme({
     if (this.data.kind === 'route' && this.data.item) this.browseKnowledge({ tab: 'routes', region: this.data.item.region });
   },
   async loadStations(generation = this._generation) {
+    if (this.data.kind === 'place' && this.data.item && this.data.item.is_demo === false) return;
     try {
       const stations = await loadAll(app().api, 'stations/', { place: this._id });
       if (!this.current(generation)) return;
@@ -144,7 +146,7 @@ Page(withTheme({
   },
   async loadObservations() {
     const generation = this._generation;
-    if (!this.current(generation)) return;
+    if (!this.current(generation) || (this.data.kind === 'place' && this.data.item && this.data.item.is_demo === false)) return;
     const station = this.data.stations[this.data.stationIndex];
     if (!station) return this.loadStations(generation);
     const request = this._observationsGeneration = (this._observationsGeneration || 0) + 1;
@@ -203,12 +205,17 @@ Page(withTheme({
   openWater() {
     if (!this.current(this._generation)) return;
     const item = this.data.item;
-    if (item && item.water_body_id) wx.navigateTo({ url: '/pages/water/index?region=' + encodeURIComponent(item.region) + '&waterBodyId=' + encodeURIComponent(item.water_body_id) });
+    if (item && item.is_demo !== false && item.water_body_id) wx.navigateTo({ url: '/pages/water/index?region=' + encodeURIComponent(item.region) + '&waterBodyId=' + encodeURIComponent(item.water_body_id) });
+  },
+  navigatePlace() {
+    if (!this.current(this._generation) || this.data.loading || this.data.kind !== 'place') return;
+    const generation = this._generation;
+    openLocation(wx, this.data.item, () => { if (this.current(generation)) this.setData({ navigationNotice: '地点地图暂不可用，请稍后重试。' }); });
   },
   openDataCenter() {
     if (!this.current(this._generation)) return;
     const item = this.data.item, station = this.data.stations[this.data.stationIndex];
-    if (!item || !station) return;
+    if (!item || item.is_demo === false || !station) return;
     wx.navigateTo({ url: '/pages/data-center/index?region=' + encodeURIComponent(item.region) + '&stationId=' + encodeURIComponent(station.id) + '&kind=' + encodeURIComponent(station.kind) });
   },
   openPlace(event) { if (this.current(this._generation)) detail('place', event.currentTarget.dataset.id); },

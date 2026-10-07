@@ -4,7 +4,7 @@ const { app, requireLogin, toast, finish, detail } = require('../../lib/page');
 const { list, task, message } = require('../../lib/format');
 const { capability } = require('../../lib/recognition');
 Page(withTheme({
-  data: { mode: 'recognition', riverBusy: false, loading: false, error: '', busy: false, imagePath: '', imageOrigin: '', imageUnavailable: '', task: null, jobs: [], loggedIn: false, capability: capability(null), capabilityKnown: false, capabilityError: '', helpExpanded: false },
+  data: { mode: 'recognition', riverBusy: false, loading: false, error: '', busy: false, imagePath: '', imageOrigin: '', imageUnavailable: '', task: null, jobs: [], loggedIn: false, capability: capability(null), capabilityKnown: false, capabilityError: '' },
   onShow() {
     this._destroyed = false;
     selectTab(this, 2);
@@ -96,7 +96,6 @@ Page(withTheme({
     } catch (error) { if (!this._destroyed && generation === this._loadGeneration) this.authError(error); }
     finally { if (!this._destroyed && generation === this._loadGeneration) finish(this); }
   },
-  toggleHelp() { this.setData({ helpExpanded: !this.data.helpExpanded }); },
   choose() {
     if (this._destroyed || this.data.mode === 'assessment' || this.data.busy || !requireLogin()) return;
     const sentToken = app().session.token();

@@ -11,8 +11,8 @@
     <view wx:if="{{!loading && !user}}" class="card login-card">
       <view class="title">开启你的绿色记录</view><view class="copy">登录后，可保存收藏与足迹，上传识别图片。</view>
       <view class="login-notice"><checkbox-group bindchange="agreementChange"><label class="agreement-label"><checkbox value="agreed" checked="{{agreed}}" disabled="{{busy}}" color="#3a7d5c" /><text>我已阅读并同意</text></label></checkbox-group><view class="agreement-links"><text class="legal-link" data-kind="terms" bindtap="legal">《用户协议》</text><text>与</text><text class="legal-link" data-kind="privacy" bindtap="legal">《隐私说明》</text></view></view>
-      <button hover-class="pressable" class="primary gap" loading="{{busy}}" disabled="{{busy}}" data-mode="wechat" bindtap="login">微信登录</button>
-      <button hover-class="pressable" wx:if="{{devAvailable}}" class="secondary gap" loading="{{busy}}" disabled="{{busy}}" data-mode="dev" bindtap="login">测试账号登录</button>
+      <button hover-class="pressable" class="primary gap account-button" loading="{{busy}}" disabled="{{busy}}" data-mode="wechat" bindtap="login">微信登录</button>
+      <button hover-class="pressable" wx:if="{{devAvailable}}" class="secondary gap account-button" loading="{{busy}}" disabled="{{busy}}" data-mode="dev" bindtap="login">测试账号登录</button>
     </view>
     <block wx:if="{{!loading && user}}">
       <form wx:if="{{editingProfile}}" class="card profile-editor" bindsubmit="saveProfile">
@@ -34,7 +34,7 @@
       </view>
     </block>
     <view wx:if="{{!loading}}" class="card section menu-card">
-      <button hover-class="pressable" wx:if="{{user && cloudMode}}" class="setting-button menu-row" bindtap="submissions"><text class="setting-label">我的投稿</text><text class="chevron">›</text></button>
+      <button hover-class="pressable" wx:if="{{user && cloudMode}}" class="setting-button menu-row" bindtap="submissions"><text class="setting-label">我的资料反馈</text><text class="chevron">›</text></button>
       <button hover-class="pressable" class="setting-button menu-row" bindtap="openThemeSettings"><text class="setting-label">外观与主题</text><text class="setting-value">{{themeName}}</text><text class="chevron">›</text></button>
       <button hover-class="pressable" class="setting-button menu-row" bindtap="feedback"><text class="setting-label">意见与反馈</text><text class="chevron">›</text></button>
       <button hover-class="pressable" wx:if="{{user && canManage}}" class="setting-button menu-row" bindtap="management"><text class="setting-label">平台管理</text><text class="chevron">›</text></button>
@@ -48,9 +48,10 @@
         </view>
         <button hover-class="pressable" class="setting-button menu-row" data-kind="privacy" bindtap="legal"><text class="setting-label">隐私说明</text><text class="chevron">›</text></button>
         <button hover-class="pressable" class="setting-button menu-row" data-kind="terms" bindtap="legal"><text class="setting-label">用户协议</text><text class="chevron">›</text></button>
+        <button wx:if="{{user}}" hover-class="pressable" class="setting-button menu-row account-delete" disabled="{{busy}}" bindtap="deleteAccount"><text class="setting-label">注销账号</text><text class="chevron">›</text></button>
       </view>
     </block>
-    <view wx:if="{{!loading && user}}" class="account-actions"><button hover-class="pressable" class="secondary" disabled="{{busy}}" bindtap="logout">退出登录</button><button hover-class="pressable" class="text-button account-delete" disabled="{{busy}}" bindtap="deleteAccount">注销账号</button></view>
+    <view wx:if="{{!loading && user}}" class="account-actions"><button hover-class="pressable" class="secondary account-button" disabled="{{busy}}" bindtap="logout">退出登录</button></view>
     <view class="footer-note">每一份绿色记忆，都由你掌握</view>
   </view>
 </view>

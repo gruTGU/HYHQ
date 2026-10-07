@@ -6,7 +6,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TYPES = { content: 'contents', route: 'routes', place: 'places' };
 const COLLECTIONS = ['community_submissions', 'community_comments', 'community_reports', 'community_requests'];
 const REASONS = ['spam', 'abuse', 'privacy', 'inaccurate', 'other'];
-const CLOSED = '公开投稿、评论与举报尚未开放，可先保存私人草稿。';
+const CLOSED = '公开评论尚未开放。';
+const FEEDBACK_CLOSED = '资料反馈尚未开放，可先保存私人草稿。';
+const editorialMode = ctx => (ctx.config.community || {}).mode !== 'public-community';
 const fail = (code, message, status = 409) => { throw new ApiError(code, message, status); };
 const bad = message => fail('VALIDATION_ERROR', message, 400);
 function strict(body, fields) { if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(k => !fields.includes(k))) bad('提交参数无效'); }
@@ -16,7 +18,7 @@ function text(value, label, max, required = true) {
 }
 function revision(body) { if (!Number.isSafeInteger(body.expected_version) || body.expected_version < 1) bad('请刷新当前稿件后再操作'); return body.expected_version; }
 function requestKey(ctx, kind) { if (!UUID.test(ctx.body.request_id || '')) bad('请提供有效的提交标识'); return sha256(ctx.user.id + ':' + kind + ':' + ctx.body.request_id); }
-async function owner(tx, id) { const user = await tx.get('users', id); if (!user || user.is_active !== true) fail('AUTH_REQUIRED', '登录已过期，请重新登录', 401); return user; }
+async function owner(tx, id) { const user = await tx.get('users', id); if (!user || user.is_active !== true || user.deleting) fail('AUTH_REQUIRED', '登录已过期，请重新登录', 401); return user; }
 async function touch(tx, user, kind, delta = 0) {
   const counts = { ...(user.community_counts || {}) }, count = counts[kind] || 0;
   if (delta > 0 && count >= 100) fail('STORAGE_QUOTA', '个人记录已达上限，请先删除旧记录', 429);
@@ -32,26 +34,31 @@ async function admin(ctx, store = ctx.store) {
   if (config.enabled !== true || !(config.adminUserIds || []).includes(user.id)) fail('FORBIDDEN', '当前账号没有管理权限', 403);
   return owner(store, user.id);
 }
-async function readiness(ctx, store = ctx.store) {
-  const config = ctx.config.community || {}, management = ctx.config.management || {};
+async function readiness(ctx, store = ctx.store, feedback = false) {
+  const raw = ctx.config.community || {};
+  const config = feedback ? { qualificationConfirmed: raw.feedbackQualificationConfirmed, qualificationReference: raw.feedbackQualificationReference, qualificationDate: raw.feedbackQualificationDate, moderationReady: raw.moderationReady } : raw, management = ctx.config.management || {};
   const day = dateCN(ctx.now);
   if (!config.qualificationConfirmed || typeof config.qualificationReference !== 'string' || !config.qualificationReference.trim()
-    || !/^\d{4}-\d{2}-\d{2}$/.test(config.qualificationDate || '') || !Number.isFinite(Date.parse(config.qualificationDate)) || config.qualificationDate > day
+    || !/^\d{4}-\d{2}-\d{2}$/.test(config.qualificationDate || '') || !Number.isFinite(Date.parse(config.qualificationDate)) || new Date(config.qualificationDate).toISOString().slice(0, 10) !== config.qualificationDate || config.qualificationDate > day
     || !config.moderationReady || management.enabled !== true) return false;
-  for (const id of management.adminUserIds || []) { const reviewer = await store.get('users', id); if (reviewer && reviewer.is_active === true) return true; }
+  for (const id of management.adminUserIds || []) { const reviewer = await store.get('users', id); if (reviewer && reviewer.is_active === true && !reviewer.deleting) return true; }
   return false;
 }
-async function enabled(ctx, store = ctx.store) {
-  if (!(ctx.config.community || {}).enabled || !await readiness(ctx, store)) return false;
+async function safetyReady(ctx, store) {
   const proof = await store.get('admin_config', 'community_safety');
   return Boolean(proof && proof.app_id === ctx.config.appId && proof.checked_at <= ctx.now && Date.parse(proof.checked_at) > Date.parse(ctx.now) - 7 * 86400000);
 }
-async function opened(ctx, store = ctx.store) { if (!await enabled(ctx, store)) fail('COMMUNITY_DISABLED', CLOSED, 503); }
+async function enabled(ctx, store = ctx.store) { return !editorialMode(ctx) && (ctx.config.community || {}).enabled === true && await readiness(ctx, store) && await safetyReady(ctx, store); }
+async function feedbackEnabled(ctx, store = ctx.store) { return editorialMode(ctx) && (ctx.config.community || {}).feedbackEnabled === true && await readiness(ctx, store, true) && await safetyReady(ctx, store); }
+async function publicationEnabled(ctx, value, store = ctx.store) { return value && value._editorial_feedback === true ? feedbackEnabled(ctx, store) : false; }
+async function opened(ctx, store = ctx.store, submission = false) { if (!await (submission ? feedbackEnabled(ctx, store) : enabled(ctx, store))) fail('COMMUNITY_DISABLED', submission ? FEEDBACK_CLOSED : CLOSED, 503); }
 function present(row, ctx, adminView = false) {
   const mine = Boolean(ctx.user && row.owner_id === ctx.user.id);
   const fields = row.type === 'submission' ? ['id', 'title', 'body', 'source', 'category', 'status', 'version', 'created_at', 'updated_at', 'published_id']
     : row.type === 'report' ? ['id', 'reason', 'detail', 'status', 'created_at', 'version'] : ['id', 'body', 'status', 'kind', 'target_id', 'created_at', 'version'];
   const value = Object.fromEntries(fields.filter(k => row[k] !== undefined).map(k => [k, row[k]]));
+  if (adminView && row.type === 'submission') Object.assign(value, { editorial: row.editorial || null, editorial_safety_status: row.editorial_safety_status || 'unchecked' });
+  if (row.type === 'submission') value.original_private = true;
   if (adminView && row.type === 'report') Object.assign(value, { kind: row.kind, target_id: row.target_id });
   if (row.type !== 'report') Object.assign(value, { is_owner: mine, author: mine ? '我' : '生态同行者', ...(mine || adminView ? { review_reason: row.review_reason || '', safety_status: row.safety_status || 'unchecked' } : {}) });
   return value;
@@ -113,13 +120,13 @@ async function checkText(ctx, content, scene) {
 }
 async function verify(ctx) {
   const user = await admin(ctx);
-  if (!await readiness(ctx)) fail('COMMUNITY_NOT_READY', '请先核实业务资格并确认人工审核流程', 409);
+  if (!await readiness(ctx, ctx.store, editorialMode(ctx))) fail('COMMUNITY_NOT_READY', '请先核实业务资格并确认人工审核流程', 409);
   await ctx.store.transaction(async tx => { const active = await admin(ctx, tx); await chargeSafety(tx, ctx, active, 'verify'); await touch(tx, active, 'verification'); });
   const result = await checkText(ctx, '自然观察资料安全检查', 2);
   if (result !== 'pass') fail('CONTENT_SAFETY_UNAVAILABLE', '微信内容检查未通过联通验证，未启用公开功能', 503);
   await ctx.store.transaction(async tx => { const active = await admin(ctx, tx); await touch(tx, active, 'verification');
     await tx.set('admin_config', 'community_safety', { id: 'community_safety', app_id: ctx.config.appId, checked_at: ctx.now }); await audit(tx, ctx, user, 'community_safety_verified', 'community', ''); });
-  return response({ verified_at: ctx.now, expires_at: new Date(Date.parse(ctx.now) + 7 * 86400000).toISOString(), enabled: await enabled(ctx) });
+  return response({ verified_at: ctx.now, expires_at: new Date(Date.parse(ctx.now) + 7 * 86400000).toISOString(), enabled: await enabled(ctx), submissions_enabled: await feedbackEnabled(ctx) });
 }
 async function draft(ctx, id) {
   const user = requireUser(ctx); strict(ctx.body, ['title', 'body', 'category', 'source', 'expected_version', 'request_id']);
@@ -133,7 +140,7 @@ async function draft(ctx, id) {
     if (id && (!existing || existing.owner_id !== user.id)) fail('NOT_FOUND', '稿件不存在', 404);
     if (existing && (existing.version !== expected || !['draft', 'rejected', 'withdrawn'].includes(existing.status))) fail('SUBMISSION_CHANGED', '稿件状态已变化，请先刷新或撤回');
     await touch(tx, active, 'submissions', existing ? 0 : 1);
-    const row = { ...(existing || {}), ...value, id: id || uuid(), owner_id: user.id, type: 'submission', status: 'draft', safety_status: 'unchecked', review_reason: '', version: existing ? existing.version + 1 : 1, created_at: existing ? existing.created_at : ctx.now, updated_at: ctx.now };
+    const row = { ...(existing || {}), ...value, id: id || uuid(), owner_id: user.id, type: 'submission', status: 'draft', safety_status: 'unchecked', editorial: null, editorial_safety_status: 'unchecked', review_reason: '', version: existing ? existing.version + 1 : 1, created_at: existing ? existing.created_at : ctx.now, updated_at: ctx.now };
     await tx.set('community_submissions', row.id, row);
     if (key) await tx.create('community_requests', key, { id: key, owner_id: user.id, target_id: row.id, fingerprint: hash, created_at: ctx.now });
     return row;
@@ -142,13 +149,13 @@ async function draft(ctx, id) {
 async function submit(ctx, id, type) {
   const user = requireUser(ctx), submission = type === 'submission', collection = submission ? 'community_submissions' : 'community_comments';
   strict(ctx.body, submission ? ['expected_version', 'request_id'] : ['kind', 'target_id', 'body', 'request_id']);
-  await opened(ctx);
+  await opened(ctx, ctx.store, submission);
   let value = {}, expected;
   if (submission) expected = revision(ctx.body);
   else { value = { kind: ctx.body.kind, target_id: ctx.body.target_id, body: text(ctx.body.body, '评论', 500) }; await linked(ctx, value.kind, value.target_id); }
   const key = requestKey(ctx, type), fingerprint = sha256(JSON.stringify(submission ? { id, expected } : value));
   const reservation = await ctx.store.transaction(async tx => {
-    const active = await owner(tx, user.id); await opened(ctx, tx);
+    const active = await owner(tx, user.id); await opened(ctx, tx, submission);
     const request = await tx.get('community_requests', key);
     if (request) { if (request.fingerprint !== fingerprint) fail('IDEMPOTENCY_CONFLICT', '提交标识对应其他内容'); const existing = await tx.get(collection, request.target_id); if (!existing) fail('NOT_FOUND', '记录已删除', 404); return { row: existing, execute: false }; }
     const previous = submission && await tx.get(collection, id);
@@ -166,7 +173,7 @@ async function submit(ctx, id, type) {
   const final = await ctx.store.transaction(async tx => {
     const active = await owner(tx, user.id), current = await tx.get(collection, row.id);
     if (!current || current.owner_id !== user.id || current.version !== row.version || current.status !== 'checking') fail('SUBMISSION_CHANGED', '稿件状态已变化，请刷新记录');
-    let available = await enabled(ctx, tx);
+    let available = await (submission ? feedbackEnabled(ctx, tx) : enabled(ctx, tx));
     if (!submission) { try { await linkedTransaction(tx, current.kind, current.target_id, ctx); } catch (_) { available = false; } }
     const status = outcome === 'pass' && available ? 'pending' : 'rejected';
     const updated = { ...current, status, safety_status: outcome, review_reason: !available ? '投稿服务或关联资料已变更，请稍后重试' : outcome === 'unavailable' ? '内容检查未完成，请稍后重试' : outcome === 'pass' ? '' : '内容检查未通过，请修改后重试', version: current.version + 1, updated_at: ctx.now };
@@ -188,40 +195,108 @@ async function removeOrWithdraw(ctx, collection, id, remove) {
     return response(null, 204);
   });
 }
+async function catalogCapacity(ctx) {
+  const before = await ctx.store.get('admin_config', 'catalog_revision') || { revision: 0 };
+  const count = await ctx.store.count('catalog');
+  const after = await ctx.store.get('admin_config', 'catalog_revision') || { revision: 0 };
+  if (before.revision !== after.revision) fail('ADMIN_REVISION_CHANGED', '资料正在更新，请刷新后重试');
+  return { count, revision: after.revision };
+}
+async function publishEdited(ctx, id) {
+  const actor = await admin(ctx), expected = revision(ctx.body);
+  const editorial = { title: text(ctx.body.edited_title, '编辑后标题', 80), body: text(ctx.body.edited_body, '编辑后正文', 2000), source: text(ctx.body.edited_source, '已核实的公开来源', 300) };
+  const key = requestKey(ctx, 'editorial-review'), fingerprint = sha256(JSON.stringify({ id, expected, editorial }));
+  const capacity = await catalogCapacity(ctx);
+  const reserved = await ctx.store.transaction(async tx => {
+    const reviewer = await admin(ctx, tx); await opened(ctx, tx, true);
+    const request = await tx.get('community_requests', key);
+    if (request) {
+      if (request.fingerprint !== fingerprint) fail('IDEMPOTENCY_CONFLICT', '提交标识对应其他内容');
+      const current = await tx.get('community_submissions', request.target_id);
+      if (!current) fail('NOT_FOUND', '记录已删除', 404);
+      return { row: current, execute: false };
+    }
+    const row = await tx.get('community_submissions', id);
+    if (!row) fail('NOT_FOUND', '记录不存在', 404);
+    if (row.version !== expected || row.status !== 'pending') fail('SUBMISSION_CHANGED', '记录状态已变化，请刷新');
+    await owner(tx, row.owner_id);
+    if (row.safety_status !== 'pass') fail('CONTENT_SAFETY_REQUIRED', '原始反馈安全检查未通过');
+    if (editorial.body.replace(/\s/g, '') === row.body.replace(/\s/g, '')) bad('请核实来源并独立编辑正文，不能直接公开原始反馈');
+    const currentRevision = await tx.get('admin_config', 'catalog_revision') || { revision: 0 };
+    if (currentRevision.revision !== capacity.revision) fail('ADMIN_REVISION_CHANGED', '资料正在更新，请刷新后重试');
+    if (!await tx.get('catalog', 'contents_' + (row.published_id || row.id)) && capacity.count >= 4900) fail('CATALOG_LIMIT', '公开资料条目已达当前容量，请联系管理员整理', 429);
+    await chargeSafety(tx, ctx, reviewer, 'editorial'); await touch(tx, reviewer, 'moderation');
+    const updated = { ...row, status: 'reviewing', editorial, editorial_safety_status: 'checking', version: row.version + 1, updated_at: ctx.now };
+    await tx.set('community_submissions', id, updated);
+    await tx.create('community_requests', key, { id: key, owner_id: reviewer.id, target_id: id, fingerprint, created_at: ctx.now });
+    return { row: updated, execute: true };
+  });
+  if (!reserved.execute) return response(present(reserved.row, ctx, true));
+  const outcome = await checkText(ctx, [editorial.title, editorial.body, editorial.source].join('\n'), 3);
+  // Re-snapshot after the external check; revision comparison below closes races.
+  let result;
+  try {
+  const finalCapacity = await catalogCapacity(ctx);
+  result = await ctx.store.transaction(async tx => {
+    const reviewer = await admin(ctx, tx), row = await tx.get('community_submissions', id);
+    if (!row || row.version !== reserved.row.version || row.status !== 'reviewing') fail('SUBMISSION_CHANGED', '反馈已撤回、删除或更新，请刷新');
+    const author = await owner(tx, row.owner_id), available = await feedbackEnabled(ctx, tx);
+    const revisionNow = await tx.get('admin_config', 'catalog_revision') || { revision: 0 };
+    const existing = await tx.get('catalog', 'contents_' + (row.published_id || row.id));
+    const capacityReady = revisionNow.revision === finalCapacity.revision && (existing || finalCapacity.count < 4900);
+    const publish = outcome === 'pass' && available && capacityReady;
+    const updated = { ...row, status: publish ? 'approved' : 'pending', editorial_safety_status: outcome,
+      review_reason: publish ? '' : !available ? '资料反馈服务状态已变化，未发布' : !capacityReady ? '公开资料正在更新或容量已满，请刷新后重试' : '编辑内容检查未通过或未完成，请修改后重试', version: row.version + 1, updated_at: ctx.now };
+    await touch(tx, reviewer, 'moderation'); if (author.id !== reviewer.id) await touch(tx, author, 'submissions');
+    if (publish) {
+      updated.published_id = row.published_id || row.id;
+      const value = { id: updated.published_id, title: editorial.title, slug: 'official-' + row.id, body: editorial.body,
+        summary: editorial.body.slice(0, 160), category: row.category, source: '官方编辑整理 · 来源：' + editorial.source,
+        is_demo: false, place: null, plant_label: '', status: 'published', published_at: ctx.now, updated_at: ctx.now,
+        _community_submission: true, _editorial_feedback: true, _community_owner_id: row.owner_id };
+      await tx.set('catalog', 'contents_' + value.id, { id: 'contents_' + value.id, kind: 'contents', value, deleted: false, updated_at: ctx.now });
+      await bumpCatalog(tx, ctx);
+    }
+    await tx.set('community_submissions', id, updated); await audit(tx, ctx, reviewer, publish ? 'community_approved' : 'community_editorial_check_failed', 'community_submissions', id);
+    return updated;
+  });
+  } catch (error) {
+    // The safety reservation remains charged. A failed publication can be
+    // reviewed again after refresh, without leaving a permanent checking lock.
+    // Version comparison protects concurrent withdrawal/deletion or a commit
+    // whose acknowledgement was lost. A storage outage can still be recovered
+    // by the administrator's explicit rejection or the owner's withdrawal.
+    try {
+      await ctx.store.transaction(async tx => {
+        const current = await tx.get('community_submissions', id);
+        if (current && current.status === 'reviewing' && current.version === reserved.row.version) {
+          await tx.update('community_submissions', id, { status: 'pending', editorial_safety_status: outcome,
+            review_reason: '发布未完成，请刷新记录、核对编辑稿后重试', version: current.version + 1, updated_at: ctx.now });
+        }
+      });
+    } catch (_) { /* Fail closed: no alternate publication path. */ }
+    throw error;
+  }
+  return response(present(result, ctx, true));
+}
 async function review(ctx, collection, id) {
-  await admin(ctx); strict(ctx.body, ['decision', 'reason', 'expected_version']); const expected = revision(ctx.body), decision = ctx.body.decision;
+  await admin(ctx); strict(ctx.body, ['decision', 'reason', 'expected_version', ...(collection === 'community_submissions' ? ['edited_title', 'edited_body', 'edited_source', 'request_id'] : [])]);
+  const expected = revision(ctx.body), decision = ctx.body.decision;
   if (!['approved', 'rejected'].includes(decision)) bad('请选择通过或驳回');
   const reason = text(ctx.body.reason || '', '审核说明', 300, decision === 'rejected');
-  let capacity = null;
-  if (collection === 'community_submissions' && decision === 'approved') {
-    const before = await ctx.store.get('admin_config', 'catalog_revision') || { revision: 0 };
-    const count = await ctx.store.count('catalog');
-    const after = await ctx.store.get('admin_config', 'catalog_revision') || { revision: 0 };
-    if (before.revision !== after.revision) fail('ADMIN_REVISION_CHANGED', '资料正在更新，请刷新后重试');
-    capacity = { count, revision: after.revision };
-  }
+  if (collection === 'community_submissions' && decision === 'approved') return publishEdited(ctx, id);
   const result = await ctx.store.transaction(async tx => {
     const actor = await admin(ctx, tx), row = await tx.get(collection, id);
     if (!row) fail('NOT_FOUND', '记录不存在', 404);
-    if (row.version !== expected || !['pending', 'approved'].includes(row.status)) fail('SUBMISSION_CHANGED', '记录状态已变化，请刷新');
+    if (row.version !== expected || !['pending', 'approved', 'reviewing'].includes(row.status)) fail('SUBMISSION_CHANGED', '记录状态已变化，请刷新');
     const author = await owner(tx, row.owner_id);
     if (decision === 'approved') {
       await opened(ctx, tx); if (row.safety_status !== 'pass') fail('CONTENT_SAFETY_REQUIRED', '内容安全检查未通过，不能公开');
-      if (row.type === 'comment') { await linked(ctx, row.kind, row.target_id); await linkedTransaction(tx, row.kind, row.target_id, ctx); }
+      await linked(ctx, row.kind, row.target_id); await linkedTransaction(tx, row.kind, row.target_id, ctx);
     }
     await touch(tx, actor, 'moderation'); if (author.id !== actor.id) await touch(tx, author, row.type === 'submission' ? 'submissions' : 'comments');
     const updated = { ...row, status: decision, review_reason: reason, version: row.version + 1, updated_at: ctx.now };
-    if (row.type === 'submission') {
-      if (decision === 'approved') {
-        updated.published_id = row.published_id || row.id;
-        const currentRevision = await tx.get('admin_config', 'catalog_revision') || { revision: 0 };
-        if (currentRevision.revision !== capacity.revision) fail('ADMIN_REVISION_CHANGED', '资料正在更新，请刷新后重试');
-        const existing = await tx.get('catalog', 'contents_' + updated.published_id);
-        if (!existing && capacity.count >= 4900) fail('CATALOG_LIMIT', '公开资料条目已达当前容量，请联系管理员整理', 429);
-        const value = { id: updated.published_id, title: row.title, slug: 'community-' + row.id, body: row.body, summary: row.body.slice(0, 160), category: row.category, source: row.source ? '用户投稿 · 管理员审核；作者提供来源：' + row.source : '用户自然观察投稿 · 管理员审核，不代表实时环境监测结论', is_demo: false, place: null, plant_label: '', status: 'published', published_at: ctx.now, updated_at: ctx.now, _community_submission: true, _community_owner_id: row.owner_id };
-        await tx.set('catalog', 'contents_' + value.id, { id: 'contents_' + value.id, kind: 'contents', value, deleted: false, updated_at: ctx.now }); await bumpCatalog(tx, ctx);
-      } else await withdrawCatalog(tx, ctx, row);
-    }
+    if (row.type === 'submission') await withdrawCatalog(tx, ctx, row);
     await tx.set(collection, row.id, updated); await audit(tx, ctx, actor, 'community_' + decision, collection, id); return updated;
   }); return response(present(result, ctx, true));
 }
@@ -259,15 +334,15 @@ async function purgeOwner(ctx, user) {
 async function handle(ctx) {
   const path = ctx.path;
   if (!path.startsWith('community/') && !path.startsWith('personal-admin/community/')) return;
-  if (path === 'community/status/' && ctx.method === 'GET') { const open = await enabled(ctx); return response({ enabled: open, submissions_enabled: open, drafts_enabled: true, reason: open ? '' : CLOSED, max_comment_length: 500, max_submission_length: 2000 }); }
+  if (path === 'community/status/' && ctx.method === 'GET') { const open = await enabled(ctx), feedback = await feedbackEnabled(ctx); return response({ mode: editorialMode(ctx) ? 'official-editorial' : 'public-community', enabled: open, comments_enabled: open, submissions_enabled: feedback, drafts_enabled: true, reason: feedback ? '' : FEEDBACK_CLOSED, max_comment_length: 500, max_submission_length: 2000 }); }
   if (path.startsWith('personal-admin/community/')) {
     await admin(ctx);
-    if (path === 'personal-admin/community/status/' && ctx.method === 'GET') { const proof = await ctx.store.get('admin_config', 'community_safety'); return response({ enabled: await enabled(ctx), prerequisites_ready: await readiness(ctx), safety_verified_at: proof && proof.checked_at || null }); }
+    if (path === 'personal-admin/community/status/' && ctx.method === 'GET') { const proof = await ctx.store.get('admin_config', 'community_safety'); return response({ mode: editorialMode(ctx) ? 'official-editorial' : 'public-community', enabled: await enabled(ctx), submissions_enabled: await feedbackEnabled(ctx), prerequisites_ready: await readiness(ctx, ctx.store, editorialMode(ctx)), safety_verified_at: proof && proof.checked_at || null }); }
     if (path === 'personal-admin/community/verify-safety/' && ctx.method === 'POST') return verify(ctx);
     const match = /^personal-admin\/community\/(submissions|comments|reports)\/(?:([a-f0-9-]+)\/review\/)?$/.exec(path);
     if (!match) fail('NOT_FOUND', '管理接口不存在', 404);
     const collection = 'community_' + match[1];
-    if (ctx.method === 'GET' && !match[2]) { const status = ctx.query.get('status'); if (status && !['pending', 'approved', 'rejected', 'resolved', 'dismissed', 'checking'].includes(status)) bad('状态筛选无效'); return paginate(ctx, (await rows(ctx.store, collection, status ? { status } : {})).filter(row => row.status !== 'draft' && row.status !== 'withdrawn').map(row => present(row, ctx, true))); }
+    if (ctx.method === 'GET' && !match[2]) { const status = ctx.query.get('status'); if (status && !['pending', 'approved', 'rejected', 'resolved', 'dismissed', 'checking', 'reviewing'].includes(status)) bad('状态筛选无效'); return paginate(ctx, (await rows(ctx.store, collection, status ? { status } : {})).filter(row => row.status !== 'draft' && row.status !== 'withdrawn').map(row => present(row, ctx, true))); }
     if (ctx.method === 'POST' && UUID.test(match[2] || '')) {
       if (match[1] !== 'reports') return review(ctx, collection, match[2]);
       strict(ctx.body, ['decision', 'expected_version']); const expected = revision(ctx.body); if (!['resolved', 'dismissed'].includes(ctx.body.decision)) bad('处理状态无效');
@@ -298,4 +373,4 @@ async function handle(ctx) {
   if (path === 'community/reports/' && ctx.method === 'GET') { const user = requireUser(ctx); return paginate(ctx, (await rows(ctx.store, 'community_reports', { owner_id: user.id })).map(row => present(row, ctx))); }
   fail('METHOD_NOT_ALLOWED', '不支持此操作', 405);
 }
-module.exports = { handle, enabled, purgeOwner, checkText, COLLECTIONS };
+module.exports = { handle, enabled, feedbackEnabled, publicationEnabled, editorialMode, purgeOwner, checkText, COLLECTIONS };

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { contentView, routeView, choices } = require('../lib/knowledge');
-const regions = [{ id: 'a', slug: 'demo-campus', name: '示范校园' }, { id: 'b', name: '另一区域' }];
+const regions = [{ id: 'a', slug: 'tianjin-nature', name: '天津', is_demo: false }, { id: 'b', name: '另一区域' }];
 const tags = { categories: [{ value: 'plants', name: '植物知识', count: 2 }, { value: 'water', name: '水资源保护', count: 1 }], plant_labels: [{ value: 'daisy', name: '雏菊类花卉', count: 1 }, { value: 'custom-grass', name: 'custom-grass', count: 1 }] };
 function deferred() { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 function setup(handler, globalData = {}) {
@@ -25,7 +25,7 @@ function setup(handler, globalData = {}) {
 const change = (value) => ({ detail: { value } });
 const tab = value => ({ currentTarget: { dataset: { tab: value } } });
 
-test('all-route shortcut removes campus filter while preserving shared region and active tab', async () => {
+test('all-route shortcut removes city filter while preserving shared region and active tab', async () => {
   const { instance, calls, application } = setup(undefined, { region: regions[0] });
   await instance.onLoad();
   await instance.changeTab(tab('routes'));
@@ -46,7 +46,7 @@ test('public knowledge shows Chinese categories, plant labels, source and visibl
   assert.equal(calls.some(item => item.path === 'routes/'), false);
   await instance.changeTab(tab('routes'));
   assert.equal(instance.data.routes[0].public_stop_count, 2);
-  assert.deepEqual(calls.find((item) => item.path === 'contents/').options.data, { page_size: 20 });
+  assert.deepEqual(calls.find((item) => item.path === 'contents/').options.data, { page_size: 20, region: 'tianjin-nature' });
   assert.equal(instance.data.regions[0].name, '全部区域');
 });
 test('specific region includes no artificial place condition, while all-region mode preserves shared selection', async () => {
@@ -274,4 +274,19 @@ test('an abandoned route error cannot replace current article state and no page-
   assert.equal(instance.data.routesError, ''); assert.equal(instance.data.contents[0].id, 'article');
   await instance.changeTab(tab('routes')); assert.equal(instance.data.routes[0].id, 'fresh-route');
   assert.equal(calls.filter(call => call.path === 'routes/').length, 2);
+});
+
+
+test('knowledge defaults to Tianjin and excludes demo campus from its location picker', async () => {
+  const demo = { id: 'legacy-campus', slug: 'demo-campus', name: '海晏河清示范校园', is_demo: true };
+  for (const shared of [undefined, demo]) {
+    const { instance, calls } = setup(async path => path === 'regions/' ? { data: [demo, ...regions] } : undefined, { region: shared });
+    await instance.onLoad();
+    assert.equal(instance.data.regionId, 'tianjin-nature');
+    assert.equal(instance.data.regions[instance.data.regionIndex].id, 'a');
+    assert.equal(instance.data.regions.some(row => row.id === demo.id), false);
+    assert.equal(calls.find(row => row.path === 'contents/').options.data.region, 'tianjin-nature');
+    await instance.changeRegion(change(2)); instance.onHide(); await instance.onShow();
+    assert.equal(instance.data.regionId, 'b', 'explicit city choice survives tab re-entry');
+  }
 });

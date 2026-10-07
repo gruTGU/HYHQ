@@ -3,7 +3,7 @@ const { app } = require('../../lib/page');
 const { message, time } = require('../../lib/format');
 const { requestId, UUID } = require('../../lib/community');
 const categories = [{ value: 'green', name: '绿色生活' }, { value: 'plants', name: '植物知识' }, { value: 'water', name: '水资源保护' }, { value: 'travel', name: '生态智游' }];
-const statuses = { draft: '私人草稿', checking: '内容检查中', pending: '等待管理员审核', rejected: '未通过', approved: '已公开', withdrawn: '已撤回' };
+const statuses = { draft: '私人草稿', checking: '原始反馈检查中', reviewing: '官方编辑内容检查中', pending: '等待编辑核实', rejected: '未通过', approved: '已采用 · 原稿仍为私密', withdrawn: '已撤回' };
 const blank = () => ({ id: '', version: 0, title: '', body: '', source: '', category: 'green', status: 'draft', categoryIndex: 0 });
 function view(row) {
   if (!row || !UUID.test(row.id || '') || !statuses[row.status] || !Number.isSafeInteger(row.version)) throw new Error('稿件格式无效，请刷新重试');
@@ -23,7 +23,7 @@ Page(withTheme({
   valid(version) { return this._active && version === this._version && this._token === app().session.token(); },
   async operation(work) {
     if (!this._active || this.data.busy || this._confirmation) return;
-    if (!this._token || this._token !== app().session.token()) { this.setData({ editor: null, rows: [], loggedIn: false, error: '请先登录后再使用私人投稿' }); return; }
+    if (!this._token || this._token !== app().session.token()) { this.setData({ editor: null, rows: [], loggedIn: false, error: '请先登录后再使用资料反馈' }); return; }
     const version = this._version = (this._version || 0) + 1; this.setData({ busy: true, error: '', notice: '' });
     const check = () => { if (!this.valid(version)) throw new Error('页面状态已变化'); };
     try { const result = await work(check); check(); return result; }
@@ -83,13 +83,13 @@ Page(withTheme({
     const fingerprint = editor.id + ':' + editor.version;
     if (!this._submitRequest || this._submitRequest.fingerprint !== fingerprint) this._submitRequest = { fingerprint, request_id: requestId() };
     const result = await this.operation(() => app().api.request('community/submissions/' + editor.id + '/submit/', { method: 'POST', data: { request_id: this._submitRequest.request_id, expected_version: editor.version } }));
-    if (result) { const row = view(result.data); this.setData({ editor: row, rows: [row, ...this.data.rows.filter(item => item.id !== row.id)], notice: row.status === 'pending' ? '已提交，管理员审核通过后才会公开' : row.status === 'checking' ? '内容检查中，请稍后刷新核对' : row.review_reason || '内容检查未通过' }); this._submitRequest = null; }
+    if (result) { const row = view(result.data); this.setData({ editor: row, rows: [row, ...this.data.rows.filter(item => item.id !== row.id)], notice: row.status === 'pending' ? '已提交给编辑核实；原始反馈不会公开，编辑后内容须再次审核' : ['checking', 'reviewing'].includes(row.status) ? '内容检查中，请稍后刷新核对' : row.review_reason || '内容检查未通过' }); this._submitRequest = null; }
   },
   async action(event) {
     const editor = this.data.editor, remove = event.currentTarget.dataset.action === 'delete';
     if (!editor || !editor.id || this.data.busy || !this._active || this._confirmation) return;
     const marker = { version: this._version, token: this._token }; this._confirmation = marker;
-    const yes = await new Promise(resolve => wx.showModal({ title: remove ? '删除这篇投稿？' : '撤回这篇投稿？', content: remove ? '删除后无法恢复；已公开内容会一并撤下。' : '撤回后仅自己可见，可修改后重新提交审核。', success: r => resolve(r.confirm), fail: () => resolve(false) }));
+    const yes = await new Promise(resolve => wx.showModal({ title: remove ? '删除这份反馈？' : '撤回这份反馈？', content: remove ? '删除后无法恢复；由这份反馈形成的官方文章会一并撤下。' : '撤回后回到私人草稿，关联官方文章会撤下；可修改后重新提交。', success: r => resolve(r.confirm), fail: () => resolve(false) }));
     if (this._confirmation !== marker) return; this._confirmation = null;
     if (!yes || !this.valid(marker.version)) return;
     const result = await this.operation(() => app().api.request('community/submissions/' + editor.id + '/' + (remove ? '' : 'withdraw/'), { method: remove ? 'DELETE' : 'POST', data: { expected_version: editor.version } }));

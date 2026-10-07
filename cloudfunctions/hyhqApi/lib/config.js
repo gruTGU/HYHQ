@@ -21,7 +21,10 @@ function configFromEnvironment(env = process.env, deployment = {}) {
     inferenceEnabled: env.HYHQ_INFERENCE_ENABLED === 'true' || deployment.inferenceEnabled === true,
     modelRoot: env.HYHQ_MODEL_ROOT || undefined,
     management: { enabled: env.HYHQ_MANAGEMENT_ENABLED === 'true', adminUserIds: String(env.HYHQ_ADMIN_USER_IDS || '').split(',').map(value => value.trim()).filter(value => /^[a-f0-9-]{36}$/.test(value)) },
-    community: { enabled: env.HYHQ_COMMUNITY_ENABLED === 'true', qualificationConfirmed: env.HYHQ_COMMUNITY_QUALIFIED === 'true',
+    community: { mode: env.HYHQ_COMMUNITY_MODE === 'public-community' ? 'public-community' : 'official-editorial',
+      feedbackEnabled: env.HYHQ_FEEDBACK_ENABLED === 'true', feedbackQualificationConfirmed: env.HYHQ_FEEDBACK_QUALIFIED === 'true',
+      feedbackQualificationReference: env.HYHQ_FEEDBACK_QUALIFICATION_REFERENCE || '', feedbackQualificationDate: env.HYHQ_FEEDBACK_QUALIFICATION_DATE || '',
+      enabled: env.HYHQ_COMMUNITY_ENABLED === 'true', qualificationConfirmed: env.HYHQ_COMMUNITY_QUALIFIED === 'true',
       qualificationReference: env.HYHQ_COMMUNITY_QUALIFICATION_REFERENCE || '', qualificationDate: env.HYHQ_COMMUNITY_QUALIFICATION_DATE || '',
       moderationReady: env.HYHQ_COMMUNITY_MODERATION_READY === 'true' },
     weatherReminders: { enabled: env.HYHQ_WEATHER_REMINDERS_ENABLED === undefined || env.HYHQ_WEATHER_REMINDERS_ENABLED === ''

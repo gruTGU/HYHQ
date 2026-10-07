@@ -4,7 +4,7 @@ const { app } = require('../../lib/page');
 const { time, value, message } = require('../../lib/format');
 const { loadRegions, selectRegion } = require('../../lib/region');
 const { weatherView } = require('../../lib/weather');
-const { locateWeatherCity } = require('../../lib/weather-location');
+const { locateWeatherCity, weatherCityOptions, weatherCitySlug } = require('../../lib/weather-location');
 const { entryUrl } = require('../../lib/llm');
 const { createWeatherSnapshotStore, RETRY } = require('../../lib/weather-snapshot');
 function weatherCache() {
@@ -97,17 +97,18 @@ Page(withTheme({
     const generation = this._cityGeneration = (this._cityGeneration || 0) + 1;
     this._locationGeneration = (this._locationGeneration || 0) + 1;
     const cache = weatherCache(), directory = cache.directory(true);
-    const selectedSlug = app().globalData.weatherLocation || cache.selected();
-    const cachedIndex = directory ? Math.max(0, directory.items.findIndex(item => item.slug === selectedSlug)) : 0;
-    const cachedCity = directory && directory.items[cachedIndex];
+    const selectedSlug = weatherCitySlug(app().globalData.weatherLocation || cache.selected());
+    const cachedCities = weatherCityOptions(directory && directory.items);
+    const cachedIndex = directory ? Math.max(0, cachedCities.findIndex(item => item.slug === selectedSlug)) : 0;
+    const cachedCity = directory && cachedCities[cachedIndex];
     const snapshot = directory && directory.enabled && cachedCity && cache.read(cachedCity.slug);
     this.setData({ cityLoading: !snapshot, cityError: '', citySummary: null, airExpanded: false, alertsExpanded: false, alertBadge: null, locationBusy: false, locationNotice: '' });
-    if (directory) this.setData({ cities: directory.items, cityIndex: cachedIndex, city: cachedCity || null, cityEnabled: directory.enabled });
+    if (directory) this.setData({ cities: cachedCities, cityIndex: cachedIndex, city: cachedCity || null, cityEnabled: directory.enabled });
     if (snapshot) this.showCitySummary(snapshot.data);
     try {
       const data = await cache.locations(app().api, force);
       if (!this.cityCurrent(generation)) return;
-      const cities = Array.isArray(data.items) ? data.items : [];
+      const cities = weatherCityOptions(data.items);
       const cityIndex = Math.max(0, cities.findIndex((item) => item.slug === selectedSlug));
       const city = cities[cityIndex] || null;
       if (!city || !this.data.city || city.slug !== this.data.city.slug) this.setData({ citySummary: null, alertBadge: null, weatherTheme: 'calm', cityLoading: Boolean(city && data.enabled) });

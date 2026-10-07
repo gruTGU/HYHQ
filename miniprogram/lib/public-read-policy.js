@@ -4,7 +4,7 @@
 const TTL = {
   'health/': 30000, 'regions/': 30000, 'weather-data/locations/': 30000,
   'weather-data/summary/': 15000,
-  'places/': 10000, 'maps/': 10000, 'contents/': 10000, 'routes/': 10000,
+  'rivers/': 10000, 'places/': 10000, 'maps/': 10000, 'contents/': 10000, 'routes/': 10000,
   'content-tags/': 10000, 'water-bodies/': 10000,
   'weather/': 10000, 'air-quality/': 10000, 'weather-alerts/': 10000,
 };
@@ -18,7 +18,7 @@ const provenance = { ...region, source_type: value => value === 'simulation', so
 const SCHEMAS = {
   'health/': {}, 'weather-data/locations/': {},
   'weather-data/summary/': { location: value => /^[a-z0-9][a-z0-9-]{0,79}$/.test(value) },
-  'regions/': page, 'maps/': { ...page, ...region }, 'routes/': { ...page, ...region }, 'water-bodies/': { ...page, ...region },
+  'rivers/': { ...page, ...region }, 'regions/': page, 'maps/': { ...page, ...region }, 'routes/': { ...page, ...region }, 'water-bodies/': { ...page, ...region },
   'places/': { ...page, ...region, kind: value => ['river', 'lake', 'park', 'plant', 'waste', 'trail', 'campus', 'landmark'].includes(value) },
   'contents/': { ...page, ...contents }, 'content-tags/': contents,
   'weather/': provenance, 'air-quality/': provenance, 'weather-alerts/': region,

@@ -153,7 +153,10 @@ test('weather and alerts cannot masquerade as current official observations', as
 });
 
 test('nearby suggestion requires finite coordinates and matching coordinate systems without echoing location', async () => {
-  const result = await payload(ctx('nearby-water-bodies/', 'lat=39&lng=117&coordinate_system=GCJ02'));
+  assert.equal((await payload(ctx('nearby-water-bodies/', 'lat=39&lng=117&coordinate_system=GCJ02'))).match, null);
+  const real = seed(); real.collections.regions[0] = { ...region, is_demo: false };
+  real.collections.places[0] = { ...place, is_demo: false, coordinates_verified: true, checked_at: '2026-10-03', source_url: 'https://example.org/verified' };
+  const result = await payload(ctx('nearby-water-bodies/', 'lat=39&lng=117&coordinate_system=GCJ02', new MemoryStore(), { config: { catalogSeed: real } }));
   assert.equal(result.match.water_body_id, uid(6)); assert.equal(result.match.distance_m, 0); assert.equal(result.match.suggestion_only, true);
   assert.equal('latitude' in result, false);
   assert.equal((await payload(ctx('nearby-water-bodies/', 'lat=39&lng=117&coordinate_system=WGS84'))).match, null);

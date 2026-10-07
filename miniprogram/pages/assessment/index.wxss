@@ -24,3 +24,10 @@
 .help-toggle { color: var(--hyhq-primary, #3a7d5c); font-size: 23rpx; flex-shrink: 0; margin-left: 14rpx; }
 
 .annotation-example-image { display: block; width: 100%; margin: 20rpx 0; border-radius: 18rpx; background: #e5efea; }
+
+.assessment-page .river-submit { display: flex; align-items: center; justify-content: center; min-height: 88rpx; padding: 20rpx 22rpx; line-height: 1.5; text-align: center; }
+.assessment-page .history-all { flex: none; width: auto; min-width: 0; margin: 0 0 0 auto; padding: 10rpx 0; display: flex; align-items: center; justify-content: flex-end; text-align: right; line-height: 1.5; }
+.river-history-row { display: flex; align-items: center; gap: 16rpx; }
+.river-history-details { flex: 1; min-width: 0; }
+.river-history-heading { line-height: 1.5; }
+.river-history-time { flex: none; margin: 0; line-height: 1.5; text-align: right; white-space: nowrap; font-size: 22rpx; }

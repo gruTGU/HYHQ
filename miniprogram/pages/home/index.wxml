@@ -39,7 +39,7 @@
       <view class="notice" wx:else>空气质量暂不可用。</view>
       <view class="source-copy" wx:for="{{citySummary.source_notes}}" wx:key="*this">{{item}}</view>
     </block>
-    <view class="weather-links"><button class="weather-entry" hover-class="pressable" bindtap="openWeather">订阅天气推送提醒 ↗</button><view class="weather-credits"><button class="source-link" hover-class="pressable" bindtap="weatherSource" aria-label="和风天气 QWeather，复制官网链接">和风天气 QWeather</button><button wx:for="{{citySummary.attribution_links}}" wx:key="id" class="source-link attribution-link" data-url="{{item.url}}" hover-class="pressable" bindtap="weatherAttribution" aria-label="{{item.label}}，复制原始归因链接">· {{item.label}}</button></view></view>
+    <view class="weather-links"><button class="weather-entry" hover-class="pressable" bindtap="openWeather">订阅天气推送提醒 ↗</button><view class="weather-credits"><button class="source-link" hover-class="pressable" bindtap="weatherSource" aria-label="和风天气，复制官网链接">和风天气</button><button wx:for="{{citySummary.attribution_links}}" wx:key="id" class="source-link attribution-link" data-url="{{item.url}}" hover-class="pressable" bindtap="weatherAttribution" aria-label="{{item.label}}，复制原始归因链接">· {{item.label}}</button></view></view>
   </view>
 
   <view class="section"><view class="section-head"><text class="section-title">与自然相遇</text></view>

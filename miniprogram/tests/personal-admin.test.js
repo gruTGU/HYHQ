@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createSession } = require('../lib/session');
 const { MemoryStore } = require('../../cloud-native/tests/memory-store');
+const community = require('../../cloudfunctions/hyhqApi/lib/community');
 const management = require('../../cloudfunctions/hyhqApi/lib/management');
 const snapshot = require('../../cloudfunctions/hyhqApi/data/catalog.json');
 const uid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -21,7 +22,8 @@ async function fixture(handler) {
     if (path === 'management/maintenance/') return options.method === 'POST' ? { data: { scanned: 8, removed: 3, failed: 0 } }
       : { data: { policy: { original_hours: 24, recognition_thumbnail_days: 30, accounting_days: 90, max_batch_size: 20, automatic_schedule_enabled: false }, kinds: ['assets', 'sessions'], recent: [], running: false } };
     const url = new URL(path.replace(/^\/api\/v1\//, ''), 'https://local.invalid/');
-    const result = await management.handle({ path: url.pathname.slice(1), method: options.method || 'GET', body: options.data, query: url.searchParams, user: (session.get() || {}).user, store, now, config: serverConfig });
+    const context = { path: url.pathname.slice(1), method: options.method || 'GET', body: options.data, query: url.searchParams, user: (session.get() || {}).user, store, now, config: serverConfig, checkCommunityText: async () => ({ errcode: 0, result: { suggest: 'pass' } }) };
+    const result = await community.handle(context) || await management.handle(context);
     if (!result) throw new Error('unhandled ' + path); return result.data;
   } } };
   global.getApp = () => application; global.wx = { showModal: options => modals.push(options) };
@@ -135,4 +137,48 @@ test('hidden and unloaded pages clear all sensitive state and ignore late UI ope
   const before = app.calls.length; app.page.setData = () => { throw new Error('write after unload'); };
   await app.page.load(); await app.page.save(); await app.page.more(); await app.page.runMaintenance(); await app.page.previewCleanup();
   assert.equal(app.calls.length, before);
+});
+
+async function editorialFixture(handler) {
+  const f = await fixture(handler);
+  f.serverConfig.appId = 'editorial-app';
+  f.serverConfig.community = { mode: 'official-editorial', feedbackEnabled: true, feedbackQualificationConfirmed: true, feedbackQualificationReference: 'verified fixture', feedbackQualificationDate: '2026-10-01', moderationReady: true };
+  await f.store.set('admin_config', 'community_safety', { app_id: 'editorial-app', checked_at: now });
+  const author = { id: uid(90), is_active: true }; await f.store.set('users', author.id, author);
+  const row = { id: uid(91), owner_id: author.id, title: '原始反馈标题', body: '私密原稿正文', source: '私密原始来源线索', category: 'plants', type: 'submission', safety_status: 'pass', status: 'pending', version: 3, created_at: now };
+  await f.store.set('community_submissions', row.id, row);
+  await f.page.onShow(); await f.page.tab(event('tab', 'submissions'));
+  return { ...f, row, author };
+}
+
+test('feedback editor starts blank and cannot approve an original without independent edited content', async () => {
+  const f = await editorialFixture(); f.page.editFeedback(event('id', f.row.id));
+  assert.equal(f.page.data.editorial.title, ''); assert.equal(f.page.data.editorial.body, ''); assert.equal(f.page.data.editorial.source, '');
+  await f.page.publishFeedback(); assert.equal(f.modals.length, 0); assert.match(f.page.data.error, /请填写编辑后/);
+  for (const [field, value] of Object.entries({ title: '编辑后的标题', body: f.row.body, source: '核实公开资料' })) f.page.editorialField({ currentTarget: { dataset: { field } }, detail: { value } });
+  await f.page.publishFeedback(); assert.match(f.page.data.error, /原始反馈不能直接公开/); assert.equal(f.modals.length, 0);
+  await f.page.reviewCommunity({ currentTarget: { dataset: { id: f.row.id, decision: 'approved' } } }); assert.equal(f.modals.length, 0);
+  f.page.editorialField({ currentTarget: { dataset: { field: 'body' } }, detail: { value: '观察植物时保持距离，记录叶形，不采摘叶片。' } });
+  const publish = f.page.publishFeedback(); f.modals[0].success({ confirm: true }); await publish;
+  const request = f.calls.find(call => call.path.endsWith('/review/') && call.options.method === 'POST');
+  assert.equal(request.options.data.edited_body, '观察植物时保持距离，记录叶形，不采摘叶片。'); assert.equal(request.options.data.expected_version, 3);
+  assert.match(request.options.data.request_id, /^[a-f0-9-]{36}$/); assert.equal(f.page.data.rows[0].status, 'approved'); assert.match(f.page.data.notice, /原始反馈仍为私密/);
+  assert.equal((await f.store.get('community_submissions', f.row.id)).body, f.row.body);
+  assert.notEqual((await f.store.get('catalog', 'contents_' + f.row.id)).value.body, f.row.body);
+});
+
+test('editorial publishing retains uncertain request identity and stale confirmation sends no write', async () => {
+  const wait = deferred(); let blocked = true;
+  const f = await editorialFixture((path, options) => blocked && path.endsWith('/review/') && options.method === 'POST' ? wait.promise : undefined);
+  f.page.editFeedback(event('id', f.row.id));
+  f.page.data.editorial = { ...f.page.data.editorial, title: '官方标题', body: '编辑重新整理的可靠科普正文', source: '核实的公开资料' };
+  const first = f.page.publishFeedback(); f.modals[0].success({ confirm: true }); await new Promise(setImmediate);
+  await f.page.publishFeedback(); assert.equal(f.calls.filter(call => call.options.method === 'POST').length, 1);
+  wait.reject(new Error('网络中断')); await first; blocked = false;
+  const second = f.page.publishFeedback(); f.modals[1].success({ confirm: true }); await second;
+  const writes = f.calls.filter(call => call.options.method === 'POST'); assert.equal(writes[0].options.data.request_id, writes[1].options.data.request_id);
+  const g = await editorialFixture(); g.page.editFeedback(event('id', g.row.id));
+  g.page.data.editorial = { ...g.page.data.editorial, title: '官方标题', body: '编辑重新整理的可靠科普正文', source: '核实的公开资料' };
+  const stale = g.page.publishFeedback(); g.page.onHide(); g.modals[0].success({ confirm: true }); await stale;
+  assert.equal(g.calls.some(call => call.options.method === 'POST'), false); assert.equal(g.page.data.editorial, null);
 });

@@ -10,3 +10,16 @@
 .view-toolbar > view:first-child { flex-shrink: 0; white-space: nowrap; }
 .view-tabs { margin-left: auto; max-width: 100%; flex-shrink: 0; }
 .view-tabs button { width: auto; min-width: 110rpx; margin: 0; }
+
+.real-map { display: block; width: 100%; height: 680rpx; border-radius: 28rpx; overflow: hidden; background: #e1ead6; }
+.real-map-controls { display: flex; gap: 16rpx; margin-top: 18rpx; }.real-map-controls button { display: flex; align-items: center; justify-content: center; flex: 1; min-width: 0; width: 0; min-height: 88rpx; padding: 20rpx 16rpx; font-size: 24rpx; line-height: 1.5; text-align: center; }.real-map-section .section-head { margin-bottom: 18rpx; }
+.reference-picker { display: flex; align-items: center; gap: 18rpx; padding: 22rpx 24rpx; margin-bottom: 18rpx; border: 1rpx solid #cddfca; border-radius: 22rpx; background: #fffefa; color: #3a7d5c; font-size: 25rpx; }
+.reference-picker-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reference-picker-arrow { flex: none; line-height: 1; }
+.reference-card-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12rpx; margin-bottom: 16rpx; }
+.reference-card-heading .pill { font-size: 21rpx; }
+.reference-card-note { margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid #e0e8da; font-size: 23rpx; line-height: 1.7; color: #627455; }
+.reference-card-source { margin-top: 14rpx; font-size: 20rpx; line-height: 1.7; color: #7b8873; }
+.reference-list-heading { margin: 28rpx 0 18rpx; }
+.reference-list-heading .small { margin-top: 8rpx; line-height: 1.6; }
+.reference-list-card .location-number { background: #edf1e3; color: #688866; }

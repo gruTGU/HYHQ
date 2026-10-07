@@ -122,7 +122,7 @@ test('registered private interfaces match one-shot code and permission descripti
   assert.deepEqual(manifest.requiredPrivateInfos.sort(), ['chooseLocation', 'choosePoi', 'getFuzzyLocation'].sort());
   for (const name of ['scope.userLocation', 'scope.userFuzzyLocation']) assert.ok(Array.from(manifest.permission[name].desc).length <= 30);
   assert.equal(manifest.requiredPrivateInfos.includes('onLocationChange'), false);
-  assert.equal(manifest.requiredPrivateInfos.includes('getLocation'), false);
+  assert.equal(manifest.requiredPrivateInfos.includes('startLocationUpdate'), false);
 });
 
 test('fuzzy GCJ02 is only a nearby search reference and is never saved with an observation', async () => {

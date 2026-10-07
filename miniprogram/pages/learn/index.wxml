@@ -1,9 +1,6 @@
 <view style="{{themeStyle}}" class="page theme-{{themeId}} learn-page">
-  <button class="secondary section knowledge-entry" hover-class="pressable" bindtap="openSearch">资料检索 · 从原文里找答案 ↗</button>
-  <button wx:if="{{draftsAvailable}}" class="text-button section" bindtap="openSubmissions">写自然手记 · 我的投稿 ↗</button>
-  <view class="tabs section"><button class="tab {{tab === 'contents' ? 'selected' : ''}}" data-tab="contents" bindtap="changeTab" hover-class="pressable">科普手记</button><button class="tab {{tab === 'routes' ? 'selected' : ''}}" data-tab="routes" bindtap="changeTab" hover-class="pressable">漫步路线</button></view>
   <view class="card filters">
-    <view class="filter-top"><picker class="region-picker" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion"><view class="region-selector"><text class="region-leaf" aria-hidden="true"></text><text>{{regions[regionIndex].name}}</text><text class="picker-chevron">⌄</text></view></picker><button wx:if="{{tab === 'contents'}}" class="text-button filter-toggle" bindtap="toggleFilters" aria-expanded="{{showFilters}}">{{showFilters ? '收起筛选' : '分类筛选'}}<text wx:if="{{category || plant_label || place}}" class="filter-dot"></text></button></view>
+    <view class="filter-top"><picker class="region-picker" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion"><view class="region-selector"><text class="region-leaf" aria-hidden="true"></text><text>{{regions[regionIndex].name}}</text><view class="picker-chevron" aria-hidden="true"></view></view></picker><button wx:if="{{tab === 'contents'}}" class="filter-toggle" hover-class="pressable" bindtap="toggleFilters" aria-expanded="{{showFilters}}">{{showFilters ? '收起筛选' : '分类筛选'}}<text wx:if="{{category || plant_label || place}}" class="filter-dot"></text></button></view>
     <view wx:if="{{regionError}}" class="error-inline">区域暂时无法加载：{{regionError}}<button class="text-button" bindtap="load">重新加载</button></view>
     <block wx:if="{{tab === 'contents'}}">
       <view class="search-row"><input value="{{searchInput}}" placeholder="搜索自然知识" maxlength="100" confirm-type="search" bindinput="inputSearch" bindconfirm="searchContents" /><button class="search-button" hover-class="pressable" bindtap="searchContents">搜索</button></view>
@@ -18,7 +15,8 @@
     </block>
     <view wx:else><button wx:if="{{regionId}}" class="text-button gap" bindtap="allRoutes">浏览全部区域路线 ↗</button></view>
   </view>
-  <view class="section-head results-head"><text class="section-title">{{tab === 'contents' ? '自然手记' : '慢慢走，看一看'}}</text><text class="small muted">{{tab === 'contents' ? '阅读 · 发现 · 收藏' : '管理员整理'}}</text></view>
+  <view class="tabs section"><button class="tab {{tab === 'contents' ? 'selected' : ''}}" data-tab="contents" bindtap="changeTab" hover-class="pressable">知识科普</button><button class="tab {{tab === 'routes' ? 'selected' : ''}}" data-tab="routes" bindtap="changeTab" hover-class="pressable">漫步路线</button></view>
+  <view class="section-head results-head"><text class="section-title">{{tab === 'contents' ? '知识科普' : '慢慢走，看一看'}}</text><button wx:if="{{draftsAvailable}}" class="text-button feedback-entry" bindtap="openSubmissions">资料补充与纠错反馈 ↗</button></view>
   <block wx:if="{{tab === 'contents'}}">
     <page-state loading="{{contentsLoading}}" error="{{contentsError}}" empty="{{!contentsLoading && !contentsError && !contents.length}}" empty-text="暂时没有符合条件的手记，试试清除筛选或切换区域。" bindretry="retryContents" />
     <button wx:if="{{!contentsLoading && !contentsError && !contents.length && (category || plant_label || search || place)}}" class="secondary gap" bindtap="resetFilters">浏览全部科普</button>

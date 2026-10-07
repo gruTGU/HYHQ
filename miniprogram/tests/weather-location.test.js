@@ -85,3 +85,14 @@ test('hiding or unloading ignores late GPS callbacks without state updates or we
     assert.equal(requests.length, 0);
   }
 });
+
+
+test('weather city choices remove campus entries and old campus selections return to Tianjin', () => {
+  const { weatherCityOptions, weatherCitySlug } = require('../lib/weather-location');
+  const cities = [{ slug: 'tianjin', kind: 'city' }, { slug: 'beijing', kind: 'city' }];
+  const oldDirectory = [...cities, { slug: 'tiangong' }, { slug: 'tianjin-normal' }, { slug: 'tianjin-technology' }, { slug: 'future-campus', kind: 'campus' }];
+  assert.deepEqual(weatherCityOptions(oldDirectory), cities);
+  assert.equal(oldDirectory.length, 6);
+  for (const slug of ['tiangong', 'tianjin-normal', 'tianjin-technology']) assert.equal(weatherCitySlug(slug), 'tianjin');
+  assert.equal(weatherCitySlug('beijing'), 'beijing');
+});

@@ -3,7 +3,7 @@ const { selectTab } = require('../../lib/tab-bar');
 const { entryUrl } = require('../../lib/llm');
 const { app, detail } = require('../../lib/page');
 const { message } = require('../../lib/format');
-const { loadAll, selectRegion } = require('../../lib/region');
+const { loadAll, selectRegion, DEFAULT_REGION_SLUG, isDemoRegion, cityRegion } = require('../../lib/region');
 const { contentView, routeView, choices, pageData, appendUnique } = require('../../lib/knowledge');
 Page(withTheme({
   data: {
@@ -19,7 +19,7 @@ Page(withTheme({
     this._alive = true;
     this.setData({ draftsAvailable: app().config && app().config.transport === 'cloud-function' });
     this._sharedRegionId = app().globalData.region && app().globalData.region.id || '';
-    this.setData(this.regionSelection(this._sharedRegionId));
+    this.setData(this.regionSelection(this._sharedRegionId || DEFAULT_REGION_SLUG));
     this.consumePending();
     return this.load();
   },
@@ -40,11 +40,13 @@ Page(withTheme({
   visible() { return this._alive !== false && !this._hidden; },
   current(generation) { return this.visible() && generation === this._generation; },
   regionSelection(id) {
+    const shared = app().globalData.region;
+    const previous = this.data.regions.find((item) => item.id === id || item.slug === id);
+    if (id === 'demo-campus' || isDemoRegion(previous) || (shared && (shared.id === id || shared.slug === id) && isDemoRegion(shared))) id = DEFAULT_REGION_SLUG;
     const regions = this.data.regions.slice();
     let regionIndex = regions.findIndex((item) => item.id === id || item.slug === id);
     if (regionIndex < 0) {
-      const shared = app().globalData.region;
-      regions.push(shared && (shared.id === id || shared.slug === id) ? shared : { id, name: '指定区域（可切换）' });
+      regions.push(shared && (shared.id === id || shared.slug === id) ? shared : { id, name: id === DEFAULT_REGION_SLUG ? '天津' : '指定区域（可切换）' });
       regionIndex = regions.length - 1;
     }
     return { regions, regionIndex, regionId: id };
@@ -78,11 +80,16 @@ Page(withTheme({
   async loadRegions(generation) {
     this.setData({ regionError: '' });
     try {
-      const publicRegions = await loadAll(app().api, 'regions/');
+      const publicRegions = (await loadAll(app().api, 'regions/')).map(cityRegion);
       if (!this.current(generation)) return;
-      const regions = [{ id: '', name: '全部区域' }].concat(publicRegions);
+      const regions = [{ id: '', name: '全部区域' }].concat(publicRegions.filter((region) => !isDemoRegion(region)));
+      // Old links may still contain a demonstration-region UUID.
+      if (publicRegions.some((region) => isDemoRegion(region) && (region.id === this.data.regionId || region.slug === this.data.regionId))) {
+        this.setData({ regions, regionId: DEFAULT_REGION_SLUG, place: '' });
+        return this.load();
+      }
       let regionIndex = regions.findIndex((item) => item.id === this.data.regionId || item.slug === this.data.regionId);
-      if (regionIndex < 0) { regions.push({ id: this.data.regionId, name: '指定区域（可切换）' }); regionIndex = regions.length - 1; }
+      if (regionIndex < 0) { regions.push({ id: this.data.regionId, name: this.data.regionId === DEFAULT_REGION_SLUG ? '天津' : '指定区域（可切换）' }); regionIndex = regions.length - 1; }
       this.setData({ regions, regionIndex });
     } catch (error) { if (this.current(generation)) this.setData({ regionError: message(error) }); }
   },
@@ -178,7 +185,6 @@ Page(withTheme({
     if (items.some((item) => item.id === id)) detail(kind, id);
   },
   openSubmissions() { if (this.visible() && this.data.draftsAvailable) wx.navigateTo({ url: '/pages/submissions/index' }); },
-  openSearch() { if (this.visible()) wx.navigateTo({ url: '/pages/knowledge-search/index' }); },
   openAI() {
     if (!this.visible() || this.data.regionError) return;
     const regions = this.data.regions.filter((item) => item.id);

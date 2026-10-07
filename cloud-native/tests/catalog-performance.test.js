@@ -89,14 +89,14 @@ test('private record serialization shares one catalogue load across all referenc
   assert.deepEqual(remote.calls, [{ method: 'get', kind: 'users' }, { method: 'list', kind: 'favorites' }, { method: 'list', kind: 'catalog' }]);
 });
 
-test('approved user material is filtered on each request and RAG boundary after the community gate closes', async () => {
-  const store = new MemoryStore(), submitted = { ...snapshot.collections.contents[0], id: uid(9001), _community_submission: true, _community_owner_id: uid(9003), status: 'published' };
+test('edited official material is filtered on each request and RAG boundary after the feedback gate closes', async () => {
+  const store = new MemoryStore(), submitted = { ...snapshot.collections.contents[0], id: uid(9001), title: '编辑核实的植物观察建议', body: '从叶形和树冠观察树木，不攀折枝条。', source: '官方编辑整理 · 来源：核实公开资料', _editorial_feedback: true, _community_submission: true, _community_owner_id: uid(9003), status: 'published' };
   await store.set('catalog', 'contents_' + submitted.id, { id: 'contents_' + submitted.id, kind: 'contents', value: submitted });
   const reviewerId = uid(9002); await store.set('users', reviewerId, { id: reviewerId, is_active: true });
   await store.set('users', uid(9003), { id: uid(9003), is_active: true });
   await store.set('admin_config', 'community_safety', { app_id: 'test-app', checked_at: now });
-  const config = { appId: 'test-app', management: { enabled: true, adminUserIds: [reviewerId] }, community: { enabled: true,
-    qualificationConfirmed: true, qualificationReference: 'reviewed fixture', qualificationDate: '2026-10-03', moderationReady: true } };
+  const config = { appId: 'test-app', management: { enabled: true, adminUserIds: [reviewerId] }, community: { mode: 'official-editorial', feedbackEnabled: true,
+    feedbackQualificationConfirmed: true, feedbackQualificationReference: 'reviewed editorial fixture', feedbackQualificationDate: '2026-10-03', moderationReady: true } };
   const ctx = context(store, '', { config });
   const first = await catalog.loadCatalog(ctx); assert.ok(first.contents.some(row => row.id === submitted.id));
   await store.remove('admin_config', 'community_safety');
@@ -106,17 +106,17 @@ test('approved user material is filtered on each request and RAG boundary after 
   assert.ok(closed.contents.some(row => row.id === snapshot.collections.contents[0].id), 'administrator materials remain public');
 });
 
-test('author deactivation hides approved submissions before cleanup, including repeated RAG and missing owner metadata', async () => {
+test('author deactivation hides feedback-derived official articles before cleanup, including repeated RAG and missing owner metadata', async () => {
   const store = new MemoryStore(), id = uid(9010), authorId = uid(9011), reviewerId = uid(9012);
   for (const id of [authorId, reviewerId]) await store.set('users', id, { id, is_active: true });
-  const entry = { ...snapshot.collections.contents[0], id, status: 'published', _community_submission: true, _community_owner_id: authorId };
+  const entry = { ...snapshot.collections.contents[0], id, status: 'published', title: '经核实的官方科普', body: '编辑独立整理的自然观察建议。', source: '官方编辑整理 · 来源：核实公开资料', _editorial_feedback: true, _community_submission: true, _community_owner_id: authorId };
   await store.set('catalog', 'contents_' + id, { id: 'contents_' + id, kind: 'contents', value: entry });
   await store.set('admin_config', 'community_safety', { app_id: 'test-app', checked_at: now });
-  const config = { appId: 'test-app', management: { enabled: true, adminUserIds: [reviewerId] }, community: { enabled: true,
-    qualificationConfirmed: true, qualificationReference: 'fixture', qualificationDate: '2026-10-03', moderationReady: true } };
+  const config = { appId: 'test-app', management: { enabled: true, adminUserIds: [reviewerId] }, community: { mode: 'official-editorial', feedbackEnabled: true,
+    feedbackQualificationConfirmed: true, feedbackQualificationReference: 'editorial fixture', feedbackQualificationDate: '2026-10-03', moderationReady: true } };
   const ctx = context(store, '', { config });
   const visible = await catalog.getPublicItem(ctx, 'contents', id); assert.ok(visible);
-  assert.equal('_community_owner_id' in visible, false); assert.equal('_community_submission' in visible, false);
+  assert.equal('_community_owner_id' in visible, false); assert.equal('_community_submission' in visible, false); assert.equal('_editorial_feedback' in visible, false);
   await store.update('users', authorId, { is_active: false, deleting: true });
   // Simulate a failure before cleanup can remove the published catalogue row.
   assert.ok(await store.get('catalog', 'contents_' + id));
@@ -127,4 +127,20 @@ test('author deactivation hides approved submissions before cleanup, including r
   await store.set('users', authorId, { id: authorId, is_active: true });
   delete entry._community_owner_id; await store.set('catalog', 'contents_' + id, { id: 'contents_' + id, kind: 'contents', value: entry });
   assert.equal(await catalog.getPublicItem(context(store, '', { config }), 'contents', id), null);
+});
+
+test('many editorial articles share one request-local safety readiness check', async () => {
+  const store = new MemoryStore(), authorId = uid(9101), reviewerId = uid(9102);
+  for (const id of [authorId, reviewerId]) await store.set('users', id, { id, is_active: true });
+  await store.set('admin_config', 'community_safety', { app_id: 'test-app', checked_at: now });
+  for (let i = 0; i < 100; i++) {
+    const id = uid(9200 + i), value = { ...snapshot.collections.contents[0], id, status: 'published', _editorial_feedback: true, _community_submission: true, _community_owner_id: authorId };
+    await store.set('catalog', 'contents_' + id, { id: 'contents_' + id, kind: 'contents', value });
+  }
+  const config = { appId: 'test-app', management: { enabled: true, adminUserIds: [reviewerId] }, community: { mode: 'official-editorial', feedbackEnabled: true,
+    feedbackQualificationConfirmed: true, feedbackQualificationReference: 'editorial fixture', feedbackQualificationDate: '2026-10-03', moderationReady: true } };
+  const remote = remoteStore(store), output = await catalog.loadCatalog(context(remote.store, '', { config }));
+  assert.equal(output.contents.filter(row => row._editorial_feedback).length, 100);
+  assert.equal(remote.calls.filter(row => row.kind === 'admin_config' && row.method === 'get').length, 1);
+  assert.equal(remote.calls.filter(row => row.kind === 'users' && row.method === 'get').length, 2);
 });

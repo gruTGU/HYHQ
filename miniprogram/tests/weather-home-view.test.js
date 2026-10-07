@@ -78,7 +78,7 @@ test('home template hides empty badge, timestamps and scope prose while retainin
   assert.doesNotMatch(wxml, /citySummary\.(?:weather|air)\.(?:fetched_label|expires_label|attribution)\}\}|city\.scope_note/);
   assert.match(wxml, /citySummary\.daily\.today_available/);
   assert.match(wxml, /wx:for="\{\{citySummary\.source_notes\}\}"/);
-  assert.match(wxml, /bindtap="weatherSource"[^>]*>和风天气 QWeather/);
+  assert.match(wxml, /bindtap="weatherSource"[^>]*>和风天气/);
   assert.match(wxml, /data-url="\{\{item\.url\}\}"[^>]*bindtap="weatherAttribution"/);
   assert.match(wxml, /item\.issued_label/); assert.match(wxml, /item\.effective_label/); assert.match(wxml, /item\.expires_label/);
 });

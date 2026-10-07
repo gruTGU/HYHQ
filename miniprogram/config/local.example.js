@@ -5,4 +5,7 @@
 module.exports = {
   baseURL: 'http://127.0.0.1:8000/api/v1',
   development: true,
+  // Optional public Tencent map client key. It is included in the mini-program package.
+  // Keep provider server secrets on the backend.
+  mapSubkey: '',
 };

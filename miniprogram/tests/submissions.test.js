@@ -35,10 +35,10 @@ test('guest has voluntary login entry and never loads private records', async ()
   const f = await setup(); f.application.session.clear(); await f.page.onShow(); assert.equal(f.calls.length, 0); assert.equal(f.page.data.loggedIn, false); f.page.create(); assert.equal(f.page.data.editor, null); f.page.login(); assert.deepEqual(f.links, ['/pages/profile/index']);
 });
 test('unsaved draft edits prevent submission and explicit save goes pending under verified gate', async () => {
-  const f = await setup(); f.config.community = { enabled: true, qualificationConfirmed: true, qualificationReference: 'test fixture', qualificationDate: '2026-10-01', moderationReady: true };
+  const f = await setup(); f.config.community = { mode: 'official-editorial', feedbackEnabled: true, feedbackQualificationConfirmed: true, feedbackQualificationReference: 'test fixture', feedbackQualificationDate: '2026-10-01', moderationReady: true };
   await f.store.set('admin_config', 'community_safety', { app_id: 'app', checked_at: f.now }); await f.page.onShow(); f.page.create(); f.field('title', '植物观察'); f.field('body', '树叶形状'); await f.page.save();
   f.field('body', '树叶颜色'); await f.page.submit(); assert.match(f.page.data.error, /先保存/); assert.equal(f.calls.some(call => call.path.endsWith('/submit/')), false);
-  await f.page.save(); await f.page.submit(); assert.equal(f.page.data.editor.status, 'pending'); assert.match(f.page.data.notice, /审核/);
+  await f.page.save(); await f.page.submit(); assert.equal(f.page.data.editor.status, 'pending'); assert.match(f.page.data.notice, /原始反馈不会公开/);
 });
 test('duplicate save is suppressed and uncertain new-draft request retains idempotency key', async () => {
   const wait = deferred(); let fail = true;

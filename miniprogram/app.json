@@ -65,7 +65,7 @@
   },
   "permission": {
     "scope.userFuzzyLocation": {
-      "desc": "用于选择邻近天气城市及查找附近水体"
+      "desc": "用于选择天气城市、浏览附近生态地图及查找水体"
     },
     "scope.userLocation": {
       "desc": "用于自主选择河道观察位置"

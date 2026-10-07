@@ -36,6 +36,17 @@ function aiDraftView(raw, locations, now = Date.now()) {
 }
 function number(input) { return typeof input === 'number' && Number.isFinite(input) ? input : null; }
 function temperature(input) { const parsed = number(input); return parsed === null ? '—' : String(Math.trunc(parsed)); }
+const WIND_DIRECTIONS = {
+  N: '北风', NNE: '东北偏北风', NE: '东北风', ENE: '东北偏东风',
+  E: '东风', ESE: '东南偏东风', SE: '东南风', SSE: '东南偏南风',
+  S: '南风', SSW: '西南偏南风', SW: '西南风', WSW: '西南偏西风',
+  W: '西风', WNW: '西北偏西风', NW: '西北风', NNW: '西北偏北风',
+};
+function windDirection(value) {
+  return typeof value === 'string'
+    ? value.replace(/\b(?:NNE|ENE|ESE|SSE|SSW|WSW|WNW|NNW|NE|SE|SW|NW|N|E|S|W)\b/gi, direction => WIND_DIRECTIONS[direction.toUpperCase()])
+    : '';
+}
 function forecastView(raw, now = Date.now()) {
   const item = raw || {}, data = item.data || {}, expired = item.expires_at && Date.parse(item.expires_at) <= now;
   const stale = item.status === 'stale' || item.stale === true || Boolean(expired);
@@ -51,7 +62,7 @@ function forecastView(raw, now = Date.now()) {
       night_label: nighttime.condition || '暂无天气描述',
       temperature_label: celsius ? temperature(day.temperature_min) + ' ~ ' + temperature(day.temperature_max) + '℃' : value(day.temperature_min) + ' ~ ' + value(day.temperature_max, day.temperature_unit),
       rain_label: value(daytime.precipitation_probability_percent, '%'),
-      wind_label: [daytime.wind_direction, daytime.wind_scale ? daytime.wind_scale + '级' : ''].filter(Boolean).join(' ') || '暂无风力数据',
+      wind_label: [windDirection(daytime.wind_direction), daytime.wind_scale ? daytime.wind_scale + '级' : ''].filter(Boolean).join(' ') || '暂无风力数据',
       tips: stale || item.status !== 'fresh' ? [] : hints,
     });
   });

@@ -1,13 +1,14 @@
 const { withTheme } = require('../../lib/theme');
 const { app } = require('../../lib/page');
 const { message, time } = require('../../lib/format');
+const { requestId } = require('../../lib/community');
 const editable = ['contents', 'routes', 'places'];
 const tabs = ['stats', ...editable, 'feedback', 'audit', 'maintenance', 'submissions', 'comments', 'reports'];
 const communityTabs = ['submissions', 'comments', 'reports'];
-const communityStatus = { checking: '安全检查中', pending: '待审核', approved: '已公开', rejected: '未通过', resolved: '已处理', dismissed: '不予受理' };
-const auditNames = { community_submitted: '提交社区内容', community_approved: '审核通过', community_rejected: '审核驳回或下架', community_deleted: '删除社区内容', community_withdrawn: '撤回投稿', community_reported: '提交举报', community_report_handled: '处理举报', community_safety_verified: '内容检查联通核验', catalog_created: '新增资料', catalog_updated: '修改资料', catalog_withdrawn: '撤下资料', feedback_resolved: '处理反馈', retention_updated: '修改保留策略', simulation_withdrawn: '维护模拟批次' };
+const communityStatus = { checking: '原始反馈安全检查中', reviewing: '编辑稿安全检查中', pending: '待审核', approved: '已采用，原稿私密', rejected: '未通过', resolved: '已处理', dismissed: '不予受理' };
+const auditNames = { community_submitted: '提交资料反馈', community_approved: '审核通过', community_rejected: '审核驳回或下架', community_deleted: '删除社区内容', community_withdrawn: '撤回资料反馈', community_reported: '提交举报', community_report_handled: '处理举报', community_editorial_check_failed: '编辑稿检查未通过', community_safety_verified: '内容检查联通核验', catalog_created: '新增资料', catalog_updated: '修改资料', catalog_withdrawn: '撤下资料', feedback_resolved: '处理反馈', retention_updated: '修改保留策略', simulation_withdrawn: '维护模拟批次' };
 const kindNames = { sessions: '登录会话', uploads: '上传任务', upload_chunks: '上传临时块', assets: '私人图片', storage_cleanup: '存储清理任务', llm_sessions: 'AI 会话', llm_turns: 'AI 对话', recognition_jobs: '图像识别记录', assessment_jobs: '河湖评估记录', asset_usage: '上传用量记录', llm_owners: 'AI 账户状态', llm_ledger: 'AI 用量账本', llm_quotas: 'AI 额度记录', llm_days: 'AI 每日用量', upload_budget: '上传预算记录', inference_daily: '识别每日用量', weather_requests: '天气请求记录', auth_gates: '登录频率记录' };
-function cleared() { return { allowed: false, rows: [], next: null, editor: null, revision: 0, cleanup: null, retention: null, maintenance: null, metricGroups: [], countingNote: '', asOf: '', notice: '' }; }
+function cleared() { return { allowed: false, rows: [], next: null, editor: null, revision: 0, cleanup: null, retention: null, maintenance: null, editorial: null, metricGroups: [], countingNote: '', asOf: '', notice: '' }; }
 function cards(data) {
   const catalog = data.public_catalog || {}, jobs = data.jobs || {}, feedback = data.feedback || {}, llm = data.llm_today || {}, weather = data.weather_budget || {};
   return [
@@ -113,10 +114,36 @@ Page(withTheme({
     const result = await this.operation(() => app().api.request('personal-admin/catalog/' + kind + '/' + id + '/', { method: 'DELETE', data: { expected_revision: revision } }));
     if (result) return this.load();
   },
+  editFeedback(event) {
+    const row = this.data.rows.find(item => item.id === event.currentTarget.dataset.id);
+    if (!this._active || this.data.busy || this.data.tab !== 'submissions' || !row || row.status !== 'pending') return;
+    const prior = row.editorial || {};
+    this._editorialRequest = null;
+    this.setData({ editorial: { id: row.id, version: row.version, title: prior.title || '', body: prior.body || '', source: prior.source || '' } });
+  },
+  editorialField(event) {
+    const field = event.currentTarget.dataset.field;
+    if (!this._active || this.data.busy || !this.data.editorial || !['title', 'body', 'source'].includes(field)) return;
+    this.setData({ ['editorial.' + field]: event.detail.value });
+  },
+  async publishFeedback() {
+    const editor = this.data.editorial;
+    if (!editor || this.data.tab !== 'submissions') return;
+    const values = { edited_title: editor.title.trim(), edited_body: editor.body.trim(), edited_source: editor.source.trim() };
+    if (!values.edited_title || !values.edited_body || !values.edited_source || [...values.edited_title].length > 80 || [...values.edited_body].length > 2000 || [...values.edited_source].length > 300) { this.setData({ error: '请填写编辑后的标题、正文与已核实公开来源，并遵守字数限制。' }); return; }
+    const row = this.data.rows.find(item => item.id === editor.id);
+    if (!row || values.edited_body.replace(/\s/g, '') === row.body.replace(/\s/g, '')) { this.setData({ error: '请独立编辑正文，原始反馈不能直接公开。' }); return; }
+    const fingerprint = JSON.stringify({ id: editor.id, version: editor.version, values });
+    if (!this._editorialRequest || this._editorialRequest.fingerprint !== fingerprint) this._editorialRequest = { fingerprint, request_id: requestId() };
+    const confirmed = await this.confirm({ title: '发布编辑后的官方文章', content: '已核实公开来源、移除私人信息并完成独立编辑。系统将再次检查编辑内容；仅通过后才会发布。原始反馈始终保持私密。' });
+    if (!confirmed) return;
+    const result = await this.operation(() => app().api.request('personal-admin/community/submissions/' + editor.id + '/review/', { method: 'POST', data: { decision: 'approved', expected_version: editor.version, request_id: this._editorialRequest.request_id, ...values } }));
+    if (result) { const status = result.data.status, reason = result.data.review_reason, token = this._token; await this.load(); if (this._active && token === this._token && token === app().session.token() && this.data.allowed) this.setData({ notice: status === 'approved' ? '官方文章已发布，原始反馈仍为私密。' : reason || '编辑稿检查中，请稍后刷新。' }); }
+  },
   async reviewCommunity(event) {
     const { id, decision } = event.currentTarget.dataset, tab = this.data.tab;
     const row = this.data.rows.find(item => item.id === id);
-    if (!communityTabs.includes(tab) || !row) return;
+    if (!communityTabs.includes(tab) || !row || tab === 'submissions' && decision === 'approved') return;
     const report = tab === 'reports';
     if (!(report ? ['resolved', 'dismissed'] : ['approved', 'rejected']).includes(decision)) return;
     const confirmed = await this.confirm({ title: report ? '处理举报' : decision === 'approved' ? '通过并公开内容' : '驳回或撤下内容',

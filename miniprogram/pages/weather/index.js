@@ -2,7 +2,7 @@ const { withTheme } = require('../../lib/theme');
 const { app } = require('../../lib/page');
 const { message } = require('../../lib/format');
 const { requestId } = require('../../lib/llm');
-const { locateWeatherCity } = require('../../lib/weather-location');
+const { locateWeatherCity, weatherCityOptions } = require('../../lib/weather-location');
 const { forecastView, reminderView, bookingFields, validateBooking, aiDraftView } = require('../../lib/weather-forecast');
 Page(withTheme({
   data: { loading: false, error: '', locations: [], locationIndex: 0, location: null, forecast: null,
@@ -48,7 +48,7 @@ Page(withTheme({
         subscriptionNotice: status.notice || (results[1].status === 'rejected' ? '预约服务暂不可用，可稍后刷新。' : '天气预约暂未开放。'),
         reminders: (Array.isArray(status.items) ? status.items : []).map(reminderView) });
       if (results[0].status === 'rejected') throw results[0].reason;
-      const catalog = results[0].value.data || {}, locations = Array.isArray(catalog.items) ? catalog.items : [];
+      const catalog = results[0].value.data || {}, locations = weatherCityOptions(catalog.items);
       const wanted = locations.findIndex((item) => item.slug === this._wantedLocation), tianjin = locations.findIndex((item) => item.slug === 'tianjin');
       const locationIndex = wanted >= 0 ? wanted : Math.max(0, tianjin), location = locations[locationIndex] || null;
       this.setData({ locations, locationIndex, location, forecastEnabled: catalog.forecast_enabled === true });

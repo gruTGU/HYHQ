@@ -2,6 +2,7 @@
 // Public data only. A bundled reviewed snapshot works before the first import;
 // administrator-only catalog documents override it, including withdrawal tombstones.
 const seed = require('../data/catalog.json');
+const mapGeometry = require('./map-geometry');
 const { ApiError, response, paginate, sha256 } = require('./core');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CATEGORIES = { plants: '植物知识', water: '水资源保护', green: '绿色生活', travel: '生态智游' };
@@ -9,8 +10,9 @@ const PLANTS = { daisy: '雏菊类花卉', dandelion: '蒲公英类花卉', rose
 const PLACE_KINDS = ['river', 'lake', 'park', 'plant', 'waste', 'trail', 'campus', 'landmark'];
 const SIM_NOTICE = '模拟数据，仅用于科普体验，不代表真实监测结果。';
 const FIELDS = {
-  regions: 'id slug name description is_demo',
-  places: 'id slug name kind description region region_name is_demo map_layout x_ratio y_ratio latitude longitude coordinate_system source_note water_body_id',
+  regions: 'id slug name description is_demo real_map',
+  rivers: 'id slug name description region region_name is_demo is_published coordinate_system geometry_verified path source_url source_note checked_at access_note',
+  places: 'id slug name kind description region region_name is_demo map_layout x_ratio y_ratio latitude longitude coordinate_system source_note water_body_id is_published coordinates_verified source_url checked_at access_note river_id',
   maps: 'id region name version image_url image_width image_height attribution points',
   stations: 'id code name kind region region_name place water_body',
   metrics: 'id code name unit station_kind min_value max_value description',
@@ -77,7 +79,10 @@ async function loadCatalog(ctx) {
     const regions = raw.regions.filter((row) => row.is_active !== false);
     const regionMap = byId(regions);
     const places = raw.places.filter((row) => row.is_published !== false && regionMap.has(row.region)).map((row) => ({ ...row,
-      region_name: regionMap.get(row.region).name, is_demo: Boolean(regionMap.get(row.region).is_demo) }));
+      region_name: regionMap.get(row.region).name, is_demo: row.is_demo === true || Boolean(regionMap.get(row.region).is_demo), is_published: true,
+      coordinates_verified: row.is_demo !== true && regionMap.get(row.region).is_demo === false && mapGeometry.verifiedPoint(row) }));
+    const rivers = raw.rivers.filter(row => row.is_demo !== true && row.is_published === true && regionMap.get(row.region)?.is_demo === false && mapGeometry.verifiedRiver(row))
+      .map(row => ({ ...row, is_demo: false, region_name: regionMap.get(row.region).name }));
     const placeMap = byId(places);
     const water_bodies = raw.water_bodies.filter((row) => {
       const place = placeMap.get(row._place_id); return place && ['river', 'lake'].includes(place.kind);
@@ -108,7 +113,12 @@ async function loadCatalog(ctx) {
     // The community capability is checked on every request, including RAG.
     // Turning it off must not expose previously approved user submissions.
     const userContents = raw.contents.filter(row => row._community_submission);
-    const communityOpen = !userContents.length || await require('./community').enabled(ctx);
+    const community = require('./community');
+    // One readiness read per catalogue invocation; RAG invalidates this catalogue
+    // before each boundary, so a live closure still takes effect immediately.
+    const editorialRows = userContents.filter(row => row._editorial_feedback === true);
+    const communityOpen = editorialRows.length > 0 && await community.feedbackEnabled(ctx);
+    const visibleCommunity = new Set(communityOpen ? editorialRows.map(row => row.id) : []);
     const activeAuthors = new Set();
     if (communityOpen && userContents.length) {
       const ids = [...new Set(userContents.map(row => row._community_owner_id).filter(id => UUID.test(id || '')))];
@@ -123,7 +133,7 @@ async function loadCatalog(ctx) {
       }
     }
     const contents = raw.contents.filter((row) => (!row.status || row.status === 'published')
-      && (!row._community_submission || communityOpen && row._community_submission === true && activeAuthors.has(row._community_owner_id))).map((row) => {
+      && (!row._community_submission || visibleCommunity.has(row.id) && row._community_submission === true && activeAuthors.has(row._community_owner_id))).map((row) => {
       const place = placeMap.get(row.place); return { ...row, _linked_place: row.place || null, place: place ? place.id : null,
         place_summary: place ? Object.fromEntries(['id', 'slug', 'name', 'kind', 'region', 'region_name', 'is_demo'].map((key) => [key, place[key]])) : null };
     });
@@ -135,7 +145,7 @@ async function loadCatalog(ctx) {
     });
     const maps = raw.maps.filter((row) => row.is_active !== false && regionMap.has(row.region)).map((row) => ({ ...row,
       points: places.filter((place) => place.map_layout === row.id && place.region === row.region).map((place) => pick('places', place)) }));
-    return { regions, places, maps, stations, metrics, data_sources, observations, simulation_runs, scenarios: raw.scenarios,
+    return { regions, places, rivers, maps, stations, metrics, data_sources, observations, simulation_runs, scenarios: raw.scenarios,
       water_bodies, contents, routes };
   })();
   return ctx._publicCatalogPromise;
@@ -331,7 +341,7 @@ function boundedPublicContext(value) {
   // Preserve the current page first. Repeated short fields (UUIDs, paths,
   // coordinates) cannot be shrunk by the gateway's long-text clipping alone.
   while (Buffer.byteLength(JSON.stringify(context)) > limit) {
-    const field = ['places', 'routes', 'articles', 'measurements', 'stops'].find(key => Array.isArray(context[key]) && context[key].length);
+    const field = ['places', 'rivers', 'routes', 'articles', 'measurements', 'stops'].find(key => Array.isArray(context[key]) && context[key].length);
     if (field) {
       context[field].pop();
       context[field === 'stops' ? 'primary_material_truncated' : 'supplemental_material_truncated'] = true;
@@ -378,6 +388,7 @@ async function getContext(ctx, type, id) {
   if (place && type !== 'place') context.place_info = pick('places', place);
   let related = [];
   if (type === 'region') {
+    context.rivers = current.rivers.filter(row => row.region === id).slice(0, 10).map(row => ({ id: row.id, name: row.name, description: row.description, source_url: row.source_url, checked_at: row.checked_at, access_note: row.access_note }));
     context.places = sorted(current.places.filter((row) => row.region === id), 'name', 'id').slice(0, 6).map((row) => pick('places', row));
     context.routes = sorted(current.routes.filter((row) => row.region === id), 'title', 'id').slice(0, 3).map((row) => ({ id: row.id, title: row.title,
       description: row.description.slice(0, 350), source: row.source, is_demo: row.is_demo, source_path: cite('route', row).source_path }));
@@ -430,14 +441,14 @@ async function handle(ctx) {
   }
   if (route.startsWith('narrations/')) missing('正式授权讲解音频尚未配置');
   const known = ['regions', 'places', 'maps', 'stations', 'metrics', 'data-sources', 'observations', 'observation-series', 'simulation-runs',
-    'weather', 'air-quality', 'weather-alerts', 'dashboard', 'water-bodies', 'nearby-water-bodies', 'contents', 'routes', 'content-tags', 'knowledge-search'];
+    'weather', 'air-quality', 'weather-alerts', 'dashboard', 'water-bodies', 'nearby-water-bodies', 'rivers', 'contents', 'routes', 'content-tags', 'knowledge-search'];
   const match = /^([^/]+)\/(?:([^/]+)\/)?$/.exec(route);
   if (!match || !known.includes(match[1])) return undefined;
   if (ctx.method !== 'GET') throw new ApiError('METHOD_NOT_ALLOWED', '公开资料仅支持读取', 405);
   const name = match[1], id = match[2], catalog = await loadCatalog(ctx), query = ctx.query;
   onlyOnce(query);
   if (id) {
-    if (!['places', 'contents', 'routes', 'water-bodies'].includes(name) || !UUID.test(id)) missing();
+    if (!['places', 'contents', 'routes', 'water-bodies', 'rivers'].includes(name) || !UUID.test(id)) missing();
     const item = await getPublicItem(ctx, name.replace('-', '_'), id);
     if (!item) missing();
     return response(item);
@@ -461,7 +472,7 @@ async function handle(ctx) {
     const rad = Math.PI / 180;
     for (const station of sorted(catalog.stations.filter((row) => row.kind === 'water' && row.place && row.water_body), 'id')) {
       const place = catalog.places.find((row) => row.id === station.place);
-      if (!place || place.coordinate_system !== coordinates || !Number.isFinite(place.latitude) || !Number.isFinite(place.longitude)) continue;
+      if (!place || place.is_demo !== false || place.coordinates_verified !== true || place.coordinate_system !== coordinates || !Number.isFinite(place.latitude) || !Number.isFinite(place.longitude)) continue;
       const a = Math.sin((place.latitude - latitude) * rad / 2) ** 2 + Math.cos(latitude * rad) * Math.cos(place.latitude * rad) * Math.sin((place.longitude - longitude) * rad / 2) ** 2;
       const meters = 2 * 6371000 * Math.asin(Math.sqrt(Math.max(0, Math.min(1, a))));
       if (meters < distance) { distance = meters; best = station; }
