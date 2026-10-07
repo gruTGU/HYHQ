@@ -3,17 +3,47 @@ const catalog = require('../data/map-reference-points');
 const { coordinates, MARKER_ICON } = require('./real-map');
 const { matchesType } = require('./map-layout');
 const MARKER_OFFSET = 1000000;
+const CITY_WEATHER = { 'tianjin-nature': 'tianjin', 'beijing-nature': 'beijing' };
+
+function sourceLabel(point) {
+  if (point && ['腾讯地图 POI', 'Tencent地图 POI'].includes(point.source_note)) return '腾讯地图 POI';
+  return '地图点位资料';
+}
+
+function valid(point) {
+  return !!point && typeof point.id === 'string' && point.id.length <= 120 && /^reference-[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(point.id) &&
+    Object.prototype.hasOwnProperty.call(CITY_WEATHER, point.region_slug) &&
+    point.coordinate_system === 'GCJ02' && coordinates(point) &&
+    Number.isInteger(point.marker_id) && point.marker_id > 0;
+}
+
+function byId(id) {
+  if (typeof id !== 'string' || !Array.isArray(catalog.locations)) return null;
+  return catalog.locations.find((point) => valid(point) && point.id === id) || null;
+}
+
+function weatherSlug(id) { const point = byId(id); return point ? CITY_WEATHER[point.region_slug] : ''; }
+
+function sourceCard(id) {
+  const point = byId(id);
+  if (!point) return null;
+  const location = [point.city, point.district, point.address].filter(Boolean).join(' · ');
+  return {
+    id: point.id, type: 'map_reference', region: '', label: point.kind === 'campus' ? '校园参考点' : '地图参考点', title: point.name,
+    summary: [point.description, location, sourceLabel(point) + (point.checked_at ? ' · 核对日期 ' + point.checked_at : ''),
+      catalog.scope_note || '参考点，不代表入口、完整河道或导航路线。', point.access_note,
+      'AI 结合这个点位和可核对资料回答。'].filter(Boolean).join('\n'),
+  };
+}
 
 function forRegion(region) {
   if (!region || region.is_demo !== false || !Array.isArray(catalog.locations)) return [];
-  return catalog.locations.filter((point) => point.region_slug === region.slug &&
-    point.coordinate_system === 'GCJ02' && coordinates(point) && typeof point.id === 'string' &&
-    Number.isInteger(point.marker_id) && point.marker_id > 0)
+  return catalog.locations.filter((point) => point.region_slug === region.slug && valid(point))
     .map((point, index) => Object.assign({}, point, {
       markerId: MARKER_OFFSET + point.marker_id,
       order: String(index + 1).padStart(2, '0'),
       displayName: point.name + (point.district ? ' · ' + point.district : ''),
-      sourceLabel: catalog.source || '腾讯地图 POI',
+      sourceLabel: sourceLabel(point),
     }));
 }
 
@@ -31,4 +61,4 @@ function marker(point) {
   };
 }
 
-module.exports = { forRegion, filtered, marker, scopeNote: catalog.scope_note || '参考点，不代表入口、完整河道或导航路线。' };
+module.exports = { byId, weatherSlug, sourceCard, forRegion, filtered, marker, scopeNote: catalog.scope_note || '参考点，不代表入口、完整河道或导航路线。' };

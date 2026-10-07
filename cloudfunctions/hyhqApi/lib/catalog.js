@@ -3,6 +3,8 @@
 // administrator-only catalog documents override it, including withdrawal tombstones.
 const seed = require('../data/catalog.json');
 const mapGeometry = require('./map-geometry');
+const mapReferences = require('./map-reference-context');
+const exploreRetrieval = require('./explore-retrieval');
 const { ApiError, response, paginate, sha256 } = require('./core');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CATEGORIES = { plants: '植物知识', water: '水资源保护', green: '绿色生活', travel: '生态智游' };
@@ -336,12 +338,16 @@ async function getPublicItem(ctx, kind, id) {
   return item ? pick(kind, item) : null;
 }
 
+async function getMapReference(ctx, id) {
+  return mapReferences.referenceFor(await loadCatalog(ctx), id);
+}
+
 function boundedPublicContext(value) {
   const context = structuredClone(value), limit = 6000;
   // Preserve the current page first. Repeated short fields (UUIDs, paths,
   // coordinates) cannot be shrunk by the gateway's long-text clipping alone.
   while (Buffer.byteLength(JSON.stringify(context)) > limit) {
-    const field = ['places', 'rivers', 'routes', 'articles', 'measurements', 'stops'].find(key => Array.isArray(context[key]) && context[key].length);
+    const field = ['places', 'rivers', 'routes', 'articles', 'measurements', 'stops', 'map_references'].find(key => Array.isArray(context[key]) && context[key].length);
     if (field) {
       context[field].pop();
       context[field === 'stops' ? 'primary_material_truncated' : 'supplemental_material_truncated'] = true;
@@ -365,29 +371,65 @@ function boundedPublicContext(value) {
   return context;
 }
 
-async function getContext(ctx, type, id) {
+async function getContext(ctx, type, id, options = {}) {
   // Re-read overrides even in the same invocation, so edits and withdrawal
   // during a provider call invalidate its result.
   delete ctx._publicCatalogPromise;
   const kind = { region: 'regions', place: 'places', content: 'contents', route: 'routes', water: 'water_bodies' }[type];
-  const item = kind && await getPublicItem(ctx, kind, id);
+  const current = await loadCatalog(ctx);
+  const item = type === 'map_reference' ? mapReferences.referenceFor(current, id) : kind && await getPublicItem(ctx, kind, id);
   if (!item) throw new ApiError('SOURCE_UNAVAILABLE', '关联资料已删除或下架，请重新选择', 409);
   const title = item.title || item.name;
   const source = item.source || item.source_note || (item.is_demo ? '平台模拟科普资料' : '平台管理员公开资料');
-  const context = { ...item, context_kind: type, notice: item.is_demo ? SIM_NOTICE : '仅供已发布资料解读，不代表实时环境监测结果。' };
-  const current = await loadCatalog(ctx), regionId = type === 'region' ? id : item.region || item.place_summary && item.place_summary.region || null;
+  const context = { ...item, context_kind: type, notice: type === 'map_reference' ? item.notice : item.is_demo ? SIM_NOTICE : '仅供已发布资料解读，不代表实时环境监测结果。' };
+  const regionId = type === 'region' ? id : item.region || item.place_summary && item.place_summary.region || null;
   const region = current.regions.find((row) => row.id === regionId);
-  const cite = (kind, row) => ({ kind, id: row.id, title: row.title || row.name,
+  const cite = (kind, row) => kind === 'map_reference' ? mapReferences.referenceCitation(row) : ({ kind, id: row.id, title: row.title || row.name,
     source: row.source || row.source_note || (row.is_demo ? '平台模拟科普资料' : '平台管理员公开资料'),
     source_path: kind === 'region' ? '/api/v1/regions/' : `/api/v1/${{ content: 'contents', place: 'places', water: 'water-bodies', route: 'routes' }[kind]}/${row.id}/` });
-  const citations = [{ ...cite(type, item), source }];
+  const citations = [type === 'map_reference' ? cite(type, item) : { ...cite(type, item), source }];
+  if (type === 'map_reference') context.source_path = citations[0].source_path;
   if (region && type !== 'region') context.region_info = pick('regions', region);
   const waterPlace = type === 'water' && current.water_bodies.find((row) => row.id === id)._place_id;
   const linkedPlace = type === 'place' ? id : waterPlace || (type === 'content' ? item.place : null);
   const place = linkedPlace && current.places.find((row) => row.id === linkedPlace);
   if (place && type !== 'place') context.place_info = pick('places', place);
+  const isExplore = options.scope === 'explore' || type === 'map_reference';
+  let retrieval = null;
+  let referencePool = [];
+  let reviewedMaterialPool = [];
   let related = [];
-  if (type === 'region') {
+  if (isExplore) {
+    context.map_context = { basemap: region && region.real_map ? 'real_geographic_basemap' : 'static_teaching_map',
+      selected_source: type === 'map_reference' ? 'reviewed_map_reference' : type === 'region' ? 'published_city' : 'published_catalog_place',
+      reference_coordinates_are_not: ['入口', '完整河道几何范围', '实时环境监测', '开放或可通行证明'],
+      unavailable_records: '未查询、无结果、候选被拒绝或范围待厘清，均不表示地点不存在。' };
+    retrieval = exploreRetrieval.searchPublished(current, { item: place || item, type, regionId, question: options.question || '' });
+    context.retrieval = retrieval.summary;
+    referencePool = mapReferences.forRegion(current, regionId);
+    reviewedMaterialPool = mapReferences.reviewedPoolFor(referencePool);
+    if (type === 'map_reference') {
+      const materials = mapReferences.materialContext(item, options.question);
+      if (materials.length) context.reviewed_materials = materials;
+    }
+    const matchingReferences = mapReferences.searchReferences(referencePool, options.question, type === 'map_reference' ? id : '');
+    if (matchingReferences.length) {
+      context.map_references = matchingReferences.map(row => ({ ...row, source_path: mapReferences.referenceCitation(row).source_path,
+        reviewed_materials: mapReferences.materialContext(row, options.question, 1) }));
+      context.map_reference_search = { status: 'matched_reference_points', complete_list: false,
+        notice: '按问题名称或地点类别匹配的本市部分已确认参考点，不是完整地点清单，也未按用户距离、开放状态或路线推荐排序。' };
+      citations.push(...matchingReferences.map(mapReferences.referenceCitation));
+    }
+    for (const hit of retrieval.selected) {
+      const row = hit.row, citation = exploreRetrieval.sourceCitation(hit.kind, row);
+      const material = { id: row.id, title: row.title || row.name,
+        ...exploreRetrieval.excerpt(hit.kind === 'content' ? row.body || row.summary : row.description, retrieval.terms),
+        source: citation.source, source_path: citation.source_path, is_demo: !!row.is_demo, relation: hit.relation };
+      const field = { content: 'articles', place: 'places', route: 'routes' }[hit.kind];
+      (context[field] ||= []).push(material);
+      citations.push(citation);
+    }
+  } else if (type === 'region') {
     context.rivers = current.rivers.filter(row => row.region === id).slice(0, 10).map(row => ({ id: row.id, name: row.name, description: row.description, source_url: row.source_url, checked_at: row.checked_at, access_note: row.access_note }));
     context.places = sorted(current.places.filter((row) => row.region === id), 'name', 'id').slice(0, 6).map((row) => pick('places', row));
     context.routes = sorted(current.routes.filter((row) => row.region === id), 'title', 'id').slice(0, 3).map((row) => ({ id: row.id, title: row.title,
@@ -398,7 +440,7 @@ async function getContext(ctx, type, id) {
   if (related.length) context.articles = related.map((row) => ({ id: row.id, title: row.title, body: String(row.body || '').slice(0, 500),
     body_truncated: String(row.body || '').length > 500, source: row.source, is_demo: row.is_demo, source_path: cite('content', row).source_path }));
   citations.push(...related.map((row) => cite('content', row)));
-  if (['region', 'place', 'water'].includes(type)) {
+  if (['region', 'place', 'water'].includes(type) && !(isExplore && type === 'region')) {
     const stations = current.stations.filter((row) => type === 'region' ? row.region === id
       : type === 'water' ? row.water_body === id : row.place === id || (item.water_body_id && row.water_body === item.water_body_id));
     context.measurements = [];
@@ -424,10 +466,29 @@ async function getContext(ctx, type, id) {
   }
   // Hash the server-owned complete selection, including omitted excerpts, so
   // edits during an external call cannot be concealed by the display budget.
-  const revision = sha256(JSON.stringify(context)), bounded = boundedPublicContext(context);
-  const includedArticles = new Set((bounded.articles || []).map(row => row.id));
+  const revision = sha256(JSON.stringify([context, retrieval && retrieval.history_material, referencePool, reviewedMaterialPool])), bounded = boundedPublicContext(context);
+  const included = new Set(['articles', 'places', 'routes', 'map_references'].flatMap(field => (bounded[field] || []).map(row => row.id)));
+  if (bounded.map_reference_search && !(bounded.map_references || []).length) delete bounded.map_reference_search;
+  if (retrieval) {
+    const retained = retrieval.selected.filter(hit => included.has(hit.row.id));
+    const siteSpecific = retained.some(hit => ['selected_place', 'named_place_in_question'].includes(hit.relation));
+    bounded.retrieval.has_place_specific_material = siteSpecific;
+    if (bounded.retrieval.status !== 'awaiting_question' && !retained.length) {
+      bounded.retrieval.status = 'no_evidence';
+      bounded.retrieval.notice = '当前上下文没有匹配的补充文章、路线或正式地点资料；主来源和map_references中的名称、地址等元数据仍可使用，不能扩展为未知地点事实或实时环境结论。';
+    } else if (bounded.retrieval.status === 'place_related' && !siteSpecific) {
+      bounded.retrieval.status = 'general_only';
+      bounded.retrieval.notice = '当前上下文仅保留相关城市资料或通用科普，不可当作该地点的专属资料。';
+    }
+  }
+  // A question chooses different excerpts, but must not erase useful follow-up
+  // history. Use a separate hash of all currently eligible published material;
+  // edits/withdrawals still invalidate old assistant context before reuse.
+  const historyContext = { ...context };
+  if (retrieval) for (const field of ['retrieval', 'articles', 'places', 'routes', 'map_references', 'map_reference_search', 'reviewed_materials']) delete historyContext[field];
   return { context: bounded, title, source_region_id: regionId,
-    citations: citations.filter(row => row.kind === type && row.id === id || row.kind !== 'content' || includedArticles.has(row.id)), revision };
+    citations: citations.filter(row => row.kind === type && row.id === id || (isExplore ? included.has(row.id) : row.kind !== 'content' || included.has(row.id))), revision,
+    history_revision: retrieval ? sha256(JSON.stringify([historyContext, retrieval.history_material, referencePool, reviewedMaterialPool])) : null };
 }
 
 async function handle(ctx) {
@@ -538,4 +599,4 @@ async function handle(ctx) {
   return paginate(ctx, rows.map((row) => pick(key, row)));
 }
 
-module.exports = { handle, loadCatalog, getPublicItem, getContext, pick, UUID };
+module.exports = { handle, loadCatalog, getPublicItem, getMapReference, getContext, pick, UUID };

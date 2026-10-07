@@ -106,7 +106,30 @@ python3 -m unittest knowledge.tests_draft_import
 python3 scripts/import-map-reference-points.py \
   --locations /absolute/path/hyhq_locations_verified.json \
   --reference-md /absolute/path/海晏河清京津生态与花卉内容补充库.md \
-  --output miniprogram/data/map-reference-points.js
+  --output miniprogram/data/map-reference-points.js \
+  --cloud-output cloudfunctions/hyhqApi/data/map-reference-points.js
 ```
 
-这是数据转换命令，读取指定文件中的元数据并生成前端模块，不执行 Markdown 内示例代码、不联网、不写云数据库。遇到身份字段冲突即停止，不覆盖旧输出；后续新批次应先按聊天确认的状态和实际数据调整来源，不能仅为凑数量纳入未接受候选。地图中的参考点没有正式 catalog 地点 ID，不调用收藏、浏览历史、详情或地点 RAG 接口。
+这是数据转换命令，读取指定文件中的元数据并生成前端与云函数共用的同一份资源，不执行 Markdown 内示例代码、不联网、不写云数据库。遇到身份字段冲突即停止，不覆盖旧输出；后续新批次应先按聊天确认的状态和实际数据调整来源，不能仅为凑数量纳入未接受候选。地图中的参考点没有正式 catalog 地点 ID，不调用地点收藏、浏览历史或详情接口。
+
+导览 AI 使用单独的 `map_reference` 来源类型，服务端按此资源核对参考点，再从现有已发布目录检索相关资料。参考点元数据不等于已发布文章；待审正文以及描述性标题、访问建议不作为 AI 已核验依据。`--cloud-output` 为可选参数；更新 AI 参考点时应与前端一起生成、部署，避免两端数据版本不一致。
+
+## 本次已审天津补充（20261007 最终版本）
+
+用户随后确认《天津地点与地理位置.json》全部内容已审，并选择“多个具体点分别显示”。因此本文件内旧待审状态不再拦截本次导览资料；此确认只作用于该天津文件，不扩展到原始 MD 的其他稿件。
+
+转换工具 `scripts/import-tianjin-map-supplement.py` 读取原 74 点基线与天津文件：225 个具体候选、12 条原接受坐标及 1 个校园点，共 238 份坐标输入；经 POI ID 或坐标加具体名称合并 35 次，新增 203 点。最终 277 点中天津 216、北京 61。原有 ID 保持稳定，不依据附件删除清单擅自删除既有点。
+
+```sh
+python3 scripts/import-tianjin-map-supplement.py \
+  --base /absolute/path/base-map-reference-points.js \
+  --supplement /absolute/path/天津地点与地理位置.json \
+  --reviewed-on 2026-10-08 \
+  --output miniprogram/data/map-reference-points.js \
+  --cloud-output cloudfunctions/hyhqApi/data/map-reference-points.js \
+  --guide-output cloudfunctions/hyhqApi/data/tianjin-reviewed-guide.js
+```
+
+基线需使用上述首阶段工具生成的原 74 点文件，或本次本地保留的 `.runtime/map-ai-20261008/base-map-reference-points.js`，不要把当前 277 点输出替换成唯一基线。原始附件稳定副本在本机 `.runtime/map-ai-20261008/`，不提交临时路径、候选查询缓存或运行产物。
+
+前后端共享轻量点位模块；145 条已审导览正文仅在云函数资料模块，52 条有关联点位，93 条无具体坐标。AI 仅取当前点/检索命中点的关联材料，按 `source_urls`、`source_scope` 保留归因；父级河流背景与具体 POI 分开，腾讯坐标来源不冒充正文来源。校园条目的简介与正文均仅“畔湖”，旧扩展关联清空。本次没有正式博客发布或云数据库写入。

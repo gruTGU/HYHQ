@@ -19,7 +19,19 @@ Page(withTheme({
     referencePoints: [], filteredReferences: [], selectedReference: null, referenceChoices: [], referenceIndex: 0, referenceScopeNote: references.scopeNote, catalogLoading: false,
     types: [{ value: '', label: '全部地点' }, { value: 'water', label: '河湖' }, { value: 'park', label: '公园' }, { value: 'campus', label: '校园' }, { value: 'walk', label: '步道地标' }],
   },
-  onShow() { if (this._destroyed) return; selectTab(this, 1); this._visible = true; return this.load(); },
+  onLoad(options) {
+    const reference = references.byId(options && options.reference_id);
+    this._pendingReferenceId = reference ? reference.id : '';
+  },
+  onShow() {
+    if (this._destroyed) return;
+    selectTab(this, 1); this._visible = true;
+    const application = app();
+    const reference = references.byId(application.globalData.pendingMapReferenceId);
+    delete application.globalData.pendingMapReferenceId;
+    if (reference) this._pendingReferenceId = reference.id;
+    return this.load();
+  },
   onHide() {
     this.cancelLocation();
     if (this.data.useRealMap) this.setData({ currentLocation: null, selectedPoint: null, selectedReference: null, locating: false, realMarkers: [], realMapFrames: [], realLatitude: null, realLongitude: null });
@@ -50,6 +62,17 @@ Page(withTheme({
         const index = selection.regions.findIndex((region) => region.id === requestedRegion);
         if (index >= 0) Object.assign(selection, { regionIndex: index, region: selection.regions[index] });
       }
+      const requestedReference = references.byId(this._pendingReferenceId);
+      if (requestedReference && !requestedRegion) {
+        const index = selection.regions.findIndex((region) => region.slug === requestedReference.region_slug);
+        if (index >= 0) {
+          Object.assign(selection, { regionIndex: index, region: selection.regions[index] });
+          this.setData({ activeType: '' });
+        } else {
+          this._pendingReferenceId = '';
+          this.setData({ locationNotice: '该参考点所属城市暂不可用，请稍后再试。' });
+        }
+      }
       this.setData(selection);
       selectRegion(application, selection.region);
       if (!selection.region) { this.setData({ mapNotice: '还没有可浏览的区域，请稍后再来。' }); return; }
@@ -58,6 +81,13 @@ Page(withTheme({
       if (city) {
         this.setData({ loading: false, catalogLoading: true, useRealMap: true, realLatitude: city.latitude, realLongitude: city.longitude, realScale: city.scale, mapSubkey: application.config && application.config.mapSubkey || '', viewMode: 'map', realMapFrames: [{ generation: this.data.realMapGeneration }], referencePoints: references.forRegion(region) });
         this.filter();
+        const target = this.data.filteredReferences.find((point) => point.id === this._pendingReferenceId);
+        if (target) {
+          // Consume only after the correct city's local markers exist. A hidden
+          // or superseded catalogue request must not lose this return target.
+          this._pendingReferenceId = '';
+          this.focusReference(target, true);
+        }
         const results = await Promise.allSettled([loadAll(application.api, 'places/', { region: region.id }), loadAll(application.api, 'rivers/', { region: region.id })]);
         if (!this.current(generation)) return;
         const places = results[0].status === 'fulfilled' ? results[0].value.filter((point) => point.region === region.id && realMap.publishedReal(point)).map((point, index) => Object.assign({}, point, { order: String(index + 1).padStart(2, '0'), markerId: index + 1, canNavigate: realMap.navigable(point) })) : [];
@@ -83,7 +113,7 @@ Page(withTheme({
   changeRegion(event) {
     if (!this.alive()) return;
     const selected = this.data.regions[Number(event.detail.value)];
-    if (selected) return this.load(null, selected.id);
+    if (selected) { this._pendingReferenceId = ''; return this.load(null, selected.id); }
   },
   chooseMap(event) { if (this.alive()) this.selectMap(Number(event.detail.value)); },
   selectMap(index) {
@@ -258,7 +288,9 @@ Page(withTheme({
   openAI() {
     if (!this.alive() || this.data.loading || this.data.error || !this.data.region) return;
     const point = this.data.selectedPoint;
-    const id = point && point.id || this.data.region.id;
-    wx.navigateTo({ url: entryUrl('explore', point ? 'place' : 'region', id) });
+    const reference = !point && this.data.selectedReference && references.byId(this.data.selectedReference.id);
+    const id = point && point.id || reference && reference.id || this.data.region.id;
+    const url = entryUrl('explore', point ? 'place' : reference ? 'map_reference' : 'region', id);
+    if (url) wx.navigateTo({ url });
   },
 }));

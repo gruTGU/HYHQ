@@ -3,6 +3,7 @@ const { app } = require('../../lib/page');
 const { message, task } = require('../../lib/format');
 const { assessmentTask } = require('../../lib/assessment');
 const { loadAll, selectRegion } = require('../../lib/region');
+const mapReferences = require('../../lib/map-reference-points');
 const { DISCLAIMER, SOURCE_LABELS, SCOPE_LABELS, publicSource, modelLabel, pending, turnView, sessionView, readPage, requestId } = require('../../lib/llm');
 Page(withTheme({
   data: { weatherLocations: [{ slug: '', name: '不附加天气资料' }], weatherIndex: 0, weatherError: '', entryValid: false, creationUncertain: false, loading: true, busy: false, loggedIn: false, error: '', actionError: '', unavailable: false, status: null, modelLabel: 'DeepSeek Flash', scopeLabel: '识别解读', session: null, source: null, sourceLoading: false, sourceError: '', sourceKind: '', isRecognition: true, isImageMode: false, imageModeBlocked: false, includeImage: false, question: '', questionCount: 0, turns: [], next: '', loadingMore: false, moreError: '', polling: false, pollNotice: '', hasPending: false, displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, disclaimer: DISCLAIMER },
@@ -17,6 +18,7 @@ Page(withTheme({
     else if (options && publicSource(options.scope, options.source_type, options.source_id)) { this._scope = options.scope; this._sourceType = options.source_type; this._sourceId = options.source_id; }
     else this._invalid = true;
     this._requestedWeather = this._scope !== 'recognition' && options && typeof options.weather_location === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(options.weather_location) ? options.weather_location : '';
+    if (!this._requestedWeather && this._sourceType === 'map_reference') this._requestedWeather = mapReferences.weatherSlug(this._sourceId);
     this.setData({ entryValid: !this._invalid, loggedIn: Boolean(app().session.token()), isRecognition: this._scope === 'recognition', isImageMode: this._interpretationMode === 'image', includeImage: this._interpretationMode === 'image', scopeLabel: this._interpretationMode === 'image' ? '河道 AI 看图' : SCOPE_LABELS[this._scope] });
   },
   async onShow() {
@@ -127,9 +129,28 @@ Page(withTheme({
     if (!this.canAct()) return;
     const { turn, id, kind } = event.currentTarget.dataset;
     const row = this.data.turns.find((item) => item.id === turn);
-    if (row && (row.citations || []).some((item) => item.id === id && item.kind === kind) && ['content', 'route', 'place'].includes(kind)) wx.navigateTo({ url: '/pages/detail/index?kind=' + kind + '&id=' + encodeURIComponent(id) });
+    if (!row || !(row.citations || []).some((item) => item.id === id && item.kind === kind)) return;
+    if (kind === 'map_reference') this.openMapReference(id);
+    else if (['content', 'route', 'place'].includes(kind)) wx.navigateTo({ url: '/pages/detail/index?kind=' + kind + '&id=' + encodeURIComponent(id) });
+  },
+  openMapReference(id) {
+    const reference = mapReferences.byId(id);
+    if (!this.canAct() || !reference) return;
+    // Tab pages cannot be opened with navigateTo/query parameters. Only keep a
+    // checked ID in application memory; the guide resolves its own catalogue.
+    const application = app();
+    application.globalData.pendingMapReferenceId = reference.id;
+    wx.switchTab({ url: '/pages/explore/index', fail: () => {
+      if (application.globalData.pendingMapReferenceId === reference.id) delete application.globalData.pendingMapReferenceId;
+      if (this.active()) this.setData({ actionError: '地图暂未打开，请再试一次。' });
+    } });
   },
   async loadPublicSource(type = this._sourceType, id = this._sourceId) {
+    if (type === 'map_reference') {
+      const source = this._scope === 'explore' && mapReferences.sourceCard(id);
+      if (!source) throw Object.assign(new Error('这个地图参考点已不可用，请返回重新选择。'), { status: 404 });
+      return source;
+    }
     let item;
     if (type === 'region' || type === 'water') item = (await loadAll(app().api, type === 'region' ? 'regions/' : 'water-bodies/', undefined, { cache: false })).find((row) => row.id === id);
     else item = (await app().api.request(({ place: 'places/', content: 'contents/', route: 'routes/', water: 'water-bodies/' })[type] + encodeURIComponent(id) + '/')).data;
@@ -255,6 +276,7 @@ Page(withTheme({
       if (this._interpretationMode === 'image') data.interpretation_mode = 'image';
     }
     else {
+      if (!publicSource(this._scope, this._sourceType, this._sourceId)) throw new Error('当前资料来源无效，请返回重新选择。');
       Object.assign(data, { source_type: this._sourceType, source_id: this._sourceId });
       const weather = this.data.weatherLocations[this.data.weatherIndex];
       if (weather && weather.slug) data.weather_location = weather.slug;
@@ -378,7 +400,8 @@ Page(withTheme({
     if (scope !== 'recognition') {
       const type = session ? session.source_type : this._sourceType, id = session ? session.source_id : this._sourceId;
       if (!publicSource(scope, type, id)) return;
-      if (type === 'region') {
+      if (type === 'map_reference') this.openMapReference(id);
+      else if (type === 'region') {
         if (scope === 'learn') app().globalData.pendingKnowledgeFilter = { region: id };
         else selectRegion(app(), { id });
         wx.switchTab({ url: '/pages/' + scope + '/index' });

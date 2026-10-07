@@ -1,16 +1,24 @@
 const { time } = require('./format');
+const mapReferences = require('./map-reference-points');
 const DISCLAIMER = 'AI 回答仅供参考，请结合资料核对；不代表物种鉴定、饮用安全结论或官方水质评价。';
-const SOURCE_LABELS = { region: '区域资料', place: '地点资料', water: '河湖资料', content: '科普文章', route: '游览路线' };
+const SOURCE_LABELS = { region: '区域资料', place: '地点资料', water: '河湖资料', content: '科普文章', route: '游览路线', map_reference: '地图参考点' };
 const SCOPE_LABELS = { recognition: '识别解读', explore: '生态导览', learn: '科普智游' };
-const PUBLIC_SOURCES = { explore: ['region', 'place', 'water'], learn: ['region', 'content', 'route'] };
-function publicSource(scope, type, id) { return !!(PUBLIC_SOURCES[scope] && PUBLIC_SOURCES[scope].includes(type) && typeof id === 'string' && id); }
+const PUBLIC_SOURCES = { explore: ['region', 'place', 'water', 'map_reference'], learn: ['region', 'content', 'route'] };
+function publicSource(scope, type, id) {
+  if (!PUBLIC_SOURCES[scope] || !PUBLIC_SOURCES[scope].includes(type) || typeof id !== 'string' || !id) return false;
+  return type === 'map_reference' ? !!mapReferences.byId(id) : !id.startsWith('reference-');
+}
+function publicCitation(item) {
+  if (!item || typeof item.id !== 'string' || typeof item.title !== 'string') return false;
+  return item.kind === 'map_reference' ? !!mapReferences.byId(item.id) : ['content', 'route', 'place'].includes(item.kind) && !item.id.startsWith('reference-');
+}
 function entryUrl(scope, type, id) { return publicSource(scope, type, id) ? '/pages/llm/index?scope=' + scope + '&source_type=' + type + '&source_id=' + encodeURIComponent(id) : ''; }
 function modelLabel(model) { return model === 'deepseek-flash' || !model ? 'DeepSeek Flash' : model; }
 const STATES = { queued: '等待解读', running: '正在解读', succeeded: '解读完成', failed: '本轮未完成' };
 function pending(turn) { return turn && ['queued', 'running'].includes(turn.status); }
 function turnView(turn) {
   if (!turn || typeof turn.id !== 'string' || !turn.id || !STATES[turn.status]) throw new Error('AI 解读返回格式不正确，请刷新核对。');
-  return Object.assign({}, turn, { citations: Array.isArray(turn.citations) ? turn.citations.filter((item) => item && ['content', 'route', 'place'].includes(item.kind) && typeof item.id === 'string' && typeof item.title === 'string').slice(0, 8) : [], status_label: STATES[turn.status], created_label: time(turn.created_at), finished_label: turn.finished_at ? time(turn.finished_at) : '', image_label: pending(turn) ? '图像使用情况待处理完成后确认' : turn.used_image ? '本轮已使用原图' : '本轮仅使用文字结果与对话', model_label: modelLabel(turn.model), answer: typeof turn.answer === 'string' ? turn.answer : '' });
+  return Object.assign({}, turn, { citations: Array.isArray(turn.citations) ? turn.citations.filter(publicCitation).slice(0, 8) : [], status_label: STATES[turn.status], created_label: time(turn.created_at), finished_label: turn.finished_at ? time(turn.finished_at) : '', image_label: pending(turn) ? '图像使用情况待处理完成后确认' : turn.used_image ? '本轮已使用原图' : '本轮仅使用文字结果与对话', model_label: modelLabel(turn.model), answer: typeof turn.answer === 'string' ? turn.answer : '' });
 }
 function sessionView(session) {
   if (!session || typeof session.id !== 'string' || !session.id || !['recognition', 'assessment', 'explore', 'learn'].includes(session.kind)) throw new Error('AI 会话返回格式不正确，请刷新核对。');
