@@ -1,0 +1,20 @@
+{
+  "name": "hyhq-local-web-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.cjs",
+    "bootstrap": "node bootstrap.cjs",
+    "test": "node --test ../tests/backend*.test.cjs"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "dependencies": {
+    "altcha-lib": "2.6.0",
+    "better-sqlite3": "^12.4.1",
+    "onnxruntime-node": "1.30.0",
+    "sharp": "0.35.5"
+  }
+}

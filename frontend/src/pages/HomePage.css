@@ -1,0 +1,274 @@
+.home-page .home-heading {
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.home-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.home-brand img {
+  display: block;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  border-radius: 16px;
+}
+
+.home-page .home-brand h1 {
+  margin: 0;
+  font-size: clamp(27px, 2.6vw, 34px);
+  line-height: 1.3;
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+
+.home-page .weather-date {
+  display: block;
+  margin-top: 13px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.home-page .weather-main {
+  position: relative;
+  display: block;
+  padding-top: 5px;
+}
+
+.home-page .weather-current {
+  padding-right: 140px;
+}
+
+.home-page .weather-current > div {
+  min-width: 0;
+  gap: 7px;
+}
+
+.home-page .weather-current strong {
+  font-size: 23px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.home-page .weather-current .weather-conditions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 13px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.weather-conditions > span {
+  white-space: nowrap;
+}
+
+.home-page .weather-art {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 120px;
+  height: 120px;
+  margin: 0;
+}
+
+/* Keep the selected theme's weather background at night. */
+.home-page .weather-card.night .weather-art {
+  color: var(--primary);
+  opacity: 1;
+}
+
+[data-theme="design-2"] .home-page .weather-card.night {
+  --text: #f3f6f4;
+  --muted: #d4e0e4;
+  --primary: #f3f6f4;
+  --surface: #193248;
+  color: var(--text);
+  border-color: #365165;
+  background:
+    linear-gradient(90deg, #102637e8, #102637ab 55%, #10263735),
+    url("/assets/brand/weather-night.webp") center top / cover;
+}
+
+[data-theme="design-2"] .home-page .weather-card.night .weather-location {
+  background: #ffffff12;
+  border-color: #c5d7e145;
+}
+
+[data-theme="design-2"] .home-page .weather-card.night .weather-bottom {
+  border-color: #c5d7e12b;
+}
+
+[data-theme="design-2"] .home-page .weather-card.night .weather-art {
+  opacity: .75;
+}
+
+[data-theme="design-2"] .home-page .weather-card.night .weather-art.lucide-moon {
+  visibility: hidden;
+}
+
+[data-theme="design-2"] .home-page .weather-card.night select option {
+  background: #193248;
+  color: #f3f6f4;
+}
+
+.home-page .temperature-range {
+  flex-wrap: wrap;
+  gap: 10px 27px;
+  margin-top: 5px;
+}
+
+.home-page .temperature-range > div {
+  font-size: 15px;
+  gap: 10px;
+}
+
+.home-page .temperature-range strong {
+  font-size: 17px;
+}
+
+.home-page .weather-bottom {
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  padding-top: 8px;
+}
+
+.home-page .air-summary {
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 40px;
+  gap: 8px;
+  text-align: left;
+}
+
+.home-page .air-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+}
+
+.home-page .weather-book-link {
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 40px;
+  gap: 6px;
+}
+
+.home-page .weather-location {
+  min-height: 36px;
+  font-size: 13px;
+}
+
+.home-page .weather-location svg,
+.home-page .air-summary svg,
+.home-page .weather-book-link svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.home-page .home-journal-preview {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.home-journal-preview .home-journal {
+  position: relative;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 24px 18px;
+}
+
+.home-journal-preview .journal-preview-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-journal-preview .home-journal h3 {
+  font-size: 17px;
+  line-height: 1.65;
+  margin: 5px 0 8px;
+}
+
+.home-journal-preview .home-journal small {
+  font-size: 12px;
+}
+
+.journal-preview-excerpt {
+  position: relative;
+  max-height: 3.4em;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.7;
+  -webkit-mask-image: linear-gradient(#000 35%, transparent 100%);
+  mask-image: linear-gradient(#000 35%, transparent 100%);
+}
+
+.home-journal-preview .journal-preview-excerpt p {
+  display: block;
+  font-size: inherit;
+  line-height: inherit;
+  margin: 0;
+}
+
+.journal-preview-excerpt::after {
+  content: "";
+  position: absolute;
+  inset: 35% 0 0;
+  backdrop-filter: blur(1px);
+  pointer-events: none;
+}
+
+.journal-read-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--primary);
+}
+
+@media (max-width: 800px) {
+  .home-brand { gap: 14px; }
+  .home-brand img { width: 64px; height: 64px; border-radius: 13px; }
+  .home-page .home-heading { margin-bottom: 18px; }
+  .home-page .weather-card { padding: 18px 20px 12px; }
+  .home-page .weather-date { font-size: 15px; margin-top: 10px; }
+  .home-page .weather-current { padding-right: 92px; gap: 15px; }
+  .home-page .weather-current strong { font-size: 21px; }
+  .home-page .weather-current .weather-conditions { font-size: 15px; gap: 0 10px; }
+  .home-page .weather-art { width: 82px; height: 82px; top: 7px; }
+  .home-page .air-summary { font-size: 15px; }
+  .home-page .home-journal-preview .home-journal { padding: 19px 18px 15px; }
+}
+
+@media (max-width: 440px) {
+  .home-page .weather-card { padding-inline: 17px; }
+  .home-page .weather-current { padding-right: 70px; gap: 12px; }
+  .home-page .weather-art { width: 60px; height: 60px; top: 12px; }
+  .home-page .weather-current .weather-conditions { font-size: 14px; }
+  .home-page .city-select select { font-size: 18px; }
+  .home-page .weather-location { font-size: 12px; padding-inline: 10px; }
+  .home-page .temperature-range { gap: 7px 20px; }
+  .home-page .temperature-range > div { font-size: 14px; gap: 7px; }
+  .home-page .temperature-range strong { font-size: 16px; }
+  .home-page .temperature-range i { margin-inline: 3px; }
+  .home-page .weather-book-link { font-size: 13px; }
+  .home-page .weather-bottom { column-gap: 12px; }
+}
+
+@media (max-width: 360px) {
+  .home-brand { gap: 10px; }
+  .home-brand img { width: 56px; height: 56px; }
+  .home-page .home-brand h1 { font-size: 24px; letter-spacing: .07em; }
+  .home-page .weather-current { padding-right: 52px; gap: 8px; }
+  .home-page .weather-art { width: 46px; height: 46px; top: 16px; }
+  .home-page .temperature { font-size: 60px; }
+}

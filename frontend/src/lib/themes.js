@@ -1,0 +1,38 @@
+export const THEMES = [
+  {
+    id: "forest",
+    name: "森系自然",
+    description: "晨雾绿与植物图样",
+    tag: "NATURE / 自然",
+    headline: "与自然，一起呼吸。",
+    illustration: "leaf",
+    colors: ["#f0f4ed", "#3a7d5c", "#a8c99b"],
+  },
+  {
+    id: "design-2",
+    name: "纪实自然志",
+    description: "暖白纸页、自然摄影与杂志目录",
+    tag: "JOURNAL / 自然志",
+    headline: "自然，有迹可循。",
+    illustration: "photo",
+    colors: ["#f8f7f2", "#293b28", "#8d9b7b"],
+  },
+  {
+    id: "design-3",
+    name: "山水测绘册",
+    description: "浅纸纹、测绘蓝与朱红标记",
+    tag: "ATLAS / 测绘册",
+    headline: "循山水，识万物。",
+    illustration: "waves",
+    colors: ["#f5eddf", "#34667f", "#ad442b"],
+  },
+  {
+    id: "dark",
+    name: "深色模式",
+    description: "森系自然的深色版本",
+    tag: "DARK / 深色",
+    headline: "夜色里，也有绿意。",
+    illustration: "leaf",
+    colors: ["#101b17", "#83c6a3", "#3e6955"],
+  },
+];

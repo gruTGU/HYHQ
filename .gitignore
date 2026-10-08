@@ -1,0 +1,17 @@
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.private/
+.runtime/
+.env
+backend/.env
+*.log
+.DS_Store
+__pycache__/
+*.py[cod]
+.env.*
+!.env.example
+*.pem
+*.key
+*.sqlite*
+*.db

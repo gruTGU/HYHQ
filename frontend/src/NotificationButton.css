@@ -1,0 +1,57 @@
+.workspace > .topbar.topbar-account-only {
+  justify-content: flex-end;
+}
+.header-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.header-quick-actions > .icon-btn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.header-quick-actions.header-quick-actions-page {
+  display: none;
+}
+.notification-button {
+  position: relative;
+  flex-shrink: 0;
+}
+.notification-unread-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ca473d;
+  box-shadow: 0 0 0 2px var(--surface, #fff);
+  pointer-events: none;
+}
+.notification-button.notification-button-page {
+  display: none;
+}
+@media (max-width: 800px) {
+  .workspace > .topbar.topbar-account-only {
+    display: none;
+  }
+  .header-quick-actions.header-quick-actions-page {
+    display: flex;
+  }
+  .notification-button.notification-button-page {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+  .p-profile > .page-header {
+    align-items: center;
+  }
+  .notification-button-page .notification-unread-dot {
+    top: 7px;
+    right: 7px;
+  }
+}

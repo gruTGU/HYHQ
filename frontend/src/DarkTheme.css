@@ -1,0 +1,287 @@
+/* Forest's dark counterpart. Keep layouts, photos and map tiles unchanged. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101b17;
+  --surface: #1b2822;
+  --card: #1b2822;
+  --primary: #83c6a3;
+  --on-primary: #10251b;
+  --text: #e6eee8;
+  --muted: #b0c2b6;
+  --border: #405247;
+  --secondary: #273b31;
+  --accent: #abcc9f;
+  --lake: #90bccc;
+  --radius: 22px;
+  --warning-bg: #392c20;
+  --warning-text: #f0c58f;
+  --danger-bg: #3b2824;
+  --danger-text: #f0b2a3;
+  background: var(--bg);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] ::selection {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: var(--muted);
+  opacity: .85;
+}
+
+:root[data-theme="dark"] input:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  box-shadow: inset 0 0 0 1000px var(--surface);
+  caret-color: var(--text);
+}
+
+:root[data-theme="dark"] select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Primary controls use dark ink on light green, including the mobile camera. */
+:root[data-theme="dark"] .btn:not(.secondary),
+:root[data-theme="dark"] .chat-input .icon-btn,
+:root[data-theme="dark"] .admin-tabs button.active,
+:root[data-theme="dark"] .blog-tabs button.active,
+:root[data-theme="dark"] .p-flow-steps > div.current > span,
+:root[data-theme="dark"] .mobile-nav .center-nav > span {
+  color: var(--on-primary);
+}
+
+:root[data-theme="dark"] .pub-btn:not(.outline):not(.ghost):not(.surface) {
+  color: var(--on-primary) !important;
+}
+
+:root[data-theme="dark"] .btn.secondary {
+  color: var(--primary);
+}
+
+:root[data-theme="dark"] .brand img {
+  mix-blend-mode: normal;
+}
+
+:root[data-theme="dark"] .mobile-nav,
+:root[data-theme="dark"] .floating-ai .ai-button {
+  box-shadow: 0 -3px 22px #00000024;
+}
+
+/* Weather stays a drawn card, including at night; no photographic backdrop. */
+:root[data-theme="dark"] .home-page .weather-card {
+  background: linear-gradient(125deg, #23372c, #2b3929 58%, #393927);
+  border-color: #53634b;
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .home-page .weather-card.rainy {
+  background: linear-gradient(125deg, #23352f, #263a3b 55%, #293842);
+  border-color: #466064;
+}
+
+:root[data-theme="dark"] .home-page .weather-card.night {
+  background: linear-gradient(125deg, #172b27, #1c3035 58%, #25322e);
+  border-color: #405954;
+}
+
+:root[data-theme="dark"] .home-page .weather-art {
+  color: #d0d8a1;
+  opacity: 1;
+}
+
+:root[data-theme="dark"] .home-page .weather-card.rainy .weather-art {
+  color: var(--lake);
+}
+
+:root[data-theme="dark"] .home-page .weather-card.night .weather-art {
+  color: #b9d9d7;
+  visibility: visible;
+}
+
+:root[data-theme="dark"] .weather-location {
+  background: #ffffff0b;
+  border-color: #8faf9666;
+}
+
+:root[data-theme="dark"] .weather-bottom {
+  border-color: #a4c0ab30;
+}
+
+:root[data-theme="dark"] .air-dot {
+  background: var(--primary);
+}
+
+:root[data-theme="dark"] .alert-badge {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border-color: #8f704f;
+}
+
+/* The entry illustrations retain their four distinct forest colors. */
+:root[data-theme="dark"] .entry-art { background: #283d2c; }
+:root[data-theme="dark"] .entry-art > svg { color: #a3c7a3; }
+:root[data-theme="dark"] .entry-1 .entry-art { background: #39352a; }
+:root[data-theme="dark"] .entry-1 .entry-art > svg { color: #d7bc89; }
+:root[data-theme="dark"] .entry-2 .entry-art { background: #283a3d; }
+:root[data-theme="dark"] .entry-2 .entry-art > svg { color: #a1c9ce; }
+:root[data-theme="dark"] .entry-3 .entry-art { background: #333c29; }
+:root[data-theme="dark"] .entry-3 .entry-art > svg { color: #bccb92; }
+:root[data-theme="dark"] .entry-art::before { border-color: #bdd0bd30; }
+:root[data-theme="dark"] .entry-art::after { background: #bdd0bd12; }
+
+/* Brighten the scenario ink instead of reversing the SVG or its data. */
+:root[data-theme="dark"] .simulation-journal {
+  --scenario-ink: color-mix(in srgb, var(--scenario) 55%, #fff);
+}
+
+:root[data-theme="dark"] .simulation-scenarios button[aria-pressed="true"] {
+  background: var(--scenario-ink);
+  border-color: var(--scenario-ink);
+  color: var(--on-primary);
+}
+
+:root[data-theme="dark"] .simulation-metrics button[aria-pressed="true"] {
+  border-color: var(--scenario-ink);
+  background: color-mix(in srgb, var(--scenario) 20%, var(--surface));
+}
+
+:root[data-theme="dark"] .simulation-body aside {
+  background: color-mix(in srgb, var(--scenario) 10%, var(--surface));
+}
+
+:root[data-theme="dark"] .simulation-chart polyline { stroke: var(--scenario-ink); }
+:root[data-theme="dark"] .simulation-chart circle { fill: var(--scenario-ink); }
+:root[data-theme="dark"] .simulation-chart stop { stop-color: var(--scenario-ink); }
+
+/* Floating conversations, cookies, and account dialogs share the same surface. */
+:root[data-theme="dark"] .modal-shade {
+  background: #030c08b3;
+}
+
+:root[data-theme="dark"] .modal,
+:root[data-theme="dark"] .cookie-banner {
+  box-shadow: 0 20px 70px #00000055;
+}
+
+:root[data-theme="dark"] .chat-modal {
+  border: 1px solid var(--border);
+}
+
+:root[data-theme="dark"] .chat-question {
+  background: #2c4336;
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .chat-citations a {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .toast {
+  background: #314a3c;
+  color: var(--text);
+  border: 1px solid #6b8974;
+  box-shadow: 0 8px 30px #00000055;
+}
+
+/* ALTCHA keeps the same centered checkbox, now using accessible dark colors. */
+:root[data-theme="dark"] .altcha-field {
+  --altcha-color-primary-content: var(--on-primary);
+  --altcha-color-success: var(--primary);
+  --altcha-color-success-content: var(--on-primary);
+  --altcha-checkbox-border-color: #9ab3a1;
+}
+
+:root[data-theme="dark"] .p-switch span::after {
+  background: #d7e7dc;
+}
+
+:root[data-theme="dark"] .p-switch input:checked + span::after {
+  background: var(--on-primary);
+}
+
+:root[data-theme="dark"] .p-detection-box { border-color: #d1a1f0; }
+:root[data-theme="dark"] .p-detection-box > b {
+  background: #d1a1f0;
+  color: #291338;
+}
+
+/* Warning/error colors must remain readable on dark cards and in forms. */
+:root[data-theme="dark"] .inline-warning,
+:root[data-theme="dark"] .chat-error {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+:root[data-theme="dark"] .p-notice.p-error,
+:root[data-theme="dark"] .blog-error {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: #865f53;
+}
+
+:root[data-theme="dark"] .p-danger-text {
+  color: var(--danger-text) !important;
+}
+
+:root[data-theme="dark"] .p-danger-button {
+  background: var(--danger-text) !important;
+  color: #321e17 !important;
+  border-color: var(--danger-text) !important;
+}
+
+:root[data-theme="dark"] .blog-text-button.danger,
+:root[data-theme="dark"] .status-rejected,
+:root[data-theme="dark"] .status-hidden,
+:root[data-theme="dark"] .status-withdrawn,
+:root[data-theme="dark"] .public-error,
+:root[data-theme="dark"] .public-inline-error {
+  color: var(--danger-text);
+}
+
+:root[data-theme="dark"] .notification-unread-dot {
+  background: #ffb096;
+}
+
+/* Previews always depict their own theme, regardless of the currently selected one. */
+.personal-page .p-theme-preview.p-preview-dark {
+  color-scheme: dark;
+  --preview-primary: #83c6a3;
+  --preview-accent: #83c6a3;
+  background: linear-gradient(150deg, #101b17 50%, #283f2e);
+  color: #83c6a3;
+  border: 1px solid #405247;
+}
+
+.personal-page .p-preview-dark > h3 { color: #e6eee8; }
+.personal-page .p-preview-dark .p-theme-landscape { color: #a3c7a3; transform: rotate(-20deg); }
+.personal-page .p-preview-dark .p-preview-tiles > i { background: #83c6a3; opacity: .3; }
+
+:root[data-theme="dark"] .personal-page .p-preview-forest,
+:root[data-theme="dark"] .personal-page .p-preview-design-2,
+:root[data-theme="dark"] .personal-page .p-preview-design-3 {
+  color-scheme: light;
+  color: var(--preview-primary);
+}
+
+:root[data-theme="dark"] .personal-page .p-preview-forest > h3,
+:root[data-theme="dark"] .personal-page .p-preview-design-2 > h3,
+:root[data-theme="dark"] .personal-page .p-preview-design-3 > h3 {
+  color: var(--preview-primary);
+}
+
+@media (min-width: 801px) {
+  .personal-page .p-theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 800px) {
+  .personal-page .p-theme-grid { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,0 +1,36 @@
+.simulation-journal .simulation-links--navigation {
+  margin: 0 30px 22px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.simulation-journal .simulation-links--navigation > a {
+  min-width: 0;
+  padding: 17px 20px;
+}
+
+.simulation-journal .simulation-links--navigation > a > svg {
+  flex-shrink: 0;
+}
+
+.simulation-journal .simulation-links--navigation small {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 800px) {
+  .simulation-journal .simulation-links--navigation {
+    margin: 0 20px 20px;
+  }
+
+  .simulation-journal .simulation-links--navigation > a {
+    padding: 15px 12px;
+    gap: 7px;
+    font-size: 13px;
+  }
+
+  .simulation-journal .simulation-links--navigation > a > svg:last-child {
+    display: none;
+  }
+}

@@ -1,0 +1,731 @@
+{
+  "schema_version": "hyhq.campus_coordinates.v1",
+  "count": 20,
+  "coordinate_system": "GCJ-02",
+  "reviewed_on": "2026-10-08",
+  "summary": {
+    "tianjin_count": 8,
+    "beijing_count": 12,
+    "input_target_count": 25,
+    "excluded_unconfirmed_count": 5
+  },
+  "source_file_sha256": "bfee63e4b986d0d2795a7d28c6b006fe04d41831965da1cac5cc15378a8bcc32",
+  "usage": {
+    "records_path": "locations",
+    "join_key": "locations[].id",
+    "coordinate_fields": {
+      "longitude": "经度，数值",
+      "latitude": "纬度，数值"
+    },
+    "poi_id": "字符串，禁止转为JavaScript Number",
+    "coordinate_conversion": "已为腾讯GCJ-02，不再重复转换",
+    "review_scope": "依据用户提供的腾讯候选及校方官方名称、校区和地址核对；没有额外腾讯API请求，没有独立测绘或实地核验。",
+    "point_scope": "仅校区POI参考点，不保证为校门、几何中心、边界或导航入口；校园准入请另行确认。",
+    "import_scope": "本文件仅含20个通过校区身份核对的记录；其余5个未纳入。不包含旧生态地点ID映射，请按id合并，不按数组位置覆盖已有记录。"
+  },
+  "locations": [
+    {
+      "id": "tj_nankai_balita",
+      "university": "南开大学",
+      "campus": "八里台校区",
+      "title": "南开大学（八里台校区）",
+      "city": "天津市",
+      "district": "南开区",
+      "longitude": 117.167273,
+      "latitude": 39.103751,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "16659000400907746732",
+      "poi_title": "南开大学(八里台校区)",
+      "poi_address": "天津市南开区",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "名称明确指向八里台校区，类别为大学，天津市/南开区一致；校方官网列八里台校区为卫津路94号，其余候选为主楼、北村、宁园或实验站。",
+      "evidence_urls": [
+        "https://www.nankai.edu.cn/263/list.htm"
+      ],
+      "limitations": [
+        "腾讯校园主体地址仅到南开区，未回填或伪装成带有94号的腾讯原始地址；详细门牌由校方补充。",
+        "本结论只审查校园级POI名称、类别、行政区和官方地址的一致性；不宣称实地点位、校园几何中心、边界或导航入口已验证。",
+        "坐标为用户腾讯响应中的原始GCJ-02值；未转换坐标系、未新增或估算坐标。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "tj_nankai_balita",
+        "query": "南开大学 八里台校区",
+        "queried_at": "2026-10-08T14:03:22+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "tj_nankai_jinnan",
+      "university": "南开大学",
+      "campus": "津南校区",
+      "title": "南开大学（津南校区）",
+      "city": "天津市",
+      "district": "津南区",
+      "longitude": 117.346202,
+      "latitude": 38.988701,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "13060530815261444173",
+      "poi_title": "南开大学(津南校区)",
+      "poi_address": "天津市津南区海河教育园区同砚路38号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "校区全名、大学类别、天津市/津南区和同砚路38号均一致，官方官网确认该校区地址。候选2、4、5为医院、学院和北门，候选3校名不符。",
+      "evidence_urls": [
+        "https://www.nankai.edu.cn/263/list.htm"
+      ],
+      "limitations": [
+        "本结论只审查校园级POI名称、类别、行政区和官方地址的一致性；不宣称实地点位、校园几何中心、边界或导航入口已验证。",
+        "坐标为用户腾讯响应中的原始GCJ-02值；未转换坐标系、未新增或估算坐标。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "tj_nankai_jinnan",
+        "query": "南开大学 津南校区",
+        "queried_at": "2026-10-08T14:03:23+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "tj_tju_weijin",
+      "university": "天津大学",
+      "campus": "卫津路校区",
+      "title": "天津大学（卫津路校区）",
+      "city": "天津市",
+      "district": "南开区",
+      "longitude": 117.173532,
+      "latitude": 39.110712,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "5641172953078424392",
+      "poi_title": "天津大学(卫津路校区)",
+      "poi_address": "天津市南开区学府街道卫津路92号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "候选完整名称为卫津路校区、大学类别，天津市/南开区及卫津路92号匹配官方地址；其余为留园、配楼、北门或建筑学院。",
+      "evidence_urls": [
+        "https://zs.tju.edu.cn/info/1122/1701.htm"
+      ],
+      "limitations": [
+        "本结论只审查校园级POI名称、类别、行政区和官方地址的一致性；不宣称实地点位、校园几何中心、边界或导航入口已验证。",
+        "坐标为用户腾讯响应中的原始GCJ-02值；未转换坐标系、未新增或估算坐标。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "tj_tju_weijin",
+        "query": "天津大学 卫津路校区",
+        "queried_at": "2026-10-08T14:03:26+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "tj_tmu_qixiangtai",
+      "university": "天津医科大学",
+      "campus": "气象台路校区",
+      "title": "天津医科大学（气象台路校区）",
+      "city": "天津市",
+      "district": "和平区",
+      "longitude": 117.18415,
+      "latitude": 39.107349,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "15915902426245258757",
+      "poi_title": "天津医科大学(气象台校区)",
+      "poi_address": "天津市和平区新兴街道气象台路22号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "腾讯“气象台校区”为气象台路校区的简写；大学类别、和平区、气象台路22号与校方招生网及教学质量报告一致。其余为外卖柜、体育中心、东门或邻近住宅。",
+      "evidence_urls": [
+        "https://www.tmu.edu.cn/bkzs/main.htm",
+        "https://www.tmu.edu.cn/_upload/article/files/e6/1c/21758aae4549b32aec22d3076a92/0e87f869-d78b-4459-a78c-8c2e00fc95cb.pdf"
+      ],
+      "limitations": [
+        "招生官网直接打开超时；采用同一官方网页的已抓取正文和官方教学质量报告检索正文交叉核对，未据此宣称获得2026年最新招生章程。",
+        "本结论只审查校园级POI名称、类别、行政区和官方地址的一致性；不宣称实地点位、校园几何中心、边界或导航入口已验证。",
+        "坐标为用户腾讯响应中的原始GCJ-02值；未转换坐标系、未新增或估算坐标。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "tj_tmu_qixiangtai",
+        "query": "天津医科大学 气象台路校区",
+        "queried_at": "2026-10-08T14:03:28+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "tj_tmu_guangdong",
+      "university": "天津医科大学",
+      "campus": "广东路校区",
+      "title": "天津医科大学（广东路校区）",
+      "city": "天津市",
+      "district": "河西区",
+      "longitude": 117.213906,
+      "latitude": 39.111347,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "14268411982700811792",
+      "poi_title": "天津医科大学(广东路校区)",
+      "poi_address": "天津市河西区广东路1号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "校区全名、大学类别、天津市/河西区和广东路1号一致，校方招生网和教学质量报告均支持。其余候选为学院、教学楼或博士生公寓。",
+      "evidence_urls": [
+        "https://www.tmu.edu.cn/bkzs/main.htm",
+        "https://www.tmu.edu.cn/_upload/article/files/e6/1c/21758aae4549b32aec22d3076a92/0e87f869-d78b-4459-a78c-8c2e00fc95cb.pdf"
+      ],
+      "limitations": [
+        "招生官网直接打开超时；采用同一官方网页的已抓取正文和官方教学质量报告检索正文交叉核对。",
+        "本结论只审查校园级POI名称、类别、行政区和官方地址的一致性；不宣称实地点位、校园几何中心、边界或导航入口已验证。",
+        "坐标为用户腾讯响应中的原始GCJ-02值；未转换坐标系、未新增或估算坐标。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "tj_tmu_guangdong",
+        "query": "天津医科大学 广东路校区",
+        "queried_at": "2026-10-08T14:03:29+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "tj_tjutcm_tuanbo",
+      "university": "天津中医药大学",
+      "campus": "静海团泊校区",
+      "title": "天津中医药大学（静海团泊校区）",
+      "city": "天津市",
+      "district": "静海区",
+      "longitude": 117.073261,
+      "latitude": 38.953725,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "1552068548567739762",
+      "poi_title": "天津中医药大学(新校区)",
+      "poi_address": "天津市静海区团泊新城西区鄱阳湖路10号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "腾讯以“新校区”列名，但大学全名、天津市/静海区及团泊新城西区鄱阳湖路10号完整匹配2026年校方招生章程的静海团泊校区，可通过地址明确区分旧校区。其他候选均为校内景观、宿舍或科研设施。",
+      "evidence_urls": [
+        "https://zsjy.tjutcm.edu.cn/info/1227/11487.htm"
+      ],
+      "limitations": [
+        "“新校区”为腾讯POI原名，展示目标名称仍使用静海团泊校区，保留原名以便追溯。",
+        "本结论只审查校园级POI名称、类别、行政区和官方地址的一致性；不宣称实地点位、校园几何中心、边界或导航入口已验证。",
+        "坐标为用户腾讯响应中的原始GCJ-02值；未转换坐标系、未新增或估算坐标。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "tj_tjutcm_tuanbo",
+        "query": "天津中医药大学 团泊校区",
+        "queried_at": "2026-10-08T14:03:30+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "tj_hebut_beichen",
+      "university": "河北工业大学",
+      "campus": "北辰校区",
+      "title": "河北工业大学（北辰校区）",
+      "city": "天津市",
+      "district": "北辰区",
+      "longitude": 117.058432,
+      "latitude": 39.238692,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "1653457024415498226",
+      "poi_title": "河北工业大学(北辰校区)",
+      "poi_address": "天津市北辰区双口镇西平道5340号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "北辰校区全名、大学类别、天津市/北辰区及西平道5340号一致；2026年校方入学须知直接确认，其他候选为校医院、东区、体育中心或浴室。",
+      "evidence_urls": [
+        "https://yjs.hebut.edu.cn/zsgz/zsgztzgg/d3610e43cbef4589a7b608cc98b90121.htm",
+        "https://hebut.edu.cn/gdgk/dxzc/index.htm"
+      ],
+      "limitations": [
+        "河北工业大学虽省属河北，此候选的实际城市为天津；不同于清单排除的天津工业大学。",
+        "本结论只审查校园级POI名称、类别、行政区和官方地址的一致性；不宣称实地点位、校园几何中心、边界或导航入口已验证。",
+        "坐标为用户腾讯响应中的原始GCJ-02值；未转换坐标系、未新增或估算坐标。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "tj_hebut_beichen",
+        "query": "河北工业大学 北辰校区",
+        "queried_at": "2026-10-08T14:03:32+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "tj_hebut_hongqiao_east",
+      "university": "河北工业大学",
+      "campus": "红桥校区东院",
+      "title": "河北工业大学（红桥校区东院）",
+      "city": "天津市",
+      "district": "红桥区",
+      "longitude": 117.174975,
+      "latitude": 39.179156,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "16597265234552727901",
+      "poi_title": "河北工业大学",
+      "poi_address": "天津市红桥区丁字沽街道光荣道8号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1条为东门，不能选。第2条虽仅名“河北工业大学”，但大学类别、天津市/红桥区、光荣道8号精确匹配2026年校方入学须知的红桥东院；校方同时区分南院29号和北院丁字沽一号路8号，因此可凭地址将泛化校名限定为东院。",
+      "evidence_urls": [
+        "https://yjs.hebut.edu.cn/zsgz/zsgztzgg/d3610e43cbef4589a7b608cc98b90121.htm"
+      ],
+      "limitations": [
+        "腾讯标题未写红桥或东院，匹配依赖官方精确地址，不能复用于其他河北工业大学校区。",
+        "本结论只审查校园级POI名称、类别、行政区和官方地址的一致性；不宣称实地点位、校园几何中心、边界或导航入口已验证。",
+        "坐标为用户腾讯响应中的原始GCJ-02值；未转换坐标系、未新增或估算坐标。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "tj_hebut_hongqiao_east",
+        "query": "河北工业大学 红桥校区 东院",
+        "queried_at": "2026-10-08T14:03:34+00:00",
+        "candidate_rank": 2
+      }
+    },
+    {
+      "id": "bj_pku_medical",
+      "university": "北京大学",
+      "campus": "医学部",
+      "title": "北京大学（医学部）",
+      "city": "北京市",
+      "district": "海淀区",
+      "longitude": 116.358886,
+      "latitude": 39.984316,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "11065815648200709136",
+      "poi_title": "北京大学医学部",
+      "poi_address": "北京市海淀区学院路38号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项是医学部校园主体，大学类别、海淀区、学院路38号均吻合；其余为校门、食堂、工会或上地异址附属点。医学部与燕园保持独立记录，均归属北京大学。",
+      "evidence_urls": [
+        "https://oic.bjmu.edu.cn/English/Contact_Us/index.htm"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_pku_medical",
+        "query": "北京大学医学部",
+        "queried_at": "2026-10-08T14:03:54+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_tsinghua_main",
+      "university": "清华大学",
+      "campus": "清华园校本部",
+      "title": "清华大学（清华园校本部）",
+      "city": "北京市",
+      "district": "海淀区",
+      "longitude": 116.323044,
+      "latitude": 40.003643,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "10569818449612303770",
+      "poi_title": "清华大学",
+      "poi_address": "北京市海淀区双清路30号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项为清华大学校园主体，城市、海淀区及大学类别正确；双清路30号获清华校方官网支持，可解除原campus_context_not_confirmed地址别名警报。其余为公交站、校门或博物馆。",
+      "evidence_urls": [
+        "https://www.cs.tsinghua.edu.cn/zszp/lxwm.htm",
+        "https://www.tsinghua.edu.cn/jwc/lxfs.htm"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_tsinghua_main",
+        "query": "清华大学",
+        "queried_at": "2026-10-08T14:03:55+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_ruc_zhongguancun",
+      "university": "中国人民大学",
+      "campus": "中关村校区",
+      "title": "中国人民大学（中关村校区）",
+      "city": "北京市",
+      "district": "海淀区",
+      "longitude": 116.31302,
+      "latitude": 39.97071,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "2820692031246502786",
+      "poi_title": "中国人民大学(中关村校区)",
+      "poi_address": "北京市海淀区海淀街道中关村大街59号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项明确中关村校区，海淀区与中关村大街59号吻合，大学类别正确。未与通州校区合并或复用坐标。",
+      "evidence_urls": [
+        "https://www.ruc.edu.cn/",
+        "https://xxgk.ruc.edu.cn/gksx/jbxx/gzzd/d88dc1027f6e4cabbcd0d1802751e6b7.htm"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_ruc_zhongguancun",
+        "query": "中国人民大学 中关村校区",
+        "queried_at": "2026-10-08T14:03:56+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_ruc_tongzhou",
+      "university": "中国人民大学",
+      "campus": "通州校区",
+      "title": "中国人民大学（通州校区）",
+      "city": "北京市",
+      "district": "通州区",
+      "longitude": 116.746436,
+      "latitude": 39.906423,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "18323843377516608817",
+      "poi_title": "中国人民大学(通州校区)",
+      "poi_address": "北京市通州区运河东大街37号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项明确通州校区，通州区与运河东大街37号吻合，大学类别正确。第2至5项为校内剧场、教学楼及管理机构，不替代校园主体。",
+      "evidence_urls": [
+        "https://tzxq.ruc.edu.cn/xqgk/xqjj/",
+        "https://tzxq.ruc.edu.cn/"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_ruc_tongzhou",
+        "query": "中国人民大学 通州校区",
+        "queried_at": "2026-10-08T14:03:57+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_buaa_xueyuan",
+      "university": "北京航空航天大学",
+      "campus": "学院路校区",
+      "title": "北京航空航天大学（学院路校区）",
+      "city": "北京市",
+      "district": "海淀区",
+      "longitude": 116.347127,
+      "latitude": 39.981795,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "12347853319927145736",
+      "poi_title": "北京航空航天大学(学院路校区)",
+      "poi_address": "北京市海淀区学院路37号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项明确学院路校区，海淀区、学院路37号、大学类别均吻合。未与昌平沙河校区混用；其余为门、校内设施或楼宇。",
+      "evidence_urls": [
+        "https://news.buaa.edu.cn/info/1002/69140.htm"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_buaa_xueyuan",
+        "query": "北京航空航天大学 学院路校区",
+        "queried_at": "2026-10-08T14:03:58+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_buaa_shahe",
+      "university": "北京航空航天大学",
+      "campus": "沙河校区",
+      "title": "北京航空航天大学（沙河校区）",
+      "city": "北京市",
+      "district": "昌平区",
+      "longitude": 116.270505,
+      "latitude": 40.153628,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "17639449452533763197",
+      "poi_title": "北京航空航天大学(沙河校区)",
+      "poi_address": "北京市昌平区沙河高教园南三街9号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项明确沙河校区，昌平区、沙河高教园南三街9号、大学类别均吻合。未与海淀学院路校区混用；其余为食堂、宿舍或剧场。",
+      "evidence_urls": [
+        "https://news.buaa.edu.cn/info/1002/69140.htm"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_buaa_shahe",
+        "query": "北京航空航天大学 沙河校区",
+        "queried_at": "2026-10-08T14:04:00+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_bit_zhongguancun",
+      "university": "北京理工大学",
+      "campus": "中关村校区",
+      "title": "北京理工大学（中关村校区）",
+      "city": "北京市",
+      "district": "海淀区",
+      "longitude": 116.315227,
+      "latitude": 39.959951,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "2272476656917598679",
+      "poi_title": "北京理工大学(中关村校区)",
+      "poi_address": "北京市海淀区中关村南大街5号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项明确中关村校区，海淀区与中关村南大街5号吻合，大学类别正确。其余为楼宇、科技园或校门。",
+      "evidence_urls": [
+        "https://www.bit.edu.cn/xww/ztbd/bsznxqztw/xqfw/jtfw80/"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_bit_zhongguancun",
+        "query": "北京理工大学 中关村校区",
+        "queried_at": "2026-10-08T14:04:01+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_bit_liangxiang",
+      "university": "北京理工大学",
+      "campus": "良乡校区",
+      "title": "北京理工大学（良乡校区）",
+      "city": "北京市",
+      "district": "房山区",
+      "longitude": 116.17213,
+      "latitude": 39.731782,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "5660487682374610566",
+      "poi_title": "北京理工大学(良乡校区)",
+      "poi_address": "北京市房山区良乡高教园区良乡东路9号院",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项名称为良乡校区校园主体，房山区、良乡东路9号院均与目标和官方地址一致，选为本条校园POI参考。第2、3、5项限定东区、东南区或南区，不替代本次未限定分区的良乡校区项。第4项既是充电站，又在朝阳区，明确排除。",
+      "evidence_urls": [
+        "https://liangxiang.bit.edu.cn/",
+        "https://isc.bit.edu.cn/eventsnotices/d9b9d715d3334b85973b1fca7780fe39.htm",
+        "https://www.bit.edu.cn/xww/ztbd/bsznxqztw/xqfw/jtfw80/"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。",
+        "良乡校区有多个分区；此处仅认可第1项为本清单校园级参考POI，不代表覆盖各分区的中心点。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_bit_liangxiang",
+        "query": "北京理工大学 良乡校区",
+        "queried_at": "2026-10-08T14:04:02+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_cau_east",
+      "university": "中国农业大学",
+      "campus": "东校区",
+      "title": "中国农业大学（东校区）",
+      "city": "北京市",
+      "district": "海淀区",
+      "longitude": 116.357164,
+      "latitude": 40.005005,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "14068658457812638538",
+      "poi_title": "中国农业大学(东校区)",
+      "poi_address": "北京市海淀区学院路街道清华东路17号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项明确东校区，海淀区与清华东路17号吻合，大学类别正确。官网分别列东、西校区，未与西校区合并；其余为社区、公交站或校内楼宇。",
+      "evidence_urls": [
+        "https://www.cau.edu.cn/xxgk/jtdy/sqjt/index.htm"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_cau_east",
+        "query": "中国农业大学 东校区",
+        "queried_at": "2026-10-08T14:04:03+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_cau_west",
+      "university": "中国农业大学",
+      "campus": "西校区",
+      "title": "中国农业大学（西校区）",
+      "city": "北京市",
+      "district": "海淀区",
+      "longitude": 116.282856,
+      "latitude": 40.026745,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "6535271433355088321",
+      "poi_title": "中国农业大学(西校区)",
+      "poi_address": "北京市海淀区马连洼街道圆明园西路2号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项明确西校区，海淀区与圆明园西路2号吻合，大学类别正确。官网分别列东、西校区，未与东校区合并；其余为球场、公交站、餐厅或校内楼宇。",
+      "evidence_urls": [
+        "https://www.cau.edu.cn/xxgk/jtdy/sqjt/index.htm"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_cau_west",
+        "query": "中国农业大学 西校区",
+        "queried_at": "2026-10-08T14:04:04+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_bnu_haidian",
+      "university": "北京师范大学",
+      "campus": "北京校区海淀校园",
+      "title": "北京师范大学（北京校区海淀校园）",
+      "city": "北京市",
+      "district": "海淀区",
+      "longitude": 116.365509,
+      "latitude": 39.961102,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "12193475215739142376",
+      "poi_title": "北京师范大学(海淀校园)",
+      "poi_address": "北京市海淀区新街口外大街19号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项明确海淀校园，海淀区与新街口外大街19号吻合，大学类别正确；与昌平校园区分。其余为校内院系、机构、校门或商户。",
+      "evidence_urls": [
+        "https://admission.bnu.edu.cn/sdkx/703abbb4568d42869947e3b1c11f846a.html"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_bnu_haidian",
+        "query": "北京师范大学 海淀校园",
+        "queried_at": "2026-10-08T14:04:05+00:00",
+        "candidate_rank": 1
+      }
+    },
+    {
+      "id": "bj_bjfu_main",
+      "university": "北京林业大学",
+      "campus": "清华东路校本部",
+      "title": "北京林业大学（清华东路校本部）",
+      "city": "北京市",
+      "district": "海淀区",
+      "longitude": 116.347481,
+      "latitude": 40.00563,
+      "coordinate_system": "GCJ-02",
+      "poi_id": "12811930834885578890",
+      "poi_title": "北京林业大学",
+      "poi_address": "北京市海淀区清华东路35号",
+      "poi_category": "教育学校:大学",
+      "point_type": "campus_poi_reference",
+      "review_status": "campus_identity_checked",
+      "navigation_verified": false,
+      "coordinate_ground_verified": false,
+      "review_reason": "第1项是北京林业大学校园主体，海淀区、清华东路35号与官方住所一致，大学类别正确。未将实验林场、附属小学、校门或公交站当成校本部。",
+      "evidence_urls": [
+        "https://www.bjfu.edu.cn/xxgk/xxzc/index.htm"
+      ],
+      "limitations": [
+        "仅核对校园实体、行政区、名称、类别与官方地址。所选坐标是原腾讯GCJ-02校园POI参考点，未做独立测绘、边界内判定或影像校验，不代表校门、几何中心或导航入口。"
+      ],
+      "source": {
+        "provider": "Tencent Maps",
+        "method": "user_supplied_place_search_results",
+        "target_id": "bj_bjfu_main",
+        "query": "北京林业大学",
+        "queried_at": "2026-10-08T14:04:07+00:00",
+        "candidate_rank": 1
+      }
+    }
+  ]
+}

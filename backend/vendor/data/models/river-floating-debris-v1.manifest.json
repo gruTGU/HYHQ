@@ -1,0 +1,135 @@
+{
+  "model_name": "river-floating-debris-yolov8n",
+  "model_version": "v1-supported9",
+  "task": "detection",
+  "artifact": "river-eco-yolov8n-v1.onnx",
+  "sha256": "96fc7178c28f1eb29bae9703f440d6bda9c041433edb3e335691f38a5ee6da6c",
+  "labels": [
+    {
+      "id": 0,
+      "name": "塑料瓶罐",
+      "eval_category": "floating_debris"
+    },
+    {
+      "id": 1,
+      "name": "泡沫板材",
+      "eval_category": "floating_debris"
+    },
+    {
+      "id": 2,
+      "name": "水生植物",
+      "eval_category": "floating_debris"
+    },
+    {
+      "id": 3,
+      "name": "藻类聚集",
+      "eval_category": "floating_debris"
+    },
+    {
+      "id": 4,
+      "name": "塑料垃圾",
+      "eval_category": "floating_debris"
+    },
+    {
+      "id": 5,
+      "name": "纸制品",
+      "eval_category": "floating_debris"
+    },
+    {
+      "id": 6,
+      "name": "玻璃制品",
+      "eval_category": "floating_debris"
+    },
+    {
+      "id": 7,
+      "name": "金属制品",
+      "eval_category": "floating_debris"
+    },
+    {
+      "id": 8,
+      "name": "织物纤维",
+      "eval_category": "floating_debris"
+    },
+    {
+      "id": 9,
+      "name": "漂浮物（实验检测）",
+      "eval_category": "floating_debris"
+    },
+    {
+      "id": 10,
+      "name": "异常水色",
+      "eval_category": "bloom_blackwater"
+    },
+    {
+      "id": 11,
+      "name": "泡沫污染",
+      "eval_category": "bloom_blackwater"
+    },
+    {
+      "id": 12,
+      "name": "排污口",
+      "eval_category": "outfall_discharge"
+    },
+    {
+      "id": 13,
+      "name": "岸带垃圾",
+      "eval_category": "bank_problem"
+    },
+    {
+      "id": 14,
+      "name": "岸带侵占",
+      "eval_category": "bank_problem"
+    }
+  ],
+  "class_mapping_version": 1,
+  "preprocessing": {
+    "resize_size": 640,
+    "letterbox": true,
+    "pad_value": 114,
+    "interpolation": "bilinear",
+    "scale": [
+      0.0,
+      1.0
+    ],
+    "supported_class_ids": [
+      9
+    ]
+  },
+  "imgsz": 640,
+  "threshold": 0.5,
+  "scope": "公开 IWHR 数据训练的漂浮物检测原型，仅开放 class 9；其余 14 类没有训练样本而被禁用。无法判断材质、水色、排污或水质；未检出不代表清洁。演示分不属于官方生态或水质评价。",
+  "license": "IWHR CC BY 4.0; Ultralytics YOLOv8n AGPL-3.0",
+  "source_url": "https://doi.org/10.1038/s41597-025-04594-9",
+  "evaluation": {
+    "final_epoch": {
+      "epoch": 100.0,
+      "time": 5918.4,
+      "train/box_loss": 0.85535,
+      "train/cls_loss": 0.48772,
+      "train/dfl_loss": 0.93355,
+      "metrics/precision(B)": 0.89652,
+      "metrics/recall(B)": 0.81657,
+      "metrics/mAP50(B)": 0.9035,
+      "metrics/mAP50-95(B)": 0.65835,
+      "val/box_loss": 0.9066,
+      "val/cls_loss": 0.56164,
+      "val/dfl_loss": 0.94184,
+      "lr/pg0": 1.04674e-05,
+      "lr/pg1": 1.04674e-05,
+      "lr/pg2": 1.04674e-05
+    },
+    "source_repository": "https://github.com/NEAZ71eve/Intelligent-Platform-for-River-Ecological-Assessment",
+    "source_commit": "c80982473418502fbff28f5864dbad8b97441ded",
+    "source_manifest_sha256": "ff5e82c6177336499a99e6f2ee6036cc57ed382574f0f03a2f257586b77f4190",
+    "supported_class_ids": [
+      9
+    ],
+    "support_basis": "build_dataset.py VOC floater -> misc_debris at index 9; ONNX names metadata; three upstream sample montage forward checks produced only class 9 above 0.5. This is an integration diagnostic, not independent accuracy evaluation.",
+    "upstream_report_missing": true,
+    "limitations": [
+      "Only IWHR single-class weights exist; the v2 multi-source report is preparation without a v2 model.",
+      "Final epoch validation metrics describe upstream training, not independent held-out or deployment performance.",
+      "Bounding boxes are not segmented water area and cannot measure pollutant coverage."
+    ]
+  }
+}

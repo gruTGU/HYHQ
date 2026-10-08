@@ -1,0 +1,146 @@
+/* ALTCHA 3.3 renders light DOM. These are its shipped class names and variables. */
+.altcha-field {
+  --altcha-border-color: var(--border);
+  --altcha-border-radius: min(var(--radius), 12px);
+  --altcha-color-base: var(--surface);
+  --altcha-color-base-content: var(--text);
+  --altcha-color-neutral: var(--border);
+  --altcha-color-neutral-content: var(--muted);
+  --altcha-color-primary: var(--primary);
+  --altcha-color-primary-content: #fff;
+  --altcha-color-success: #347a50;
+  --altcha-color-success-content: #fff;
+  --altcha-checkbox-border-color: var(--muted);
+  --altcha-checkbox-border-radius: 6px;
+  --altcha-checkbox-border-width: 1.5px;
+  --altcha-checkbox-outline-color: var(--lake);
+  --altcha-checkbox-size: 24px;
+  --altcha-input-background-color: var(--surface);
+  --altcha-max-width: 100%;
+  --altcha-padding: 14px;
+  width: 100%;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.altcha-field altcha-widget,
+.altcha-field .altcha {
+  width: 100%;
+  min-width: 0;
+}
+
+.altcha-field altcha-widget {
+  display: block;
+}
+
+.altcha-field .altcha-main {
+  width: 100%;
+  max-width: 100%;
+  gap: 8px;
+}
+
+.altcha-field .altcha-main > :first-child {
+  align-items: center;
+  gap: 16px;
+  min-height: 30px;
+}
+
+.altcha-field .altcha-checkbox-wrap {
+  align-items: center;
+  min-width: 0;
+  gap: 12px;
+}
+
+.altcha-field .altcha-checkbox-wrap > label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-height: var(--altcha-checkbox-size);
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+/* Keep the painted input, positioning box and spinner exactly the same size. */
+.altcha-field .altcha-checkbox,
+.altcha-field .altcha-checkbox input[type="checkbox"],
+.altcha-field .altcha-checkbox-spinner {
+  box-sizing: border-box;
+  width: var(--altcha-checkbox-size);
+  height: var(--altcha-checkbox-size);
+  min-width: var(--altcha-checkbox-size);
+  min-height: var(--altcha-checkbox-size);
+  flex: 0 0 var(--altcha-checkbox-size);
+  margin: 0;
+}
+
+.altcha-field .altcha-checkbox input[type="checkbox"] {
+  padding: 0;
+}
+
+/* The shipped checkmark uses a 12 × 9 viewBox; preserve its aspect ratio. */
+.altcha-field .altcha-checkbox > svg {
+  display: block;
+  width: 14px;
+  height: 10.5px;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
+
+.altcha-field .altcha-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  opacity: 1;
+}
+
+.altcha-field .altcha-logo svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+.altcha-field .altcha-footer {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 1;
+}
+
+.altcha-field .altcha-footer p {
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+
+.altcha-field .altcha-footer a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.altcha-field[aria-disabled="true"] {
+  opacity: 0.65;
+}
+
+@media (max-width: 420px) {
+  .altcha-field {
+    --altcha-padding: 12px;
+  }
+
+  .altcha-field .altcha-checkbox-wrap {
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .altcha-field .altcha-checkbox input:checked::before,
+  .altcha-field .altcha-checkbox input:checked + svg {
+    transition: none;
+  }
+}
