@@ -11,3 +11,7 @@
 .leaf-vein { position: absolute; top: 9rpx; left: 21rpx; width: 2rpx; height: 42rpx; background: var(--hyhq-primary, #3a7d5c); transform: rotate(30deg); }
 @keyframes leaf-turn { 0% { transform: rotate(-30deg); opacity: .55; } 50% { opacity: 1; } 100% { transform: rotate(330deg); opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .leaf-loader { animation: none; } }
+.theme-design-2.state, .theme-design-3.state { border: 1rpx solid var(--hyhq-border); border-radius: var(--hyhq-card-radius); }
+.theme-design-2 .state-title, .theme-design-3 .state-title { font-family: 'Songti SC', 'STSong', serif; }
+.theme-design-2 .state-illustration, .theme-design-3 .state-illustration { width: 210rpx; height: 210rpx; mix-blend-mode: normal; }
+.theme-design-2 .state-retry, .theme-design-3 .state-retry { border-radius: var(--hyhq-button-radius); }

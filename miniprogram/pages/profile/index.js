@@ -19,9 +19,19 @@ Page(withTheme({
     return this.load();
   },
   onHide() {
+    const session = app().session.get();
+    const keepDepartureView = !!(session && session.token && session.token === this._profileToken &&
+      this.data.user && session.user && session.user.id === this.data.user.id && !this.data.busy && !this._hasPendingMutation());
     this._visible = false;
     this._invalidate();
-    this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', loading: false, busy: false, editingProfile: false, canManage: false });
+    // Navigation animates this page after onHide. Keep the confirmed account
+    // visible during departure; clearing it with loading:false flashes login.
+    // All actions/callbacks are invalidated above. onShow still reloads me/.
+    if (keepDepartureView) {
+      this.setData({ nickname: this.data.user.nickname || '', nicknameNotice: '', busy: false, editingProfile: false });
+    } else {
+      this.setData({ user: null, nickname: '', avatar: '', avatarNotice: '', authMode: '', loading: true, busy: false, editingProfile: false, canManage: false });
+    }
   },
   onUnload() { this._destroyed = true; this._invalidate(); },
   _active() { return !this._destroyed && this._visible !== false; },

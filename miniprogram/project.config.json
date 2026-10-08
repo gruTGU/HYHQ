@@ -49,6 +49,10 @@
       {
         "type": "file",
         "value": "assets/maps/demo-campus-v1.png"
+      },
+      {
+        "type": "file",
+        "value": "assets/examples/river-annotations.jpg"
       }
     ]
   }

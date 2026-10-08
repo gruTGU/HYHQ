@@ -1,7 +1,7 @@
-<view class="page themes-page theme-{{themeId}}" style="{{themeStyle}}">
+<view class="page themes-page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}}" style="{{themeStyle}};{{themeAssetStyle}}">
   <view class="page-heading">外观与主题</view>
   <view wx:for="{{themes}}" wx:key="id" class="card theme-card {{item.selected ? 'theme-selected' : ''}} {{item.ready ? '' : 'theme-pending'}}">
-    <view style="{{item.previewStyle}}" class="theme-preview {{item.ready ? 'preview-forest' : 'preview-pending'}}" aria-hidden="true"><view></view><view></view><view></view></view>
+    <view style="{{item.previewStyle}}" class="theme-preview preview-{{item.id}} {{item.ready ? '' : 'preview-pending'}}" aria-hidden="true"><view class="preview-heading"><view></view><view></view></view><view class="preview-landscape"><view></view><view></view></view><view class="preview-index"><view></view><view></view><view></view></view></view>
     <view class="row gap"><view><view class="title">{{item.name}}</view><view class="copy">{{item.description}}</view></view><text wx:if="{{item.selected}}" class="pill">使用中</text></view>
     <button class="secondary gap" disabled="{{!item.ready || item.selected}}" data-id="{{item.id}}" bindtap="choose">{{item.selected ? '当前主题' : item.ready ? '使用这个主题' : '待开放'}}</button>
   </view>

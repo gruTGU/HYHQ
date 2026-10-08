@@ -6,6 +6,7 @@ const { storageFor } = require('./lib/files');
 const { runtimeProviders } = require('./lib/subscription-transport');
 function createApp({ store, cloud, config, now = () => new Date().toISOString(), providers }) {
   providers = runtimeProviders(cloud, config, providers);
+  const themeAssets = require('./lib/theme-assets').createThemeAssetsHandler(cloud);
   return async function dispatch(event, identity = {}) {
     const requestId = uuid();
     try {
@@ -35,7 +36,7 @@ function createApp({ store, cloud, config, now = () => new Date().toISOString(),
           features: { recognition: capabilities.recognition.enabled, assessment: capabilities.assessment.enabled, llm },
           ...capabilities, optional_services: { weather, llm, inference: capabilities.recognition.enabled && capabilities.assessment.enabled } });
       }
-      for (const handler of [accounts.handle, () => ctx.storage.handle(), require('./lib/community').handle, require('./lib/management').handle, require('./lib/maintenance').handle, require('./lib/weather-booking-ai').handle, require('./lib/weather').handle, require('./lib/recognition').handle, require('./lib/llm').handle, require('./lib/activity').handle, require('./lib/catalog').handle]) {
+      for (const handler of [themeAssets, accounts.handle, () => ctx.storage.handle(), require('./lib/community').handle, require('./lib/management').handle, require('./lib/maintenance').handle, require('./lib/weather-booking-ai').handle, require('./lib/weather').handle, require('./lib/recognition').handle, require('./lib/llm').handle, require('./lib/activity').handle, require('./lib/catalog').handle]) {
         const result = await handler(ctx);
         if (result !== undefined) return result;
       }

@@ -1,18 +1,19 @@
 const { createAssessmentController } = require('../../pages/assessment/controller');
+const { connectTheme, disconnectTheme } = require('../../lib/theme');
 const controller = createAssessmentController();
 const lifecycle = new Set(['onLoad', 'onShow', 'onHide', 'onUnload', 'onPullDownRefresh']);
 const methods = Object.fromEntries(Object.entries(controller).filter(([key, value]) => typeof value === 'function' && !lifecycle.has(key)));
 Component({
   options: { styleIsolation: 'isolated' },
   properties: { jobId: { type: String, value: '' } },
-  data: { ...controller.data, embedded: true },
+  data: { ...controller.data, embedded: true, themeId: 'forest', themeAssets: {}, themeStyle: '', themeAssetStyle: '' },
   lifetimes: {
-    attached() { this._attached = true; controller.onLoad.call(this, { jobId: this.properties.jobId }); return controller.onShow.call(this); },
-    detached() { this._attached = false; controller.onUnload.call(this); },
+    attached() { this._attached = true; connectTheme(this, false, { loadAssets: true }); controller.onLoad.call(this, { jobId: this.properties.jobId }); return controller.onShow.call(this); },
+    detached() { this._attached = false; disconnectTheme(this); controller.onUnload.call(this); },
   },
   pageLifetimes: {
-    show() { if (this._attached && !this._visible) return controller.onShow.call(this); },
-    hide() { controller.onHide.call(this); },
+    show() { if (this._attached) connectTheme(this, false, { loadAssets: true }); if (this._attached && !this._visible) return controller.onShow.call(this); },
+    hide() { disconnectTheme(this); controller.onHide.call(this); },
   },
   observers: {
     'busy, locating'() { this.notifyBusy(); },

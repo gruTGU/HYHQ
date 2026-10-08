@@ -1,4 +1,4 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} submissions-page">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} submissions-page">
   <view class="title">我的资料反馈</view><view class="copy section">原始反馈保持私密。公开科普由编辑核实整理，文章不开放评论。</view>
   <view wx:if="{{!loggedIn}}" class="card section"><view class="copy">登录后保存私人草稿、向编辑反馈资料并查看处理进度。</view><button class="primary gap" bindtap="login">前往登录</button></view>
   <block wx:else>

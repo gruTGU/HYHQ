@@ -1,4 +1,4 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} profile-page">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} profile-page">
   <view class="profile-header">
     <view class="profile-brand"><view class="profile-heading">我的</view><view class="profile-brand-mark"><image class="brand-logo" src="/assets/brand/hyhq-logo.jpg" mode="aspectFit" aria-label="海晏河清智慧平台标志" /></view></view>
     <view wx:if="{{!loading && user}}" class="profile-identity">
@@ -7,7 +7,7 @@
     </view>
   </view>
   <view class="profile-content">
-    <page-state loading="{{loading}}" error="{{error && !busy ? error : ''}}" bindretry="load" />
+    <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{error && !busy ? error : ''}}" bindretry="load" />
     <view wx:if="{{!loading && !user}}" class="card login-card">
       <view class="title">开启你的绿色记录</view><view class="copy">登录后，可保存收藏与足迹，上传识别图片。</view>
       <view class="login-notice"><checkbox-group bindchange="agreementChange"><label class="agreement-label"><checkbox value="agreed" checked="{{agreed}}" disabled="{{busy}}" color="#3a7d5c" /><text>我已阅读并同意</text></label></checkbox-group><view class="agreement-links"><text class="legal-link" data-kind="terms" bindtap="legal">《用户协议》</text><text>与</text><text class="legal-link" data-kind="privacy" bindtap="legal">《隐私说明》</text></view></view>
@@ -30,7 +30,7 @@
         <button hover-class="pressable" class="record-entry" data-kind="recognition-jobs" bindtap="records"><view class="record-icon icon-recognition"><text>AI</text></view><text>识别记录</text></button>
         <button hover-class="pressable" class="record-entry" data-kind="assessment-jobs" bindtap="records"><view class="record-icon icon-water"><view></view></view><text>河道观察</text></button>
         <button hover-class="pressable" class="record-entry" data-kind="visits" bindtap="records"><view class="record-icon icon-visit"></view><text>游览足迹</text></button>
-        <button hover-class="pressable" class="record-entry" bindtap="aiHistory"><view class="record-icon icon-chat"><text>···</text></view><text>AI 对话</text></button>
+        <button hover-class="pressable" class="record-entry" bindtap="aiHistory"><view class="record-icon icon-chat"></view><text>AI 对话</text></button>
       </view>
     </block>
     <view wx:if="{{!loading}}" class="card section menu-card">

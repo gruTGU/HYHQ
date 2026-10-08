@@ -1,6 +1,6 @@
-<view class="page theme-{{themeId}}" style="{{themeStyle}}">
+<view class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}}" style="{{themeStyle}};{{themeAssetStyle}}">
   <view class="title">平台管理</view><view class="copy">仅授权管理员可访问，关键操作保留记录。</view>
-  <page-state loading="{{loading}}" error="{{error}}" bindretry="load" />
+  <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{error}}" bindretry="load" />
   <block wx:if="{{allowed}}">
     <view class="admin-tabs"><button data-tab="stats" bindtap="tab">概览</button><button data-tab="contents" bindtap="tab">科普</button><button data-tab="routes" bindtap="tab">路线</button><button data-tab="places" bindtap="tab">地点</button><button data-tab="feedback" bindtap="tab">反馈</button><button data-tab="submissions" bindtap="tab">资料反馈编辑</button><button data-tab="audit" bindtap="tab">审计</button><button data-tab="maintenance" bindtap="tab">维护</button></view>
     <view wx:if="{{notice}}" class="admin-notice">{{notice}}</view>

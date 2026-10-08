@@ -48,3 +48,110 @@ textarea { color: var(--hyhq-text, #2c3e33); }
 .metric-label { font-size: 23rpx; color: var(--hyhq-muted, #65796c); }
 @keyframes card-arrive { from { opacity: 0; transform: translateY(12rpx); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .card { animation: none; } button { transition: none; } }
+
+/* All appearances render the same page content. Images are optional decoration. */
+.page.theme-designed { background-color: var(--hyhq-background); }
+.page.theme-designed::before, .page.theme-designed::after { display: none; }
+.page.theme-designed .title, .page.theme-designed .page-heading, .page.theme-designed .page-title, .page.theme-designed .section-title, .page.theme-designed .profile-name { font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif; font-weight: 600; color: var(--hyhq-text); }
+.page.theme-designed .card, .page.theme-designed .metric, .page.theme-designed .notice { border-radius: var(--hyhq-card-radius); border-color: var(--hyhq-border); box-shadow: none; }
+.page.theme-designed .muted, .page.theme-designed .footer-note, .page.theme-designed .eyebrow, .page.theme-designed .chevron { color: var(--hyhq-muted); }
+.page.theme-designed .pill { color: var(--hyhq-secondary-text); background: var(--hyhq-secondary); border: 1rpx solid var(--hyhq-border); }
+.page.theme-designed .notice { background: var(--hyhq-notice); color: var(--hyhq-muted); }
+.page.theme-designed input, .page.theme-designed textarea { border-radius: var(--hyhq-button-radius); }
+.page.theme-designed .section-head { padding-bottom: 14rpx; border-bottom: 1rpx solid var(--hyhq-border); }
+.page.theme-designed .primary, .page.theme-designed .secondary { border-radius: var(--hyhq-button-radius); }
+.page.theme-designed .tabs, .page.theme-designed .observe-tabs, .page.theme-designed .view-tabs { border: 1rpx solid var(--hyhq-border); border-radius: var(--hyhq-button-radius); background: transparent; padding: 0; box-shadow: none; }
+.page.theme-designed .tab, .page.theme-designed .observe-tab, .page.theme-designed .view-tabs button { color: var(--hyhq-muted); border-radius: 0; box-shadow: none; }
+.page.theme-designed .tab.selected, .page.theme-designed .observe-tab.active, .page.theme-designed .view-tabs button.active { background: var(--hyhq-primary); color: var(--hyhq-surface); box-shadow: none; }
+.page.theme-designed .region-picker, .page.theme-designed .reference-picker, .page.theme-designed .selector, .page.theme-designed .picker-value { border-color: var(--hyhq-border); border-radius: var(--hyhq-button-radius); background: var(--hyhq-surface); color: var(--hyhq-text); }
+.page.theme-designed .filter, .page.theme-designed .map-picker { border-radius: var(--hyhq-button-radius); background: var(--hyhq-secondary); color: var(--hyhq-secondary-text); box-shadow: none; }
+.page.theme-designed .filter.active { background: var(--hyhq-primary); color: var(--hyhq-surface); }
+.page.theme-designed .reference-card-note, .page.theme-designed .reference-card-source, .page.theme-designed .map-kind, .page.theme-designed .map-help, .page.theme-designed .map-credit { color: var(--hyhq-muted); border-color: var(--hyhq-border); }
+.page.theme-designed .map-frame, .page.theme-designed .real-map { border: 1rpx solid var(--hyhq-border); border-radius: var(--hyhq-card-radius); box-shadow: none; }
+.page.theme-designed .selected-card, .page.theme-designed .location-card { background: var(--hyhq-surface); border-color: var(--hyhq-border); }
+.page.theme-designed .place-count, .page.theme-designed .selected-number { color: var(--hyhq-primary); }
+.page.theme-designed .location-number { background: var(--hyhq-secondary); color: var(--hyhq-secondary-text); border-radius: var(--hyhq-button-radius); }
+.page.theme-designed .location-meta { border-color: var(--hyhq-border); }
+
+/* Editorial: a compact photo index and ruled, unshadowed pages. */
+.page.theme-design-2 { letter-spacing: .2rpx; }
+.page.theme-design-2 .section-title { font-size: 34rpx; }
+.page.theme-design-2 .article, .page.theme-design-2 .route-card { padding-left: 0; padding-right: 0; border-left: 0; border-right: 0; background: transparent; }
+.page.theme-design-2 .article-title { font-size: 36rpx; line-height: 1.5; }
+.page.theme-design-2 .article-index { font-size: 31rpx; font-family: Georgia, serif; }
+.page.theme-design-2 .profile-header { background: transparent; color: var(--hyhq-text); border-radius: 0; border-bottom: 1rpx solid var(--hyhq-border); padding-bottom: 32rpx; }
+.page.theme-design-2 .profile-brand-mark { border: 1rpx solid var(--hyhq-border); border-radius: 4rpx; }
+.page.theme-design-2 .profile-heading { font-family: 'Songti SC', 'STSong', serif; font-size: 38rpx; }
+.page.theme-design-2 .menu-card { background: transparent; border-left: 0; border-right: 0; padding-left: 0; padding-right: 0; }
+.page.theme-design-2 .record-grid { padding-left: 0; padding-right: 0; background: transparent; border-top: 1rpx solid var(--hyhq-border); border-bottom: 1rpx solid var(--hyhq-border); border-radius: 0; }
+.page.theme-design-2 .record-entry + .record-entry { border-left: 1rpx solid var(--hyhq-border); border-radius: 0; }
+.page.theme-design-2 .observe-tabs { border-left: 0; border-right: 0; border-top: 0; }
+.page.theme-design-2 .observe-tab.active { background: transparent; color: var(--hyhq-primary); border-bottom: 3rpx solid var(--hyhq-primary); }
+.page.theme-design-2 .answer-bubble { background: transparent; border: 0; border-top: 1rpx solid var(--hyhq-border); padding-left: 0; padding-right: 0; }
+.editorial-weather-photo { display: block; width: 100%; height: 156rpx; margin-top: 20rpx; background: var(--hyhq-secondary); }
+.editorial-entry-photo { display: block; width: 100%; height: 118rpx; margin-bottom: 12rpx; background: var(--hyhq-secondary); }
+.editorial-small-photo { display: block; width: 108rpx; height: 72rpx; flex-shrink: 0; margin-right: 20rpx; background: var(--hyhq-secondary); }
+.page.theme-design-2 .discovery-card { padding: 0 0 16rpx; background: transparent; border-radius: 0; border-bottom: 1rpx solid var(--hyhq-border); min-height: 0; }
+.page.theme-design-2 .discovery-card .title { font-size: 28rpx; }
+.page.theme-design-2 .card-arrow { top: auto; bottom: 18rpx; right: 0; color: var(--hyhq-text); }
+.page.theme-design-2 .entry { background: transparent; border-radius: 0; border-bottom: 1rpx solid var(--hyhq-border); padding: 16rpx 0; margin-top: 0; }
+
+/* Atlas: optional paper grain and contour edges, never a replacement map. */
+.page.theme-design-3 { background-image: var(--hyhq-paper-image, none); background-size: 512rpx 512rpx; background-repeat: repeat; }
+.page.theme-design-3::before { display: block; width: 600rpx; height: 600rpx; top: 0; right: -210rpx; border-radius: 0; transform: none; background: transparent; background-image: var(--hyhq-contours-image, none); background-size: contain; background-repeat: no-repeat; opacity: .12; }
+.page.theme-design-3 .section-title { color: var(--hyhq-text); font-size: 34rpx; }
+.page.theme-design-3 .section-head { border-color: var(--hyhq-accent); }
+.page.theme-design-3 .card, .page.theme-design-3 .metric { background: var(--hyhq-surface); }
+.page.theme-design-3 .discovery-card { min-height: 174rpx; border: 1rpx solid var(--hyhq-border); border-radius: 4rpx; background: var(--hyhq-surface); }
+.page.theme-design-3 .entry { border: 1rpx solid var(--hyhq-border); border-radius: 4rpx; background: var(--hyhq-surface); }
+.page.theme-design-3 .entry-icon { background: transparent; color: var(--hyhq-lake); border: 1rpx solid var(--hyhq-border); border-radius: 4rpx; }
+.page.theme-design-3 .hill-shape { background: var(--hyhq-lake); }
+.page.theme-design-3 .hill-shape-far, .page.theme-design-3 .plant-shape-left { background: var(--hyhq-accent); }
+.page.theme-design-3 .hill-shape-sun, .page.theme-design-3 .plant-shape, .page.theme-design-3 .plant-shape-right { background: var(--hyhq-primary); }
+.page.theme-design-3 .profile-header { background: transparent; border-radius: 0; color: var(--hyhq-text); border-bottom: 1rpx solid var(--hyhq-accent); }
+.page.theme-design-3 .profile-brand-mark { border: 1rpx solid var(--hyhq-border); border-radius: 4rpx; }
+.page.theme-design-3 .profile-heading { font-family: 'Songti SC', 'STSong', serif; font-size: 38rpx; }
+.page.theme-design-3 .record-grid { background: transparent; border: 1rpx solid var(--hyhq-border); border-radius: 4rpx; }
+.page.theme-design-3 .menu-card { background: transparent; }
+.page.theme-design-3 .article-index { color: var(--hyhq-lake); font-family: Georgia, serif; }
+.page.theme-design-3 .map-frame, .page.theme-design-3 .real-map { border: 3rpx double var(--hyhq-accent); }
+.page.theme-design-3 .question-bubble { border-right: 3rpx solid var(--hyhq-primary); }
+
+/* Existing weather, forms, lists and conversations keep their data/controls. */
+.page.theme-designed .weather-card { border: 0; border-top: 1rpx solid var(--hyhq-border); border-bottom: 1rpx solid var(--hyhq-border); background: transparent; border-radius: 0; padding-left: 0; padding-right: 0; }
+.page.theme-designed .temperature, .page.theme-designed .weather-condition, .page.theme-designed .city-name, .page.theme-designed .aqi-value { color: var(--hyhq-text); }
+.page.theme-designed .weather-detail, .page.theme-designed .daily-range, .page.theme-designed .source-copy, .page.theme-designed .aqi-name, .page.theme-designed .aqi-category { color: var(--hyhq-muted); }
+.page.theme-designed .weather-art { opacity: .65; }
+.page.theme-designed .air-card, .page.theme-designed .observation-section, .page.theme-designed .observation-link, .page.theme-designed .sample-weather, .page.theme-designed .context-card, .page.theme-designed .question-bubble { background: var(--hyhq-secondary); color: var(--hyhq-text); border-color: var(--hyhq-border); border-radius: var(--hyhq-card-radius); }
+.page.theme-designed .air-toggle, .page.theme-designed .location-button, .page.theme-designed .weather-entry, .page.theme-designed .history-button { background: var(--hyhq-secondary); color: var(--hyhq-secondary-text); border-radius: var(--hyhq-button-radius); }
+.page.theme-designed .weather-links, .page.theme-designed .pollutants, .page.theme-designed .observation-toggle { border-color: var(--hyhq-border); }
+.page.theme-designed .source-link, .page.theme-designed .observation-toggle, .page.theme-designed .read-link, .page.theme-designed .article-category, .page.theme-designed .tags, .page.theme-designed .stop-count { color: var(--hyhq-primary); }
+.page.theme-designed .pollutant, .page.theme-designed .scope-card, .page.theme-designed .scope-labels text { background: var(--hyhq-surface); color: var(--hyhq-text); border-radius: var(--hyhq-card-radius); }
+.page.theme-designed .scope-card { border: 1rpx solid var(--hyhq-border); }
+.page.theme-designed .scope-labels text { border: 1rpx solid var(--hyhq-border); }
+.page.theme-designed .region-leaf { background: var(--hyhq-accent); }
+.page.theme-designed .article-footer, .page.theme-designed .route-footer { border-color: var(--hyhq-border); }
+.page.theme-designed .article-source, .page.theme-designed .article-index, .page.theme-designed .selector text { color: var(--hyhq-muted); }
+.page.theme-designed .route-card { background: var(--hyhq-surface); }
+.page.theme-designed .profile-header::after { display: none; }
+.page.theme-designed .profile-edit-link, .page.theme-designed .legal-link { color: var(--hyhq-primary); }
+.page.theme-designed .avatar-frame { background: var(--hyhq-secondary); border-color: var(--hyhq-border); }
+.page.theme-designed .avatar-head, .page.theme-designed .avatar-shoulders { background: var(--hyhq-accent); }
+.page.theme-designed .record-entry { color: var(--hyhq-text); }
+.page.theme-designed .record-icon, .page.theme-designed .record-icon::before, .page.theme-designed .record-icon::after, .page.theme-designed .icon-water view { border-color: var(--hyhq-primary); color: var(--hyhq-primary); }
+.page.theme-designed .icon-favorite::after, .page.theme-designed .icon-visit::after, .page.theme-designed .icon-chat::after { background: var(--hyhq-background); }
+.page.theme-designed .model-name, .page.theme-designed .context-title, .page.theme-designed .question-text, .page.theme-designed .question { color: var(--hyhq-text); }
+.page.theme-designed .context-icon, .page.theme-designed .weather-selector { background: var(--hyhq-secondary); color: var(--hyhq-secondary-text); border-radius: var(--hyhq-button-radius); }
+.page.theme-designed .context-expand, .page.theme-designed .answer-mark, .page.theme-designed .answer-model, .page.theme-designed .privacy-link { color: var(--hyhq-primary); }
+.page.theme-designed .context-label, .page.theme-designed .context-preview, .page.theme-designed .model-badge, .page.theme-designed .question-meta, .page.theme-designed .answer-status, .page.theme-designed .ai-footnote { color: var(--hyhq-muted); }
+.page.theme-designed .answer-bubble, .page.theme-designed .composer-input { background: var(--hyhq-surface); border-radius: var(--hyhq-card-radius); border-color: var(--hyhq-border); box-shadow: none; }
+.page.theme-designed .composer { background: var(--hyhq-background); border-color: var(--hyhq-border); box-shadow: none; }
+.page.theme-designed .composer-label, .page.theme-designed .composer-caption { color: var(--hyhq-muted); }
+.page.theme-designed .image-choice, .page.theme-designed .weather-choice, .page.theme-designed .citation-list { border-color: var(--hyhq-border); }
+.page.theme-designed .thinking-leaf { background: var(--hyhq-accent); }
+.page.theme-designed .learning-note, .page.theme-designed .learning-badge, .page.theme-designed .reply, .page.theme-designed .feedback-success, .page.theme-designed .form-private, .page.theme-designed .admin-notice { background: var(--hyhq-secondary); color: var(--hyhq-secondary-text); border-color: var(--hyhq-border); border-radius: var(--hyhq-card-radius); }
+.page.theme-designed .metric-active, .page.theme-designed .route-stop.stop-selected { border-color: var(--hyhq-primary); background: var(--hyhq-secondary); }
+.page.theme-designed .metric-value, .page.theme-designed .record-action, .page.theme-designed .record-title, .page.theme-designed .reply-title, .page.theme-designed .provenance-toggle { color: var(--hyhq-primary); }
+.page.theme-designed .record-date, .page.theme-designed .private-label, .page.theme-designed .feedback-time, .page.theme-designed .form-hint, .page.theme-designed .timestamp, .page.theme-designed .unit, .page.theme-designed .filter-hint, .page.theme-designed .source-summary { color: var(--hyhq-muted); }
+.page.theme-designed .source-reference, .page.theme-designed .route-stop, .page.theme-designed .admin-row, .page.theme-designed .admin-cell { border-color: var(--hyhq-border); background: var(--hyhq-surface); border-radius: var(--hyhq-card-radius); }
+.page.theme-designed .admin-tabs button, .page.theme-designed .stop-index, .page.theme-designed .advanced-toggle { background: var(--hyhq-secondary); color: var(--hyhq-secondary-text); }

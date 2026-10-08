@@ -1,4 +1,8 @@
 .detail-page .page-title { font-size: 44rpx; line-height: 1.45; margin-top: 22rpx; }
+.article-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
+.article-heading-row .eyebrow { margin: 0; }
+.detail-page .article-favorite { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: auto; min-height: 60rpx; margin: 0; padding: 10rpx 18rpx; line-height: 1.5; text-align: center; white-space: nowrap; font-size: 24rpx; font-weight: 500; color: var(--hyhq-primary, #3a7d5c); background: var(--hyhq-surface, #fffefa); border: 1rpx solid var(--hyhq-border, #e7eee1); border-radius: var(--hyhq-button-radius, 24rpx); }
+.detail-page .article-favorite[disabled] { opacity: .65; }
 .detail-copy { margin: 0; font-size: 28rpx; line-height: 1.95; color: #536d59; }
 .article { display: block; line-height: 2; font-size: 29rpx; color: #2c3e33; }
 .source-reference { word-break: break-all; overflow-wrap: anywhere; white-space: pre-wrap; }

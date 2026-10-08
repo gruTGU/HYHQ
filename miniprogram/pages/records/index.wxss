@@ -9,7 +9,8 @@
 .plant-soil { position: absolute; left: 48rpx; top: 116rpx; width: 60rpx; height: 4rpx; border-radius: 8rpx; background: #7fb3c8; }
 .empty-title { font-size: 31rpx; font-weight: 600; color: #2c3e33; }
 .records-empty .copy { margin-top: 16rpx; line-height: 1.9; }
-.empty-action { margin-top: 32rpx; }.empty-secondary { margin: 18rpx auto 0; padding: 10rpx 24rpx; }
+.records-page .empty-action { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 88rpx; margin-top: 32rpx; padding: 20rpx 22rpx; line-height: 1.5; text-align: center; }
+.empty-secondary { margin: 18rpx auto 0; padding: 10rpx 24rpx; }
 .record-card { margin-top: 18rpx; padding: 26rpx 28rpx 16rpx; }
 .record-open { background: transparent; padding: 0; text-align: left; color: #2c3e33; line-height: 1.7; font-weight: 400; border-radius: 0; }
 .record-open[disabled] { opacity: 1; color: #718278; }

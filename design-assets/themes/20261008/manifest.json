@@ -1,0 +1,51 @@
+{
+  "version": "20261008-1",
+  "source": "用户提供 HYHQ-UI-delivery，图片为AI生成装饰，非地点实拍",
+  "assets": [
+    {
+      "file": "editorial/empty-state.jpg",
+      "bytes": 42402,
+      "sha256": "2ba9ce980fe61398ee623cb730d6450b373a3ee3687e8dbc89753527af954b6d"
+    },
+    {
+      "file": "editorial/entry-explore.jpg",
+      "bytes": 99037,
+      "sha256": "3152fffedeec9cb87a06cd3eb498e1295daf27f8577968574563ec15342686af"
+    },
+    {
+      "file": "editorial/entry-flower.jpg",
+      "bytes": 99228,
+      "sha256": "ab50f803c02d91a25ac9fe12857b5fee5a7242aefd479d3b31abd8a811ef67ff"
+    },
+    {
+      "file": "editorial/entry-learn.jpg",
+      "bytes": 99953,
+      "sha256": "03ebaf2d9101718774f83711ffeea7598d12f2e6518656eda46265d0368919ed"
+    },
+    {
+      "file": "editorial/entry-river.jpg",
+      "bytes": 99908,
+      "sha256": "d8ce0e52fb9973249c57985e786a22a45eb1a79afd59def586f4a851fce15c6c"
+    },
+    {
+      "file": "editorial/weather-river.jpg",
+      "bytes": 158387,
+      "sha256": "991331314267c0ae22aef457acb0f2b7c5dd91615dabf2d649aeca12204a6047"
+    },
+    {
+      "file": "atlas/contours-overlay.png",
+      "bytes": 254804,
+      "sha256": "0b76b2cf4cbf1937b92463b5459ba8a090fc6fe6624386afa1deb73de384196d"
+    },
+    {
+      "file": "atlas/empty-state.png",
+      "bytes": 28707,
+      "sha256": "8dfea41a8cddbe1f00284416a8c58a301c1925484fd62c25853e2f0142334b0a"
+    },
+    {
+      "file": "atlas/paper-tile.jpg",
+      "bytes": 36679,
+      "sha256": "0aadc71855515446b12f6e0bd13259c4df9f6e87aa891ae247cfb1e39e10cf79"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} learn-page">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} learn-page">
   <view class="card filters">
     <view class="filter-top"><picker class="region-picker" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion"><view class="region-selector"><text class="region-leaf" aria-hidden="true"></text><text>{{regions[regionIndex].name}}</text><view class="picker-chevron" aria-hidden="true"></view></view></picker><button wx:if="{{tab === 'contents'}}" class="filter-toggle" hover-class="pressable" bindtap="toggleFilters" aria-expanded="{{showFilters}}">{{showFilters ? '收起筛选' : '分类筛选'}}<text wx:if="{{category || plant_label || place}}" class="filter-dot"></text></button></view>
     <view wx:if="{{regionError}}" class="error-inline">区域暂时无法加载：{{regionError}}<button class="text-button" bindtap="load">重新加载</button></view>
@@ -18,7 +18,7 @@
   <view class="tabs section"><button class="tab {{tab === 'contents' ? 'selected' : ''}}" data-tab="contents" bindtap="changeTab" hover-class="pressable">知识科普</button><button class="tab {{tab === 'routes' ? 'selected' : ''}}" data-tab="routes" bindtap="changeTab" hover-class="pressable">漫步路线</button></view>
   <view class="section-head results-head"><text class="section-title">{{tab === 'contents' ? '知识科普' : '慢慢走，看一看'}}</text><button wx:if="{{draftsAvailable}}" class="text-button feedback-entry" bindtap="openSubmissions">资料补充与纠错反馈 ↗</button></view>
   <block wx:if="{{tab === 'contents'}}">
-    <page-state loading="{{contentsLoading}}" error="{{contentsError}}" empty="{{!contentsLoading && !contentsError && !contents.length}}" empty-text="暂时没有符合条件的手记，试试清除筛选或切换区域。" bindretry="retryContents" />
+    <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{contentsLoading}}" error="{{contentsError}}" empty="{{!contentsLoading && !contentsError && !contents.length}}" empty-text="暂时没有符合条件的手记，试试清除筛选或切换区域。" bindretry="retryContents" />
     <button wx:if="{{!contentsLoading && !contentsError && !contents.length && (category || plant_label || search || place)}}" class="secondary gap" bindtap="resetFilters">浏览全部科普</button>
     <block wx:if="{{!contentsLoading && !contentsError}}">
       <view class="card article" wx:for="{{contents}}" wx:key="id" data-kind="content" data-id="{{item.id}}" bindtap="open" hover-class="pressable" aria-role="button" aria-label="阅读{{item.title}}">
@@ -32,7 +32,7 @@
     </block>
   </block>
   <block wx:else>
-    <page-state loading="{{routesLoading}}" error="{{routesError}}" empty="{{!routesLoading && !routesError && !routes.length}}" empty-text="这个区域暂时没有公开路线，试试切换区域。" bindretry="retryRoutes" />
+    <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{routesLoading}}" error="{{routesError}}" empty="{{!routesLoading && !routesError && !routes.length}}" empty-text="这个区域暂时没有公开路线，试试切换区域。" bindretry="retryRoutes" />
     <block wx:if="{{!routesLoading && !routesError}}">
       <view class="card route-card" wx:for="{{routes}}" wx:key="id" data-kind="route" data-id="{{item.id}}" bindtap="open" hover-class="pressable" aria-role="button" aria-label="查看{{item.name || item.title}}">
         <view class="route-heading"><view class="route-mark" aria-hidden="true"><view></view><view></view><view></view></view><text class="small muted">{{item.region_name || '公开路线'}}</text><text wx:if="{{item.is_demo}}" class="pill">科普模拟路线</text></view>

@@ -1,8 +1,9 @@
 <view class="tab-bar theme-{{themeId}}" style="{{themeStyle}}">
   <view class="tab-items">
     <button wx:for="{{tabs}}" wx:key="pagePath" class="tab-item {{selected === index ? 'is-selected' : ''}} {{item.icon === 'ai' ? 'ai-item' : ''}}" data-index="{{index}}" bindtap="switchTab" aria-label="{{item.label}}" aria-role="button" hover-class="tab-pressed">
-      <view wx:if="{{item.icon === 'ai'}}" class="ai-circle" aria-hidden="true"><view class="ai-glyph"><image class="tab-sprite sprite-ai" src="/assets/brand/icons-green.jpg" mode="scaleToFill" /></view></view>
-      <view wx:else class="tab-icon" aria-hidden="true"><image class="tab-sprite sprite-{{item.icon}}" src="/assets/brand/icons-green.jpg" mode="scaleToFill" /></view>
+      <view wx:if="{{item.icon === 'ai'}}" class="ai-circle" aria-hidden="true"><view wx:if="{{themeId === 'forest'}}" class="ai-glyph"><image class="tab-sprite sprite-ai" src="/assets/brand/icons-green.jpg" mode="scaleToFill" /></view><view wx:else class="theme-ai-mark"><text class="theme-ai-label">AI</text></view></view>
+      <view wx:elif="{{themeId === 'forest'}}" class="tab-icon" aria-hidden="true"><image class="tab-sprite sprite-{{item.icon}}" src="/assets/brand/icons-green.jpg" mode="scaleToFill" /></view>
+      <view wx:else class="theme-symbol symbol-{{item.icon}}" aria-hidden="true"><view class="symbol-one"></view><view class="symbol-two"></view></view>
       <text class="tab-label">{{item.label}}</text>
       <view wx:if="{{selected === index}}" class="tab-indicator" aria-hidden="true"></view>
       <view class="tab-hit" data-index="{{index}}" catchtap="switchTab" aria-hidden="true"></view>

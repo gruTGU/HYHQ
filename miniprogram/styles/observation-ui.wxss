@@ -27,3 +27,10 @@
 
 /* Override WeChat native button:not([size=mini]) sizing consistently. */
 .recognition-page .primary, .recognition-page .secondary, .assessment-page .primary, .assessment-page .secondary { width: 100%; box-sizing: border-box; }
+.theme-designed .upload-panel { border-radius: var(--hyhq-card-radius); background: var(--hyhq-surface); border-color: var(--hyhq-border); }
+.theme-designed .upload-panel .leaf-camera { border-radius: var(--hyhq-button-radius); box-shadow: none; width: 208rpx; min-width: 208rpx; max-width: 208rpx; height: 208rpx; min-height: 208rpx; }
+.theme-design-2 .upload-panel { border-left: 0; border-right: 0; padding-top: 26rpx; padding-bottom: 26rpx; }
+.theme-design-3 .upload-panel { border-style: solid; border-width: 1rpx; }
+.theme-designed .ai-next { background: var(--hyhq-surface); }
+.theme-designed .ai-orbit { border: 1rpx solid var(--hyhq-border); border-radius: var(--hyhq-button-radius); }
+.theme-designed .image-wrap, .theme-designed .annotation-example-image { border-radius: var(--hyhq-card-radius); }

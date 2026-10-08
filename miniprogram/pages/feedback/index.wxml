@@ -1,4 +1,4 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} feedback-page">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} feedback-page">
   <view class="page-heading">意见反馈</view>
   <view class="feedback-flow"><view><text class="flow-number">1</text><text>提交建议</text></view><text class="flow-line"></text><view><text class="flow-number">2</text><text>等待处理</text></view><text class="flow-line"></text><view><text class="flow-number">3</text><text>查看答复</text></view></view>
   <view wx:if="{{!loggedIn && listError}}" class="error-inline">{{listError}}</view>
@@ -8,7 +8,7 @@
     <view wx:if="{{actionError}}" class="error-inline">{{actionError}}</view>
     <view wx:if="{{notice}}" class="notice feedback-success">{{notice}}</view>
     <view class="section-head section"><text class="section-title">我的反馈记录</text><button hover-class="pressable" class="text-button refresh-button" disabled="{{busy || loading}}" bindtap="load">刷新</button></view>
-    <page-state loading="{{loading}}" error="{{!records.length ? listError : ''}}" bindretry="load" />
+    <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{!records.length ? listError : ''}}" bindretry="load" />
     <view wx:if="{{!loading && !listError && !records.length}}" class="card feedback-empty"><view class="empty-conversation"><text>···</text></view><view class="title">还没有反馈记录</view><view class="copy">提交后，你可以在这里查看处理状态和答复。</view></view>
     <view wx:if="{{records.length && listError}}" class="error-inline">{{listError}}<button hover-class="pressable" class="text-button" bindtap="load" disabled="{{busy}}">重新加载</button></view>
     <view class="card feedback-record" wx:for="{{records}}" wx:key="id"><view class="row"><text class="feedback-status {{item.status === 'resolved' ? 'resolved' : ''}}">{{item.status_label}}</text><button hover-class="pressable" class="text-button remove-feedback" data-id="{{item.id}}" disabled="{{busy}}" bindtap="remove">删除</button></view><view class="feedback-body gap">{{item.body}}</view><view class="small muted feedback-time">提交于 {{item.created_label}}</view><view wx:if="{{item.status === 'resolved'}}" class="reply"><view class="reply-title"><view class="reply-dot"></view><text>管理员答复</text></view><view class="feedback-body gap">{{item.reply || '这条记录暂无答复内容。'}}</view><view wx:if="{{item.resolved_label}}" class="small muted feedback-time">处理于 {{item.resolved_label}}</view></view><view wx:else class="pending-note">反馈已收到，处理后的答复会显示在这里。</view></view>

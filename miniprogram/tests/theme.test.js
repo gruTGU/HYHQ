@@ -11,8 +11,8 @@ function fixture(stored) {
 test('theme selection persists and restores; pending or unknown entries cannot be selected', () => {
   const { values, platform, registry } = fixture();
   const store = createThemeStore(platform, registry);
-  assert.equal(store.list().filter(item => item.ready).length, 2);
-  for (const id of ['design-2', 'missing']) assert.throws(() => store.select(id), /还未开放/);
+  assert.equal(store.list().filter(item => item.ready).length, 4);
+  for (const id of ['design-4', 'missing']) assert.throws(() => store.select(id), /还未开放/);
   store.select('test-lake');
   assert.deepEqual(values.get(KEY), { version: 1, id: 'test-lake' });
   assert.equal(createThemeStore(platform, registry).current().id, 'test-lake');
@@ -47,9 +47,9 @@ test('page lifecycle propagates active theme, preserves results and stops hidden
   assert.deepEqual(calls, ['query']);
   delete global.getApp; delete global.wx;
 });
-test('only the delivered design is selectable in the production registry', () => {
+test('only delivered designs are selectable in the production registry', () => {
   const { platform } = fixture(); const store = createThemeStore(platform);
-  assert.equal(store.list().length, 4); assert.deepEqual(store.list().filter(item => item.ready).map(item => item.id), ['forest']);
+  assert.equal(store.list().length, 4); assert.deepEqual(store.list().filter(item => item.ready).map(item => item.id), ['forest', 'design-2', 'design-3']);
 });
 
 test('custom tab bar updates its theme and releases subscriptions while hidden or detached', () => {

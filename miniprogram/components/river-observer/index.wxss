@@ -1,3 +1,12 @@
 @import "./base.wxss";
 @import "../../pages/assessment/index.wxss";
-.embedded-assessment { padding: 0; max-width: none; margin: 0; color: var(--hyhq-text, #2c3e33); font-size: 28rpx; line-height: 1.65; }
+/* The parent page owns the paper/contour background; avoid a second texture. */
+.embedded-assessment { padding: 0; max-width: none; margin: 0; background: transparent; color: var(--hyhq-text, #2c3e33); font-size: 28rpx; line-height: 1.65; }
+.theme-designed .card, .theme-designed .result-banner { border: 1rpx solid var(--hyhq-border); border-radius: var(--hyhq-card-radius); box-shadow: none; background: var(--hyhq-surface); }
+.theme-designed .title, .theme-designed .section-title { font-family: 'Songti SC', 'STSong', serif; color: var(--hyhq-text); }
+.theme-designed .muted, .theme-designed .notice { color: var(--hyhq-muted); }
+.theme-designed .pill, .theme-designed .water-picker, .theme-designed .nearby, .theme-designed .observation-cell-active { background: var(--hyhq-secondary); color: var(--hyhq-secondary-text); border-radius: var(--hyhq-button-radius); }
+.theme-designed .rule-score, .theme-designed .observation-number { color: var(--hyhq-primary); }
+.theme-designed .observation-grid, .theme-designed .observation-cell, .theme-designed .detection-row { border-color: var(--hyhq-border); }
+.theme-designed .observation-cell { color: var(--hyhq-muted); }
+.theme-designed .primary, .theme-designed .secondary, .theme-designed .notice { border-radius: var(--hyhq-button-radius); }

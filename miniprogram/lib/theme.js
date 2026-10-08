@@ -1,4 +1,5 @@
 const { THEMES, FOREST } = require('./themes');
+const { assetStyle } = require('./theme-assets');
 const KEY = 'hyhq.appearance.v1';
 const CSS_NAMES = {
   background: 'background', surface: 'surface', primary: 'primary', text: 'text', muted: 'muted',
@@ -44,24 +45,44 @@ function applicationTheme() {
   const app = getApp();
   return app && app.theme;
 }
+function wantsAssets(target, theme, options) {
+  if (theme !== FOREST.id) return theme === 'design-2' || theme === 'design-3';
+  const route = String(target.route || target.__route__ || '').replace(/^\//, '');
+  return options.loadAssets === true || ['pages/recognize/index', 'pages/assessment/index'].includes(route);
+}
 function nativeColors(theme) {
   if (typeof wx === 'undefined') return;
   try { if (wx.setNavigationBarColor) wx.setNavigationBarColor({ ...theme.navigation, animation: { duration: 0 }, fail() {} }); } catch (_) { /* Older clients retain their default bar. */ }
   try { if (wx.setBackgroundColor) wx.setBackgroundColor({ backgroundColor: theme.navigation.backgroundColor, fail() {} }); } catch (_) { /* CSS still applies. */ }
 }
-function connectTheme(target, native = false) {
-  if (target._themeUnsubscribe) target._themeUnsubscribe();
+function connectTheme(target, native = false, options = {}) {
+  disconnectTheme(target);
   const theme = applicationTheme();
   if (!theme) return;
+  target._themeConnected = true;
+  const application = typeof getApp === 'function' && getApp();
+  const store = application && application.themeAssets;
   const apply = value => {
-    target.setData({ themeId: value.id, themeName: value.name, themeStyle: value.style });
+    const sequence = target._themeAssetSequence = (target._themeAssetSequence || 0) + 1;
+    const needed = store && wantsAssets(target, value.id, options);
+    const cached = needed && store.read(value.id);
+    const assets = cached && cached.assets || {};
+    target.setData({ themeId: value.id, themeName: value.name, themeStyle: value.style, themeAssets: assets, themeAssetStyle: assetStyle(assets) });
     if (native) nativeColors(value);
+    if (needed && !cached) store.load(value.id, application.api).then(result => {
+      if (!target._themeConnected || sequence !== target._themeAssetSequence) return;
+      target.setData({ themeAssets: result.assets, themeAssetStyle: assetStyle(result.assets) });
+    }).catch(() => { /* Color-only rendering remains usable; reconnect can retry. */ });
   };
   apply(theme.current()); target._themeUnsubscribe = theme.subscribe(apply);
 }
-function disconnectTheme(target) { if (target._themeUnsubscribe) target._themeUnsubscribe(); target._themeUnsubscribe = null; }
+function disconnectTheme(target) {
+  target._themeConnected = false;
+  target._themeAssetSequence = (target._themeAssetSequence || 0) + 1;
+  if (target._themeUnsubscribe) target._themeUnsubscribe(); target._themeUnsubscribe = null;
+}
 function withTheme(definition) {
-  const wrapped = { ...definition, data: { themeId: FOREST.id, themeName: FOREST.name, themeStyle: styleFor(FOREST), ...(definition.data || {}) } };
+  const wrapped = { ...definition, data: { themeId: FOREST.id, themeName: FOREST.name, themeStyle: styleFor(FOREST), themeAssets: {}, themeAssetStyle: assetStyle(), ...(definition.data || {}) } };
   for (const name of ['onLoad', 'onShow', 'onHide', 'onUnload']) {
     const previous = definition[name];
     wrapped[name] = function (...args) {

@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { createRequire } = require('node:module');
 const real = require('../lib/real-map');
 // Synthetic test coordinates only; these are never placed in the public catalogue.
 const city = { id: 'test-tj', slug: 'tianjin-nature', name: '天津', is_demo: false, real_map: { center_latitude: 39.1, center_longitude: 117.2, scale: 12, coordinate_system: 'GCJ02' } };
@@ -9,8 +10,17 @@ const beijing = { ...city, id: 'test-bj', slug: 'beijing-nature', name: '北京'
 const demo = { id: 'demo', slug: 'demo-campus', name: '虚构校园', is_demo: true };
 function place(id = 'p', extra = {}) { return { id, region: city.id, name: '合成测试点', kind: 'river', is_demo: false, is_published: true, latitude: 39.15, longitude: 117.25, coordinate_system: 'GCJ02', coordinates_verified: true, source_note: '仅测试', access_note: '测试说明', ...extra }; }
 function river(extra = {}) { return { id: 'r', region: city.id, name: '合成测试河段', is_published: true, coordinate_system: 'GCJ02', geometry_verified: true, path: [{ latitude: 39.1, longitude: 117.2 }, { latitude: 39.2, longitude: 117.3 }], ...extra }; }
+function reference(id = 'reference-test-river', extra = {}) { return { id, marker_id: 7, region_slug: city.slug, name: '合成参考河段', kind: 'river', city: '天津', district: '测试区', latitude: 39.16, longitude: 117.26, coordinate_system: 'GCJ02', navigation_verified: false, source_note: '地图点位资料', ...extra }; }
+// Execute the real modules with a synthetic bundled catalogue. API-only tests
+// must not change when editors add or remove production reference points.
+function loadModule(relative, overrides = {}) {
+  const filename = require.resolve(relative), localRequire = createRequire(filename), module = { exports: {} };
+  const dependency = name => Object.prototype.hasOwnProperty.call(overrides, name) ? overrides[name] : localRequire(name);
+  new Function('require', 'module', 'exports', fs.readFileSync(filename, 'utf8'))(dependency, module, module.exports);
+  return module.exports;
+}
 function deferred() { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
-function setup({ selected = null, points = [place()], rivers = [], request, regions = [demo, city, beijing], detail = false } = {}) {
+function setup({ selected = null, points = [place()], rivers = [], referencePoints = [], request, regions = [demo, city, beijing], detail = false } = {}) {
   let definition;
   const calls = [], native = [], urls = [];
   const application = { config: { mapSubkey: 'public-test-client-key' }, globalData: { region: selected }, session: { token: () => '', get: () => ({ user: null }) }, api: { async request(url, options) {
@@ -24,9 +34,11 @@ function setup({ selected = null, points = [place()], rivers = [], request, regi
   } } };
   global.getApp = () => application; global.Page = (value) => { definition = value; };
   global.wx = { stopPullDownRefresh() {}, setNavigationBarTitle() {}, getWindowInfo: () => ({ windowWidth: 375 }), navigateTo: ({ url }) => urls.push(url), openLocation: (options) => native.push(options), getFuzzyLocation: () => assert.fail('location must require an explicit tap') };
-  const modulePath = require.resolve(detail ? '../pages/detail/index' : '../pages/explore/index'); delete require.cache[modulePath]; require(modulePath);
+  const references = loadModule('../lib/map-reference-points', { '../data/map-reference-points': { locations: structuredClone(referencePoints), scope_note: '测试参考点，不代表导航入口。' } });
+  const llm = loadModule('../lib/llm', { './map-reference-points': references });
+  loadModule(detail ? '../pages/detail/index' : '../pages/explore/index', { '../../lib/map-reference-points': references, '../../lib/llm': llm });
   const page = { ...definition, data: structuredClone(definition.data), setData(patch) { Object.assign(this.data, patch); } };
-  return { page, application, calls, native, urls };
+  return { page, application, calls, native, urls, references, llm };
 }
 function mapEvent(page, markerId = 1) { return { currentTarget: { dataset: { generation: page.data.realMapGeneration } }, detail: { markerId } }; }
 
@@ -177,4 +189,77 @@ test('home-first initialization and a full refresh both retain the real Tianjin 
   selectRegion(application, beijing);
   await page.onShow();
   assert.equal(page.data.region.id, beijing.id, 'manual city choice is respected within the session');
+});
+
+test('local references render before the public catalogue and remain usable when it fails', async () => {
+  const pending = deferred(), local = reference();
+  const { page, native } = setup({ points: [], referencePoints: [local], request: async url => url === 'places/' ? pending.promise : null });
+  const loading = page.onShow(); await new Promise(setImmediate);
+  assert.equal(page.data.catalogLoading, true); assert.equal(page.data.loading, false);
+  assert.deepEqual(page.data.filteredReferences.map(point => point.id), [local.id]);
+  assert.equal(page.data.realPointCount, 0);
+  assert.deepEqual(page.data.realMarkers.map(marker => marker.label.content), [local.name]);
+  assert.deepEqual(page.data.realPolyline, []);
+  page.chooseReference({ detail: { value: 1 } });
+  assert.equal(page.data.selectedReference.id, local.id); assert.equal(page.data.realLatitude, local.latitude);
+  page.navigatePoint(); assert.equal(native.length, 0, 'a reference is not automatically a reviewed navigation destination');
+  pending.reject(Error('offline')); await loading;
+  assert.equal(page.data.error, ''); assert.match(page.data.placesError, /offline/);
+  assert.equal(page.data.selectedReference.id, local.id);
+  assert.deepEqual(page.data.filteredReferences.map(point => point.id), [local.id]);
+});
+
+test('reference markers share city filters but never masquerade as published place details or navigation', async () => {
+  const local = reference(), park = reference('reference-test-park', { marker_id: 8, kind: 'park' });
+  const foreign = reference('reference-test-beijing', { marker_id: 9, region_slug: beijing.slug });
+  const { page, native, urls } = setup({ referencePoints: [local, park, foreign] }); await page.onShow();
+  assert.deepEqual(page.data.filteredReferences.map(point => point.id), [local.id, park.id]);
+  assert.equal(page.data.realPointCount, 1);
+  assert.equal(new Set(page.data.realMarkers.map(marker => marker.id)).size, 3, 'catalogue and reference marker namespaces do not collide');
+  const marker = page.data.filteredReferences.find(point => point.id === local.id).markerId;
+  page.selectRealPoint(mapEvent(page, marker));
+  assert.equal(page.data.selectedReference.id, local.id); assert.equal(page.data.selectedPoint, null);
+  page.open({ currentTarget: { dataset: { id: local.id } } }); page.navigatePoint();
+  assert.deepEqual(urls, []); assert.deepEqual(native, []);
+  page.openAI(); assert.match(urls[0], /scope=explore&source_type=map_reference&source_id=reference-test-river$/);
+  page.selectRealPoint(mapEvent(page));
+  assert.equal(page.data.selectedPoint.id, 'p'); assert.equal(page.data.selectedReference, null);
+  page.chooseType({ currentTarget: { dataset: { type: 'park' } } });
+  assert.equal(page.data.selectedPoint, null); assert.equal(page.data.selectedReference, null);
+  assert.deepEqual(page.data.filteredReferences.map(point => point.id), [park.id]);
+  page.selectRealPoint(mapEvent(page, marker)); assert.equal(page.data.selectedReference, null, 'filtered-out marker callbacks cannot reopen a reference');
+});
+
+test('a valid AI reference return selects its own city; unknown or unavailable-city references do not force navigation', async () => {
+  const local = reference('reference-test-beijing', { region_slug: beijing.slug, latitude: 39.95, longitude: 116.45 });
+  const { page, application } = setup({ referencePoints: [local] });
+  application.globalData.pendingMapReferenceId = local.id;
+  await page.onShow();
+  assert.equal(application.globalData.pendingMapReferenceId, undefined);
+  assert.equal(page.data.region.id, beijing.id); assert.equal(page.data.selectedReference.id, local.id);
+  assert.equal(page.data.realLatitude, local.latitude); assert.equal(page.data.realScale, 14);
+  const previousMarker = mapEvent(page, page.data.filteredReferences[0].markerId);
+  await page.changeRegion({ detail: { value: page.data.regions.findIndex(region => region.id === city.id) } });
+  page.selectRealPoint(previousMarker); assert.equal(page.data.selectedReference, null);
+
+  const unknown = setup({ referencePoints: [local] }); unknown.page.onLoad({ reference_id: 'reference-missing' }); await unknown.page.onShow();
+  assert.equal(unknown.page.data.region.id, city.id); assert.equal(unknown.page.data.selectedReference, null);
+  assert.equal(unknown.llm.entryUrl('explore', 'map_reference', 'reference-missing'), '');
+  const unavailable = setup({ referencePoints: [local], regions: [city] }); unavailable.page.onLoad({ reference_id: local.id }); await unavailable.page.onShow();
+  assert.equal(unavailable.page.data.region.id, city.id); assert.equal(unavailable.page.data.selectedReference, null);
+  assert.match(unavailable.page.data.locationNotice, /所属城市暂不可用/);
+});
+
+test('bundled reference fixtures still use production validation and cannot confer published-place privileges', () => {
+  const valid = reference(), { references, llm } = setup({ referencePoints: [valid,
+    reference('reference-bad-coordinates', { latitude: 95 }), reference('reference-wrong-system', { coordinate_system: 'WGS84' }),
+    reference('reference-foreign-city', { region_slug: 'unknown' }), reference('reference-bad-marker', { marker_id: 0 }),
+  ] });
+  assert.deepEqual(references.forRegion(city).map(point => point.id), [valid.id]);
+  assert.deepEqual(references.forRegion(demo), []);
+  assert.equal(references.byId('reference-bad-coordinates'), null);
+  assert.equal(references.weatherSlug(valid.id), 'tianjin');
+  assert.equal(llm.entryUrl('learn', 'map_reference', valid.id), '');
+  assert.equal(llm.entryUrl('explore', 'place', valid.id), '');
+  assert.equal(real.navigable(references.byId(valid.id)), false);
 });

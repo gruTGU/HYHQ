@@ -58,6 +58,48 @@ test('hidden profile responses never update page state and showing it fetches a 
   page.setData = setData; await page.onShow(); assert.equal(page.data.user.nickname, '新资料');
 });
 
+test('normal navigation keeps the verified account visible during departure without retaining permission to act', async () => {
+  const pending = deferred(); const calls = [];
+  const { page, navigation } = fixture({ request: async (path) => {
+    calls.push(path); return path === 'me/' ? pending.promise : { data: { dev_auth_enabled: true } };
+  } });
+  page.data.avatar = 'confirmed-avatar.jpg';
+  page.records(event('kind', 'favorites')); page.onHide();
+  assert.deepEqual(navigation, ['/pages/records/index?kind=favorites']);
+  assert.equal(page.data.user.id, 'A'); assert.equal(page.data.loading, false);
+  assert.equal(page.data.avatar, 'confirmed-avatar.jpg');
+  assert.equal(page._profileToken, '');
+  page.records(event('kind', 'histories')); await page.update({ nickname: 'hidden edit' });
+  assert.equal(navigation.length, 1); assert.deepEqual(calls, []);
+  const returning = page.onShow();
+  assert.equal(page.data.loading, true); assert.equal(page.data.user, null);
+  pending.resolve({ data: user('A', { nickname: '重新确认的昵称' }) }); await returning;
+  assert.equal(page.data.user.nickname, '重新确认的昵称');
+  assert.equal(page._profileToken, 'A-token'); assert.deepEqual(calls, ['health/', 'me/']);
+});
+
+test('logout while away clears the departure snapshot before waiting for a health response', async () => {
+  const health = deferred(), calls = [];
+  const { page, application } = fixture({ request: path => { calls.push(path); return health.promise; } });
+  page.onHide(); application.session.clear();
+  const returning = page.onShow();
+  assert.equal(page.data.user, null); assert.equal(page.data.avatar, ''); assert.equal(page.data.loading, true);
+  assert.deepEqual(calls, ['health/']);
+  health.resolve({ data: { dev_auth_enabled: true } }); await returning;
+  assert.equal(page.data.user, null); assert.equal(page.data.loading, false);
+});
+
+test('account changes and expiry never preserve an old account as a departure snapshot', () => {
+  for (const change of ['account', 'expiry']) {
+    const { page, application } = fixture();
+    if (change === 'account') application.session.save({ token: 'B-token', user: user('B') });
+    else application.session.save({ ...application.session.get(), expires_at: new Date(Date.now() - 1000).toISOString() });
+    page.onHide();
+    assert.equal(page.data.user, null); assert.equal(page.data.loading, true);
+    assert.equal(page.data.avatar, ''); assert.equal(page._profileToken, '');
+  }
+});
+
 test('unloading while me or a private avatar downloads prevents any subsequent UI update', async () => {
   for (const stage of ['me', 'avatar']) {
     const pending = deferred();

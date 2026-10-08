@@ -1,7 +1,7 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} ai-page {{session ? 'has-conversation' : ''}}">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} ai-page {{session ? 'has-conversation' : ''}}">
   <view class="ai-heading"><view class="model-name">{{modelLabel}} <text class="model-badge">{{scopeLabel}}</text></view><button class="history-button" bindtap="history" wx:if="{{loggedIn}}">对话记录</button></view>
   <view wx:if="{{status && !status.enabled}}" class="notice"><view class="title">AI 暂未开放</view><view class="copy">当前不能发送新问题，已有对话仍可查看。</view></view>
-  <page-state loading="{{loading}}" error="{{error}}" bindretry="load" />
+  <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{error}}" bindretry="load" />
   <view wx:if="{{!loading && !loggedIn}}" class="card section"><view class="title">登录，继续你的探索</view><view class="copy">登录后可开启对话，并在个人中心查看记录。</view><button class="primary gap" bindtap="login">去登录</button></view>
   <block wx:if="{{!loading && loggedIn && !unavailable}}">
     <view wx:if="{{source && !session}}" class="context-card section">

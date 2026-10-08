@@ -1,4 +1,4 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} home-page">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} home-page">
   <view class="city-section section">
     <view class="city-toolbar">
       <picker class="city-picker" wx:if="{{cities.length}}" range="{{cities}}" range-key="name" value="{{cityIndex}}" bindchange="changeCity">
@@ -8,7 +8,7 @@
       <button class="location-button {{(locationBusy || cityLoading || !cities.length) ? 'location-button-disabled' : ''}}" hover-class="pressable" bindtap="locateCity" loading="{{locationBusy}}" disabled="{{locationBusy || cityLoading || !cities.length}}" aria-label="定位选城，仅在点击后定位，在本机匹配邻近城市"><text wx:if="{{!locationBusy}}" class="location-symbol" aria-hidden="true">⌖</text>{{locationBusy ? '正在选城' : '定位选城'}}</button>
     </view>
     <view class="location-notice" wx:if="{{locationNotice}}" aria-live="polite">{{locationNotice}}</view>
-    <page-state loading="{{cityLoading}}" error="{{cityError}}" bindretry="loadCityLocations" />
+    <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{cityLoading}}" error="{{cityError}}" bindretry="loadCityLocations" />
     <view class="notice" wx:if="{{!cityLoading && !cityError && (!cityEnabled || !cities.length)}}">天气正在休息，稍后再来看看。</view>
     <block wx:if="{{!cityLoading && !cityError && citySummary}}">
       <view class="weather-card weather-{{weatherTheme}}">
@@ -42,13 +42,15 @@
     <view class="weather-links"><button class="weather-entry" hover-class="pressable" bindtap="openWeather">订阅天气推送提醒 ↗</button><view class="weather-credits"><button class="source-link" hover-class="pressable" bindtap="weatherSource" aria-label="和风天气，复制官网链接">和风天气</button><button wx:for="{{citySummary.attribution_links}}" wx:key="id" class="source-link attribution-link" data-url="{{item.url}}" hover-class="pressable" bindtap="weatherAttribution" aria-label="{{item.label}}，复制原始归因链接">· {{item.label}}</button></view></view>
   </view>
 
+  <image wx:if="{{themeId === 'design-2' && themeAssets.weatherRiver}}" class="editorial-weather-photo" src="{{themeAssets.weatherRiver}}" mode="aspectFill" aria-hidden="true" />
+
   <view class="section"><view class="section-head"><text class="section-title">与自然相遇</text></view>
     <view class="discovery-grid">
-      <view class="discovery-card explore-entry" data-page="explore" bindtap="navigate" hover-class="pressable" aria-role="button"><view class="entry-art hills-art" aria-hidden="true"><view class="hill-shape"></view><view class="hill-shape hill-shape-far"></view><view class="hill-shape hill-shape-sun"></view></view><view class="title">生态导览</view><text class="card-arrow">↗</text></view>
-      <view class="discovery-card recognize-entry" data-page="recognize" bindtap="navigate" hover-class="pressable" aria-role="button"><view class="entry-art plant-art" aria-hidden="true"><view class="plant-shape"></view><view class="plant-shape plant-shape-left"></view><view class="plant-shape plant-shape-right"></view></view><view class="title">识别一片绿意</view><text class="card-arrow">↗</text></view>
+      <view class="discovery-card explore-entry" data-page="explore" bindtap="navigate" hover-class="pressable" aria-role="button"><image wx:if="{{themeId === 'design-2' && themeAssets.entryExplore}}" class="editorial-entry-photo" src="{{themeAssets.entryExplore}}" mode="aspectFill" aria-hidden="true" /><view wx:else class="entry-art hills-art" aria-hidden="true"><view class="hill-shape"></view><view class="hill-shape hill-shape-far"></view><view class="hill-shape hill-shape-sun"></view></view><view class="title">生态导览</view><text class="card-arrow">↗</text></view>
+      <view class="discovery-card recognize-entry" data-page="recognize" bindtap="navigate" hover-class="pressable" aria-role="button"><image wx:if="{{themeId === 'design-2' && themeAssets.entryFlower}}" class="editorial-entry-photo" src="{{themeAssets.entryFlower}}" mode="aspectFill" aria-hidden="true" /><view wx:else class="entry-art plant-art" aria-hidden="true"><view class="plant-shape"></view><view class="plant-shape plant-shape-left"></view><view class="plant-shape plant-shape-right"></view></view><view class="title">识别一片绿意</view><text class="card-arrow">↗</text></view>
     </view>
-    <view class="entry" data-page="learn" bindtap="navigate" hover-class="pressable" aria-role="button"><view class="entry-icon book">知</view><view class="grow"><view class="title">科普智游</view></view><text class="chevron">›</text></view>
-    <view class="entry" bindtap="assessment" hover-class="pressable" aria-role="button"><view class="entry-icon water">≈</view><view class="grow"><view class="title">河道照片观察</view></view><text class="chevron">›</text></view>
+    <view class="entry" data-page="learn" bindtap="navigate" hover-class="pressable" aria-role="button"><image wx:if="{{themeId === 'design-2' && themeAssets.entryLearn}}" class="editorial-small-photo" src="{{themeAssets.entryLearn}}" mode="aspectFill" aria-hidden="true" /><view wx:else class="entry-icon book">知</view><view class="grow"><view class="title">科普智游</view></view><text class="chevron">›</text></view>
+    <view class="entry" bindtap="assessment" hover-class="pressable" aria-role="button"><image wx:if="{{themeId === 'design-2' && themeAssets.entryRiver}}" class="editorial-small-photo" src="{{themeAssets.entryRiver}}" mode="aspectFill" aria-hidden="true" /><view wx:else class="entry-icon water">≈</view><view class="grow"><view class="title">河道照片观察</view></view><text class="chevron">›</text></view>
   </view>
 
   <view class="observation-section section">
@@ -58,7 +60,7 @@
     <view wx:if="{{observationExpanded}}" class="observation-detail">
       <view class="small muted">以下为虚构示范区模拟观测，与上方真实城市天气独立，仅用于科普学习。</view>
       <picker wx:if="{{regions.length}}" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion"><view class="region-bar row"><view><text class="small muted">浏览区域</text><view class="title">{{region.name}}</view></view><text class="pill">切换区域 ⌄</text></view></picker>
-      <page-state loading="{{loading || observationLoading}}" error="{{error}}" empty="{{!loading && !observationLoading && !error && !regions.length}}" empty-text="还没有可浏览的观测区域，请稍后再来。" bindretry="load" />
+      <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading || observationLoading}}" error="{{error}}" empty="{{!loading && !observationLoading && !error && !regions.length}}" empty-text="还没有可浏览的观测区域，请稍后再来。" bindretry="load" />
       <block wx:if="{{!loading && !observationLoading && !error && region}}">
         <view class="sample-weather row" wx:if="{{weather && weather.status !== 'unavailable'}}"><view><text class="small muted">{{weather.description || weather.condition || '模拟天气'}}</text><view class="title">{{weather.temp_label}} · 湿度 {{weather.humidity_label}}</view><view class="small muted">{{weather.updated_label}}</view></view><source-label source="{{weather.source_type}}" /></view>
         <view class="notice" wx:if="{{weather.status === 'unavailable'}}">当前暂无模拟天气观测。</view>

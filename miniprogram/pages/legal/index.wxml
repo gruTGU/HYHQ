@@ -1,4 +1,4 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} legal-page">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} legal-page">
   <view class="page-heading">{{privacy ? '隐私说明' : '用户协议'}}</view><view class="legal-updated">更新日期：{{cloudMode ? '2026 年 10 月 7 日' : '2026 年 9 月 24 日'}}</view>
   <view class="legal-tabs"><button hover-class="pressable" class="legal-tab {{privacy ? 'active' : ''}}" data-kind="privacy" bindtap="switchDocument">隐私说明</button><button hover-class="pressable" class="legal-tab {{!privacy ? 'active' : ''}}" data-kind="terms" bindtap="switchDocument">用户协议</button></view>
   <block wx:if="{{privacy}}">

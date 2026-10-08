@@ -1,4 +1,4 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} measurement-page">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} measurement-page">
   <view class="page-heading">智慧河湖</view>
   <view class="learning-note"><text class="learning-badge">科普模拟体验</text><view>模拟数据帮助理解指标变化；缺测、存疑数据保持断线，不用于认定水质等级或官方 AQI。</view></view>
   <view class="card section filters">
@@ -21,7 +21,7 @@
       <view class="filter-explanation">模拟数据按所选批次结束时间回看，其他来源按当前时间回看。切换来源可查看对应场景；统计范围包含起始时刻，不包含结束时刻。</view>
     </view>
   </view>
-  <view class="section"><page-state loading="{{loading}}" error="{{error}}" empty="{{!loading && !error && !view}}" empty-text="{{selectionNotice || '当前选择暂无数据，试试其他站点或时间范围。'}}" bindretry="load" /></view>
+  <view class="section"><page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{error}}" empty="{{!loading && !error && !view}}" empty-text="{{selectionNotice || '当前选择暂无数据，试试其他站点或时间范围。'}}" bindretry="load" /></view>
   <block wx:if="{{!loading && !error && view}}">
     <view class="observation-heading"><view class="section-head"><text class="section-title">这一刻的观测</text><source-label source="{{view.source_type}}" /></view><view class="small muted">{{stations[stationIndex].name}} · 点击指标卡切换趋势</view></view>
     <view wx:if="{{view.status === 'unavailable'}}" class="notice">这个站点在所选范围内还没有观测记录，可调整筛选；数据空缺不会填成 0。</view>

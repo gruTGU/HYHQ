@@ -168,7 +168,7 @@ test('App startup selects actual function-specific storage and leaves HTTP/conta
   const wx = { getStorageSync: (key) => storage.get(key), setStorageSync: (key, value) => storage.set(key, value), removeStorageSync: (key) => storage.delete(key) };
   function startup(config) {
     let application;
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8'), { wx, App: (value) => { application = value; }, require: (name) => name === './config/index' ? config : name === './lib/session' ? { createSession } : name === './lib/theme' ? require('../lib/theme') : { createClient: () => ({}) } });
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8'), { wx, App: (value) => { application = value; }, require: (name) => name === './config/index' ? config : name === './lib/session' ? { createSession } : name === './lib/theme' ? require('../lib/theme') : name === './lib/theme-assets' ? require('../lib/theme-assets') : { createClient: () => ({}) } });
     application.onLaunch(); return application;
   }
   const a = startup({ transport: 'cloud-function', cloud: { env: 'test-env', function: 'hyhqApi' } }); a.session.save({ token: 'fn-A' });

@@ -1,4 +1,4 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} recognition-page">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} recognition-page">
 
   <view class="observe-tabs"><button class="observe-tab {{mode === 'recognition' ? 'active' : ''}}" disabled="{{busy || riverBusy}}" data-mode="recognition" bindtap="changeMode" aria-pressed="{{mode === 'recognition'}}"><image class="observe-tab-icon" src="/assets/icons/observe-flower.png" mode="aspectFit" />花卉识别</button><button class="observe-tab {{mode === 'assessment' ? 'active' : ''}}" disabled="{{busy || riverBusy}}" data-mode="assessment" bindtap="changeMode" aria-pressed="{{mode === 'assessment'}}"><image class="observe-tab-icon" src="/assets/icons/observe-river.png" mode="aspectFit" />河道观察</button></view>
   <river-observer wx:if="{{mode === 'assessment'}}" id="river-observer" bindbusychange="riverBusyChange" />
@@ -17,7 +17,7 @@
   <view class="card section task-card" wx:if="{{task && !task.result_view}}"><view class="row"><text class="title">{{task.status_label}}</text><view wx:if="{{task.status === 'queued' || task.status === 'running'}}" class="loading-leaf"></view></view><view class="copy">{{task.error_label || (task.status === 'queued' ? '照片已收到，正在等候识别。' : task.status === 'running' ? '正在观察花瓣与叶片，请稍候。' : '本次未获得可展示的识别结果。')}}</view><view class="small muted gap">{{task.created_label}}</view><button class="secondary gap" bindtap="refreshTask">刷新结果</button></view>
   <recognition-result wx:if="{{task && task.result_view}}" result="{{task.result_view}}" bindcontent="openContent" bindretake="choose" />
   <view wx:if="{{task.result_view}}" class="card section ai-next"><view class="row"><view><text class="ai-model">✦ DeepSeek Flash</text><view class="title gap">听听这朵花的故事</view></view><text class="ai-orbit">AI</text></view><view class="copy">核对候选特征，了解更多植物知识。原图可由你主动选择附带。</view><button class="secondary gap" bindtap="openAI" disabled="{{busy}}">问问 AI</button></view>
-  <page-state loading="{{loading}}" error="{{error}}" bindretry="refreshTask" />
+  <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{error}}" bindretry="refreshTask" />
   <view class="section" wx:if="{{jobs.length}}"><view class="section-head"><text class="section-title">最近的发现</text></view><view class="card history-row" wx:for="{{jobs}}" wx:key="id" data-id="{{item.id}}" bindtap="openJob"><image class="record-symbol" src="/assets/icons/observe-flower.png" mode="aspectFit" /><view class="grow"><view class="title">{{item.result_view ? item.result_view.heading : item.status_label}}</view><view class="copy" wx:if="{{item.error_label}}">{{item.error_label}}</view><view class="small muted gap">{{item.created_label}}</view></view><text class="chevron">›</text></view></view>
   </block>
 </view>

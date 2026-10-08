@@ -1,11 +1,11 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} weather-page">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} weather-page">
   <view class="page-heading">天气预报与预约</view>
   <view class="city-controls">
     <picker wx:if="{{locations.length}}" class="city-picker" range="{{locations}}" range-key="name" value="{{locationIndex}}" disabled="{{busy || locating || canConfirmAgain || intent}}" bindchange="changeLocation"><view class="location-picker" hover-class="pressable"><view><text class="eyebrow">天气城市</text><text class="location-name">{{location.name}}</text></view><text class="picker-arrow">⌄</text></view></picker>
     <button class="locate-button" hover-class="pressable" disabled="{{busy || loading || locating || canConfirmAgain || intent}}" loading="{{locating}}" bindtap="locateCity">定位城市</button>
   </view>
   <text wx:if="{{locationNotice}}" class="location-notice">{{locationNotice}}</text>
-  <page-state loading="{{loading}}" error="{{error}}" bind:retry="load" />
+  <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{error}}" bind:retry="load" />
   <view wx:if="{{!loading && !forecastEnabled}}" class="card empty-card"><text class="section-title">天气预报暂未开放</text><text class="muted">首页仍可查看已接入地点的天气、空气质量与预警。</text></view>
   <view wx:elif="{{!loading && forecast && !forecast.available}}" class="card empty-card"><text class="section-title">暂时没有可用预报</text><text class="muted">稍后下拉刷新，再安排这趟出行。</text></view>
   <view wx:if="{{forecast.available}}" class="forecast-section">

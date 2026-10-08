@@ -25,3 +25,21 @@
 
 .tab-item { transition: transform 120ms ease; }
 .tab-indicator { position: absolute; bottom: 7rpx; width: 12rpx; height: 4rpx; border-radius: 4rpx; background: var(--hyhq-primary, #3a7d5c); }
+.theme-design-2.tab-bar, .theme-design-3.tab-bar { border-color: var(--hyhq-border); box-shadow: none; }
+.theme-design-2 .ai-circle, .theme-design-3 .ai-circle { border: 5rpx solid var(--hyhq-background); background: var(--hyhq-primary); color: var(--hyhq-surface); box-shadow: none; }
+.theme-design-2 .tab-label, .theme-design-3 .tab-label { color: var(--hyhq-muted); }
+.theme-design-2 .is-selected .tab-label, .theme-design-3 .is-selected .tab-label { color: var(--hyhq-primary); }
+.theme-symbol { position: absolute; left: 50%; top: 8rpx; transform: translateX(-50%); width: 56rpx; height: 56rpx; color: var(--hyhq-text); pointer-events: none; }
+.is-selected .theme-symbol { color: var(--hyhq-primary); }
+.symbol-one, .symbol-two { position: absolute; box-sizing: border-box; }
+.symbol-home .symbol-one { width: 29rpx; height: 26rpx; top: 25rpx; left: 14rpx; border: 3rpx solid currentColor; border-top: 0; }
+.symbol-home .symbol-two { width: 29rpx; height: 29rpx; left: 14rpx; top: 12rpx; border-left: 3rpx solid currentColor; border-top: 3rpx solid currentColor; transform: rotate(45deg); }
+.symbol-explore .symbol-one { width: 35rpx; height: 35rpx; left: 10.5rpx; top: 10.5rpx; border: 3rpx solid currentColor; border-radius: 50% 50% 50% 8%; transform: rotate(-45deg); }
+.symbol-explore .symbol-two { width: 12rpx; height: 12rpx; left: 22rpx; top: 20rpx; border: 3rpx solid currentColor; border-radius: 50%; }
+.symbol-learn .symbol-one, .symbol-learn .symbol-two { width: 22rpx; height: 34rpx; top: 14rpx; border: 3rpx solid currentColor; }
+.symbol-learn .symbol-one { left: 7rpx; border-radius: 4rpx 7rpx 0 4rpx; transform: skewY(8deg); }
+.symbol-learn .symbol-two { right: 7rpx; border-radius: 7rpx 4rpx 4rpx 0; transform: skewY(-8deg); }
+.symbol-profile .symbol-one { width: 20rpx; height: 20rpx; top: 8rpx; left: 18rpx; border: 3rpx solid currentColor; border-radius: 50%; }
+.symbol-profile .symbol-two { width: 36rpx; height: 20rpx; top: 33rpx; left: 10rpx; border: 3rpx solid currentColor; border-radius: 22rpx 22rpx 3rpx 3rpx; }
+.theme-ai-mark { display: flex; align-items: center; justify-content: center; width: 66rpx; height: 66rpx; border: 2rpx solid currentColor; border-radius: 10rpx; }
+.theme-ai-label { font-family: Arial, sans-serif; font-size: 36rpx; font-weight: 600; line-height: 1; letter-spacing: -1rpx; }

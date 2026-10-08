@@ -1,6 +1,6 @@
-<view style="{{themeStyle}}" class="page theme-{{themeId}} records-page">
+<view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} records-page">
   <view class="records-header"><view class="page-heading">{{title}}</view><view class="private-label"><view class="privacy-dot"></view><text>仅当前账号可见</text></view></view>
-  <view class="section"><page-state loading="{{loading}}" error="{{error && !records.length ? error : ''}}" bindretry="load" /></view>
+  <view class="section"><page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{error && !records.length ? error : ''}}" bindretry="load" /></view>
   <view wx:if="{{!loading && !error && !records.length}}" class="card records-empty">
     <view class="empty-plant" aria-hidden="true"><view class="plant-stem"></view><view class="plant-leaf leaf-left"></view><view class="plant-leaf leaf-right"></view><view class="plant-soil"></view></view>
     <view class="empty-title">{{emptyState.heading}}</view><view class="copy">{{emptyState.copy}}</view>
