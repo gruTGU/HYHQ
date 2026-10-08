@@ -1,6 +1,3 @@
 {
-  "navigationBarTitleText": "海晏河清",
-  "usingComponents": {
-    "floating-ai": "/components/floating-ai/index"
-  }
+  "navigationBarTitleText": "海晏河清"
 }

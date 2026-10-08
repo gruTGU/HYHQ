@@ -23,7 +23,8 @@ test('custom tabs match all five registered routes, with a central AI and existi
   assert.equal(config.tabBar.custom, true);
   assert.deepEqual(TABS.map((tab) => tab.pagePath), config.tabBar.list.map((tab) => tab.pagePath));
   assert.equal(TABS[2].icon, 'ai');
-  assert.deepEqual(TABS.map((tab) => tab.label), ['首页', '生态导览', 'AI 识别', '科普智游', '我的']);
+  assert.deepEqual(TABS.map((tab) => tab.label), config.tabBar.list.map((tab) => tab.text));
+  assert.deepEqual(TABS.map((tab) => tab.label), ['首页', '生态导览', '智慧识别', '科普智游', '我的']);
   const template = fs.readFileSync(path.resolve(__dirname, '../custom-tab-bar/index.wxml'), 'utf8');
   assert.match(template, /<text class="tab-label">\{\{item\.label\}\}<\/text>/);
   assert.match(template, /<image class="tab-sprite sprite-ai"/);

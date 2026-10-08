@@ -70,5 +70,4 @@
       </block>
     </view>
   </view>
-  <floating-ai visible="{{!loading && !error && region}}" tab-page="{{true}}" bindopen="openAI" />
 </view>

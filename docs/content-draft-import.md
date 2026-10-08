@@ -133,3 +133,9 @@ python3 scripts/import-tianjin-map-supplement.py \
 基线需使用上述首阶段工具生成的原 74 点文件，或本次本地保留的 `.runtime/map-ai-20261008/base-map-reference-points.js`，不要把当前 277 点输出替换成唯一基线。原始附件稳定副本在本机 `.runtime/map-ai-20261008/`，不提交临时路径、候选查询缓存或运行产物。
 
 前后端共享轻量点位模块；145 条已审导览正文仅在云函数资料模块，52 条有关联点位，93 条无具体坐标。AI 仅取当前点/检索命中点的关联材料，按 `source_urls`、`source_scope` 保留归因；父级河流背景与具体 POI 分开，腾讯坐标来源不冒充正文来源。校园条目的简介与正文均仅“畔湖”，旧扩展关联清空。本次没有正式博客发布或云数据库写入。
+
+### 天津范围清理与前端压缩（2026-10-08）
+
+上方命令默认应用 `scripts/data/tianjin-map-exclusions.json` 的 66 个稳定 ID，不会在重导入时把无关点加回。当前输出为天津 150、北京 61；145 条服务端资料中 43 条有关联点位，93 条原无坐标，另 9 条标记为 `map_points_excluded`。清单只允许天津点位，不能误删北京。
+
+前端 `--output` 使用 `hyhq.map-columns.v1` 可逆列字典格式，页面通过 `lib/map-reference-points.js` 展开；云端 `--cloud-output` 保留完整对象。共享 Python 工具 `scripts/map_reference_bundle.py` 可读两种格式，原始74点基线仍应单独保留。无需修改页面/AI使用的字段。

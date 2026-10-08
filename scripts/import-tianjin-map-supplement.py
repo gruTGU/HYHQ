@@ -15,12 +15,7 @@ from pathlib import Path
 import re
 
 
-def read_module(path):
-    text = path.read_text(encoding='utf-8')
-    match = re.fullmatch(r'\s*(?://[^\n]*\n)*module\.exports\s*=\s*(\{.*\})\s*;?\s*', text, re.S)
-    if not match:
-        raise ValueError('基础数据必须是只含 JSON 对象的静态 CommonJS 模块')
-    return json.loads(match.group(1))
+from map_reference_bundle import read_module, write_module
 
 
 def coordinate(value):
@@ -109,11 +104,6 @@ def kind_for(record, item):
     if '公园' in category or '公园' in item['name']:
         return 'park'
     return 'landmark'
-
-
-def write_module(path, data, comment):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text('// ' + comment + '\nmodule.exports = ' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n', encoding='utf-8')
 
 
 def build(base, source, source_bytes, reviewed_on):
@@ -227,10 +217,44 @@ def build(base, source, source_bytes, reviewed_on):
     return result, guide_data, stats
 
 
+def apply_exclusions(data, guide, exclusions):
+    """Keep intentionally unrelated POIs out of repeat imports and guide links."""
+    if exclusions.get('schema_version') != 1 or not isinstance(exclusions.get('excluded'), list):
+        raise ValueError('不支持的天津地图剔除清单格式')
+    by_id = {point['id']: point for point in data['locations']}
+    excluded = set()
+    for record in exclusions['excluded']:
+        point_id = record.get('id', '')
+        if not re.fullmatch(r'reference-[a-z0-9]+(?:[-_][a-z0-9]+)*', point_id) or not record.get('reason'):
+            raise ValueError('剔除记录必须提供稳定 ID 与原因')
+        point = by_id.get(point_id)
+        if point and (point.get('city') != '天津' or point.get('region_slug') != 'tianjin-nature'):
+            raise ValueError('本清单只允许剔除天津地图点')
+        excluded.add(point_id)
+    removed = [point['id'] for point in data['locations'] if point['id'] in excluded]
+    data['locations'] = [point for point in data['locations'] if point['id'] not in excluded]
+    retained_ids = {point['id'] for point in data['locations']}
+    unmapped = {record['id']: record for record in guide.get('unmapped_records', [])}
+    for record in guide.get('records', []):
+        previous = record.get('map_reference_ids', [])
+        record['map_reference_ids'] = [point_id for point_id in previous if point_id in retained_ids]
+        if previous and not record['map_reference_ids']:
+            unmapped[record['id']] = {
+                'id': record['id'], 'lookup_status': 'map_points_excluded',
+                'reason': 'excluded_unrelated_map_points',
+            }
+    guide['unmapped_records'] = list(unmapped.values())
+    # The removal state describes our map's editorial scope, not whether the
+    # source location exists or whether a prior provider query was successful.
+    return removed
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base', type=Path, required=True, help='Original 74-point snapshot, retained separately from generated output.')
     parser.add_argument('--supplement', type=Path, required=True)
+    parser.add_argument('--exclude', type=Path, default=Path(__file__).resolve().parent / 'data' / 'tianjin-map-exclusions.json',
+                        help='Reviewed stable IDs to omit from the map and guide links on every import.')
     parser.add_argument('--reviewed-on', required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--cloud-output', type=Path, required=True)
@@ -238,14 +262,20 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', args.reviewed_on):
         parser.error('审阅日期须为 YYYY-MM-DD')
-    inputs = {args.base.resolve(), args.supplement.resolve()}
+    inputs = {args.base.resolve(), args.supplement.resolve(), args.exclude.resolve()}
     outputs = [args.output, args.cloud_output, args.guide_output]
     if any(path.resolve() in inputs for path in outputs) or len({path.resolve() for path in outputs}) != len(outputs):
         parser.error('输出不可覆盖输入或彼此覆盖')
     raw = args.supplement.read_bytes()
     data, guide, counts = build(read_module(args.base), json.loads(raw), raw, args.reviewed_on)
-    for output in (args.output, args.cloud_output):
-        write_module(output, data, 'Generated map references. Rebuild with scripts/import-tianjin-map-supplement.py and the retained base snapshot.')
+    removed = apply_exclusions(data, guide, json.loads(args.exclude.read_text(encoding='utf-8')))
+    counts.update(before_exclusions=counts['total'], excluded_points=len(removed), total=len(data['locations']),
+                  tianjin=sum(point.get('city') == '天津' for point in data['locations']),
+                  beijing=sum(point.get('city') == '北京' for point in data['locations']),
+                  unmapped_records=len(guide['unmapped_records']))
+    comment = 'Generated map references. Rebuild with scripts/import-tianjin-map-supplement.py and the retained base snapshot.'
+    write_module(args.output, data, comment, frontend=True)
+    write_module(args.cloud_output, data, comment)
     write_module(args.guide_output, guide, 'Server-only reviewed Tianjin guide context. Does not publish catalog articles.')
     print(json.dumps(counts, ensure_ascii=False))
     print('已转换静态地图与云端导览资料；无云数据库写入、无正文发布、无网络调用。')

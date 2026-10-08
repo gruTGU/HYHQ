@@ -7,6 +7,8 @@ import math
 from pathlib import Path
 import re
 
+from map_reference_bundle import write_module
+
 
 def build(locations_path, markdown_path):
     raw = locations_path.read_bytes()
@@ -65,14 +67,16 @@ if __name__ == '__main__':
     parser.add_argument('--locations', type=Path, required=True)
     parser.add_argument('--reference-md', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--cloud-output', type=Path, help='Write the identical server-owned reference snapshot for AI context.')
+    parser.add_argument('--cloud-output', type=Path, help='Write the full server-owned reference snapshot for AI context; frontend output is packed losslessly.')
     args = parser.parse_args()
     outputs = [args.output] + ([args.cloud_output] if args.cloud_output else [])
     if any(output.resolve() in (args.locations.resolve(), args.reference_md.resolve()) for output in outputs):
         parser.error('输出不可覆盖输入文件')
     data = build(args.locations, args.reference_md)
-    encoded = '// Generated public map references. Rebuild with scripts/import-map-reference-points.py.\nmodule.exports = ' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n'
-    for output in outputs:
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(encoded, encoding='utf-8')
+    if len({output.resolve() for output in outputs}) != len(outputs):
+        parser.error('前端与云端输出不可彼此覆盖')
+    comment = 'Generated public map references. Rebuild with scripts/import-map-reference-points.py.'
+    write_module(args.output, data, comment, frontend=True)
+    if args.cloud_output:
+        write_module(args.cloud_output, data, comment)
     print(f'已生成 {len(data["locations"])} 个静态参考点；未发布文章、未写入云数据库。')

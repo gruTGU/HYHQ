@@ -1,5 +1,29 @@
 /** Local POI references are separate from published place records and navigation destinations. */
-const catalog = require('../data/map-reference-points');
+const snapshot = require('../data/map-reference-points');
+
+// Reversible column packing reduces upload size without changing point IDs,
+// coordinates, source metadata, or the records consumed by the map and AI.
+function expandSnapshot(source) {
+  if (Array.isArray(source.locations)) return source;
+  if (source.format !== 'hyhq.map-columns.v1' || !Array.isArray(source.rows)) return { locations: [] };
+  const locations = source.rows.map((row) => {
+    const point = Object.assign({}, source.defaults);
+    source.fields.forEach((key, index) => {
+      const value = row[index];
+      const dictionary = source.dictionaries[index];
+      if (dictionary) {
+        if (value >= 0 && value < dictionary.length) {
+          const decoded = dictionary[value];
+          point[key] = Array.isArray(decoded) ? decoded.slice() : decoded;
+        }
+      } else if (value !== null) point[key] = value;
+    });
+    return point;
+  });
+  return Object.assign({}, source, { locations });
+}
+
+const catalog = expandSnapshot(snapshot);
 const { coordinates, MARKER_ICON } = require('./real-map');
 const { matchesType } = require('./map-layout');
 const MARKER_OFFSET = 1000000;

@@ -1,7 +1,7 @@
 const TABS = [
   { pagePath: 'pages/home/index', label: '首页', icon: 'home' },
   { pagePath: 'pages/explore/index', label: '生态导览', icon: 'explore' },
-  { pagePath: 'pages/recognize/index', label: 'AI 识别', icon: 'ai' },
+  { pagePath: 'pages/recognize/index', label: '智慧识别', icon: 'ai' },
   { pagePath: 'pages/learn/index', label: '科普智游', icon: 'learn' },
   { pagePath: 'pages/profile/index', label: '我的', icon: 'profile' },
 ];

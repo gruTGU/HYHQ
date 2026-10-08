@@ -5,7 +5,6 @@ const { time, value, message } = require('../../lib/format');
 const { loadRegions, selectRegion } = require('../../lib/region');
 const { weatherView } = require('../../lib/weather');
 const { locateWeatherCity, weatherCityOptions, weatherCitySlug } = require('../../lib/weather-location');
-const { entryUrl } = require('../../lib/llm');
 const { createWeatherSnapshotStore, RETRY } = require('../../lib/weather-snapshot');
 function weatherCache() {
   const application = app();
@@ -62,7 +61,7 @@ Page(withTheme({
       if (this.current(generation)) this._loaded = true;
     } catch (error) { if (this.current(generation)) this.setData({ error: message(error) }); }
     finally {
-      // Feature navigation and the AI entry do not wait for an external weather refresh.
+      // Feature navigation does not wait for an external weather refresh.
       if (this.current(generation)) this.setData({ loading: false, observationLoading: false });
       await cityRequest; if (this.current(generation)) wx.stopPullDownRefresh();
     }
@@ -166,14 +165,6 @@ Page(withTheme({
   },
   toggleAlerts() {
     if (this._alive !== false && !this._hidden && !this.data.cityLoading && !this.data.cityError && this.data.citySummary) this.setData({ alertsExpanded: !this.data.alertsExpanded });
-  },
-  openAI() {
-    if (this._alive === false || this._hidden || this.data.loading || this.data.error || !this.data.region) return;
-    let url = entryUrl('explore', 'region', this.data.region.id);
-    if (!url) return;
-    const city = this.data.city;
-    if (city && typeof city.slug === 'string' && this.data.cities.some(item => item.slug === city.slug)) url += '&weather_location=' + encodeURIComponent(city.slug);
-    wx.navigateTo({ url });
   },
   toggleAir() { if (this._alive !== false && !this._hidden) this.setData({ airExpanded: !this.data.airExpanded }); },
   toggleObservations() {
