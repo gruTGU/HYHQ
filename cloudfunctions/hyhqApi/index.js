@@ -1,10 +1,12 @@
 'use strict';
 const { ApiError, response, uuid } = require('./lib/core');
 const { configFromEnvironment } = require('./lib/config');
+const { RELEASE_ID, applyReleasePolicy, enforceRequestPolicy } = require('./lib/release-policy');
 const accounts = require('./lib/accounts');
 const { storageFor } = require('./lib/files');
 const { runtimeProviders } = require('./lib/subscription-transport');
 function createApp({ store, cloud, config, now = () => new Date().toISOString(), providers }) {
+  config = applyReleasePolicy(config);
   providers = runtimeProviders(cloud, config, providers);
   const themeAssets = require('./lib/theme-assets').createThemeAssetsHandler(cloud);
   return async function dispatch(event, identity = {}) {
@@ -27,12 +29,13 @@ function createApp({ store, cloud, config, now = () => new Date().toISOString(),
         ? payload => cloud.openapi.security.msgSecCheck({ ...payload, openid: identity.OPENID, version: 2 }) : null);
       ctx.storage = storageFor(ctx, cloud);
       if (ctx.path !== 'auth/wechat/') await accounts.authenticate(ctx, headers);
+      enforceRequestPolicy(ctx);
       if (ctx.path === 'health/' && method === 'GET') {
         const capabilities = await require('./lib/recognition').status(ctx);
         let llm = false;
         try { llm = require('./lib/llm').configFor(ctx).enabled; } catch (_) { /* Invalid optional configuration is unavailable. */ }
         const weather = require('./lib/weather').configured(config);
-        return response({ status: 'ok', runtime: 'wechat-personal', api_version: 1, version: 'm5', mode: 'mixed', dev_auth_enabled: false,
+        return response({ status: 'ok', runtime: 'wechat-personal', api_version: 1, version: 'm5', release: RELEASE_ID, mode: 'mixed', dev_auth_enabled: false,
           features: { recognition: capabilities.recognition.enabled, assessment: capabilities.assessment.enabled, llm },
           ...capabilities, optional_services: { weather, llm, inference: capabilities.recognition.enabled && capabilities.assessment.enabled } });
       }
@@ -50,6 +53,7 @@ function createApp({ store, cloud, config, now = () => new Date().toISOString(),
   };
 }
 function createRuntime(dependencies) {
+  dependencies = { ...dependencies, config: applyReleasePolicy(dependencies.config) };
   const providers = runtimeProviders(dependencies.cloud, dependencies.config, dependencies.providers);
   const application = createApp({ ...dependencies, providers });
   return async (event, identity, trustedRuntime = {}) => {

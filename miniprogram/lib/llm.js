@@ -1,3 +1,4 @@
+const releasePolicy = require('./release-policy');
 const { time } = require('./format');
 const mapReferences = require('./map-reference-points');
 const DISCLAIMER = 'AI 回答仅供参考，请结合资料核对；不代表物种鉴定、饮用安全结论或官方水质评价。';
@@ -12,7 +13,7 @@ function publicCitation(item) {
   if (!item || typeof item.id !== 'string' || typeof item.title !== 'string') return false;
   return item.kind === 'map_reference' ? !!mapReferences.byId(item.id) : ['content', 'route', 'place'].includes(item.kind) && !item.id.startsWith('reference-');
 }
-function entryUrl(scope, type, id) { return publicSource(scope, type, id) ? '/pages/llm/index?scope=' + scope + '&source_type=' + type + '&source_id=' + encodeURIComponent(id) : ''; }
+function entryUrl(scope, type, id) { return releasePolicy.generativeQAEnabled && publicSource(scope, type, id) ? '/pages/llm/index?scope=' + scope + '&source_type=' + type + '&source_id=' + encodeURIComponent(id) : ''; }
 function modelLabel(model) { return model === 'deepseek-flash' || !model ? 'DeepSeek Flash' : model; }
 const STATES = { queued: '等待解读', running: '正在解读', succeeded: '解读完成', failed: '本轮未完成' };
 function pending(turn) { return turn && ['queued', 'running'].includes(turn.status); }

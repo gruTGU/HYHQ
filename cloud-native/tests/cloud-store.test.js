@@ -153,8 +153,11 @@ test('LLM admission and retry accounting survive actual SDK serialization withou
   let external = 0;
   const providers = { getContext: async () => ({ context: { body: '模拟教学资料' }, revision: 'published-v1', citations: [] }), generateLlm: async () => { external++; return { text: '这是模拟资料。', usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 } }; } };
   const identity = { APPID: config.appId, OPENID: 'offline_sdk_openid_llm' }, app = createApp({ store: f.store, cloud: {}, config, providers, now: () => '2026-10-03T04:00:00.000Z' });
-  const request = (method, path, body = {}, token) => app({ method, path: '/api/v1/' + path, body, headers: token ? { Authorization: 'Bearer ' + token } : {} }, identity);
-  const auth = (await request('POST', 'auth/wechat/', { code: 'code' })).data.data;
+  const auth = (await app({ method: 'POST', path: '/api/v1/auth/wechat/', body: { code: 'code' } }, identity)).data.data;
+  // Exercise the reusable accounting library against real SDK serialization.
+  // The special-release production entry remains closed and has no test bypass.
+  const user = await f.store.get('users', auth.user.id);
+  const request = (method, path, body = {}) => require('../../cloudfunctions/hyhqApi/lib/llm').handle({ method, path, body, query: new URLSearchParams(), store: f.store, user, config, now: '2026-10-03T04:00:00.000Z' }, providers);
   const s = await request('POST', 'llm/sessions/', { scope: 'learn', source_type: 'content', source_id: '00000000-0000-4000-8000-000000000001' }, auth.token); assert.equal(s.statusCode, 201, JSON.stringify(s));
   const body = { request_id: '00000000-0000-4000-8000-000000000002', question: '资料如何理解？' }, path = 'llm/sessions/' + s.data.data.id + '/turns/';
   const first = await request('POST', path, body, auth.token); assert.equal(first.statusCode, 201, JSON.stringify(first)); assert.equal(external, 0);

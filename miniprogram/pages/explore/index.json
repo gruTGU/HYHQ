@@ -1,6 +1,4 @@
 {
   "navigationBarTitleText": "生态导览",
-  "usingComponents": {
-    "floating-ai": "/components/floating-ai/index"
-  }
+  "usingComponents": {}
 }

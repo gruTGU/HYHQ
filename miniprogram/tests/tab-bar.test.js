@@ -2,7 +2,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createHash } = require('node:crypto');
 const { TABS, currentIndex, tabAt, selectTab } = require('../lib/tab-bar');
 
 function fixture(route = 'pages/home/index') {
@@ -18,26 +17,27 @@ function fixture(route = 'pages/home/index') {
 }
 const tap = (index) => ({ currentTarget: { dataset: { index } } });
 
-test('custom tabs match all five registered routes, with a central AI and existing local icons', () => {
+test('custom tabs match all five registered routes, with a central camera and existing local icons', () => {
   const config = require('../app.json');
   assert.equal(config.tabBar.custom, true);
   assert.deepEqual(TABS.map((tab) => tab.pagePath), config.tabBar.list.map((tab) => tab.pagePath));
-  assert.equal(TABS[2].icon, 'ai');
+  assert.equal(TABS[2].icon, 'camera');
   assert.deepEqual(TABS.map((tab) => tab.label), config.tabBar.list.map((tab) => tab.text));
   assert.deepEqual(TABS.map((tab) => tab.label), ['首页', '生态导览', '智慧识别', '科普智游', '我的']);
   const template = fs.readFileSync(path.resolve(__dirname, '../custom-tab-bar/index.wxml'), 'utf8');
   assert.match(template, /<text class="tab-label">\{\{item\.label\}\}<\/text>/);
-  assert.match(template, /<image class="tab-sprite sprite-ai"/);
+  assert.match(template, /class="recognition-circle"[^>]*><view class="camera-mark"/);
+  assert.doesNotMatch(template, />AI<|sprite-ai|theme-ai-label|ai-glyph/);
   assert.match(template, /<image class="tab-sprite sprite-{{item.icon}}"/);
   assert.match(template, /<view class="tab-hit" data-index="{{index}}" catchtap="switchTab"/);
   assert.ok(fs.existsSync(path.resolve(__dirname, '../assets/brand/icons-green.jpg')));
 });
 
-function tabStyles() {
-  const css = fs.readFileSync(path.resolve(__dirname, '../custom-tab-bar/index.wxss'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+function tabStyles(file = '../custom-tab-bar/index.wxss') {
+  const css = fs.readFileSync(path.resolve(__dirname, file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const rules = {};
   for (const match of css.matchAll(/([^{}]+)\{([^}]+)\}/g)) {
-    const declarations = Object.fromEntries(match[2].split(';').map(value => value.trim()).filter(Boolean).map(value => { const colon = value.indexOf(':'); return [value.slice(0, colon).trim(), value.slice(colon + 1).trim()]; }));
+    const declarations = Object.fromEntries(match[2].split(/;(?!base64,)/).map(value => value.trim()).filter(Boolean).map(value => { const colon = value.indexOf(':'); return [value.slice(0, colon).trim(), value.slice(colon + 1).trim()]; }));
     for (const selector of match[1].split(',')) Object.assign(rules[selector.trim()] ||= {}, declarations);
   }
   return rules;
@@ -56,7 +56,7 @@ test('central circle, full-width label and selected indicator share the screen c
     const itemWidth = (screenWidth - padding * 2) / TABS.length;
     const itemLeft = padding + itemWidth * 2;
     assert.ok(Math.abs(itemLeft + itemWidth / 2 - screenWidth / 2) < 0.001);
-    for (const selector of ['.ai-circle', '.tab-indicator']) {
+    for (const selector of ['.recognition-circle', '.tab-indicator']) {
       const style = rules[selector], width = parseFloat(style.width) * scale;
       assert.equal(style.transform, 'translateX(-50%)');
       const center = itemLeft + itemWidth * parseFloat(style.left) / 100 - width / 2 + width / 2;
@@ -65,21 +65,36 @@ test('central circle, full-width label and selected indicator share the screen c
   }
 });
 
-test('AI sprite compensates measured artwork whitespace without changing the original green image', () => {
-  // Lossless JPEG entropy optimization preserves every decoded pixel and sprite bound.
-  const asset = fs.readFileSync(path.resolve(__dirname, '../assets/brand/icons-green.jpg'));
-  assert.equal(createHash('sha256').update(asset).digest('hex'), 'ec5d4a9dd21a208093e9d9e79ddc65bd554ab3e2f017160dc4a8f7ca906df32d', 'remeasure visible artwork bounds when replacing the sprite');
-  // Measured green pixels in this 1536×1024 source: x=[1082,1445),
-  // y=[127,449). Include the scanning corners, not just the camera body.
-  const inkCenter = { x: (1082 + 1445) / 2, y: (127 + 449) / 2 };
-  const rules = tabStyles(), sprite = rules['.tab-sprite'], ai = rules['.sprite-ai'];
-  for (const viewport of [64, 80, 108]) {
-    const renderedWidth = viewport * parseFloat(sprite.width) / 100;
-    const renderedHeight = viewport * parseFloat(sprite.height) / 100;
-    const x = viewport * parseFloat(ai.left) / 100 + inkCenter.x * renderedWidth / 1536;
-    const y = viewport * parseFloat(ai.top) / 100 + inkCenter.y * renderedHeight / 1024;
-    assert.ok(Math.abs(x - viewport / 2) < 0.001, 'visible AI artwork horizontal center');
-    assert.ok(Math.abs(y - viewport / 2) < 0.001, 'visible AI artwork vertical center');
+test('camera is centered in the unchanged large circle and uses each theme surface color', () => {
+  const rules = tabStyles(), circle = rules['.recognition-circle'], camera = rules['.camera-mark'];
+  assert.equal(circle.width, '108rpx'); assert.equal(circle.height, '108rpx');
+  assert.equal(circle['border-radius'], '50%'); assert.equal(circle.display, 'flex');
+  assert.equal(circle['align-items'], 'center'); assert.equal(circle['justify-content'], 'center');
+  assert.equal(camera.width, camera.height); assert.equal(camera.margin, '0'); assert.equal(camera.padding, '0');
+  assert.equal(camera['background-position'], 'center'); assert.equal(camera['background-size'], 'contain');
+  const themes = require('../lib/themes');
+  const profile = tabStyles('../pages/profile/index.wxss');
+  let geometry;
+  for (const [theme, selector, recordSelector, color] of [
+    [themes.FOREST, '.camera-mark', '.profile-page .icon-recognition', 'primary'],
+    [themes.EDITORIAL, '.theme-design-2 .camera-mark', '.profile-page.theme-design-2 .icon-recognition', 'surface'],
+    [themes.ATLAS, '.theme-design-3 .camera-mark', '.profile-page.theme-design-3 .icon-recognition', 'surface'],
+  ]) {
+    function svg(rule) {
+      const encoded = rule['background-image'].match(/^url\("data:image\/svg\+xml;base64,([A-Za-z0-9+/=]+)"\)$/);
+      assert.ok(encoded, 'self-contained vector asset');
+      return Buffer.from(encoded[1], 'base64').toString('utf8');
+    }
+    const markup = svg(rules[selector]), record = svg(profile[recordSelector]);
+    assert.match(markup, /viewBox="0 0 24 24"/);
+    assert.match(markup, /<circle cx="12" cy="13" r="3.5"\//);
+    assert.doesNotMatch(markup, /<text|<image|<script/);
+    assert.ok(markup.includes('stroke="' + theme.tokens[color] + '"'));
+    assert.ok(record.includes('stroke="' + theme.tokens.primary + '"'));
+    const normalized = markup.replace(/stroke="#[a-fA-F0-9]+"/, 'stroke="theme"');
+    geometry ||= normalized;
+    assert.equal(normalized, geometry, 'all themes use the same camera silhouette');
+    assert.equal(record.replace(/stroke="#[a-fA-F0-9]+"/, 'stroke="theme"'), geometry, 'personal records use the same camera silhouette');
   }
 });
 

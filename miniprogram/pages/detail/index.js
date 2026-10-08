@@ -1,3 +1,4 @@
+const releasePolicy = require('../../lib/release-policy');
 const { withTheme } = require('../../lib/theme');
 const { entryUrl } = require('../../lib/llm');
 const { app, requireLogin, toast, detail } = require('../../lib/page');
@@ -220,6 +221,7 @@ Page(withTheme({
   },
   openPlace(event) { if (this.current(this._generation)) detail('place', event.currentTarget.dataset.id); },
   openAI() {
+    if (!releasePolicy.generativeQAEnabled) return;
     if (!this.current(this._generation) || this.data.loading || this.data.error || !this.data.item) return;
     const kind = this.data.kind, scope = kind === 'place' ? 'explore' : 'learn';
     const url = entryUrl(scope, kind, this.data.item.id);

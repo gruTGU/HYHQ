@@ -12,8 +12,6 @@
     "pages/water/index",
     "pages/data-center/index",
     "pages/feedback/index",
-    "pages/llm/index",
-    "pages/llm-history/index",
     "pages/knowledge-search/index",
     "pages/comments/index",
     "pages/weather/index",

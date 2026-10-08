@@ -1,3 +1,4 @@
+const releasePolicy = require('../../lib/release-policy');
 const { withTheme } = require('../../lib/theme');
 const { selectTab } = require('../../lib/tab-bar');
 const { entryUrl } = require('../../lib/llm');
@@ -186,6 +187,7 @@ Page(withTheme({
   },
   openSubmissions() { if (this.visible() && this.data.draftsAvailable) wx.navigateTo({ url: '/pages/submissions/index' }); },
   openAI() {
+    if (!releasePolicy.generativeQAEnabled) return;
     if (!this.visible() || this.data.regionError) return;
     const regions = this.data.regions.filter((item) => item.id);
     const shared = app().globalData.region;

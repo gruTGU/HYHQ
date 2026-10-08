@@ -1,3 +1,4 @@
+const releasePolicy = require('../../lib/release-policy');
 const { withTheme } = require('../../lib/theme');
 const { selectTab } = require('../../lib/tab-bar');
 const { entryUrl } = require('../../lib/llm');
@@ -286,6 +287,7 @@ Page(withTheme({
     if (this.data.places.some((point) => point.id === id) || this.data.markers.some((point) => point.id === id)) detail('place', id);
   },
   openAI() {
+    if (!releasePolicy.generativeQAEnabled) return;
     if (!this.alive() || this.data.loading || this.data.error || !this.data.region) return;
     const point = this.data.selectedPoint;
     const reference = !point && this.data.selectedReference && references.byId(this.data.selectedReference.id);

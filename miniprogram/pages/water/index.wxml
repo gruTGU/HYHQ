@@ -43,5 +43,4 @@
     <view class="notice" wx:if="{{view.notice}}">{{view.notice}}</view>
   </block>
   <view class="footer-note">HYHQ · 让每一次观察有迹可循</view>
-  <floating-ai visible="{{!loading && !error && waterBodies.length}}" bindopen="openAI" />
 </view>

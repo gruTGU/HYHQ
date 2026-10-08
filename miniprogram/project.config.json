@@ -53,6 +53,18 @@
       {
         "type": "file",
         "value": "assets/examples/river-annotations.jpg"
+      },
+      {
+        "type": "folder",
+        "value": "pages/llm"
+      },
+      {
+        "type": "folder",
+        "value": "pages/llm-history"
+      },
+      {
+        "type": "folder",
+        "value": "components/floating-ai"
       }
     ]
   }

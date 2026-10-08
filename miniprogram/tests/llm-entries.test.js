@@ -9,33 +9,34 @@ function fixture(name, data) {
   const page = { ...definition, _alive: true, _visible: true, _generation: 1, data: { ...structuredClone(definition.data), loading: false, ...data }, setData(patch) { Object.assign(this.data, patch); } };
   return { page, navigation, application };
 }
-test('explore floating entry follows current region or selected map point and stops after leaving', () => {
+test('no-QA release blocks stale explore entry events for every selection', () => {
   const { page, navigation } = fixture('explore', { region: { id: 'r1' } });
   page.openAI(); page.data.region = { id: 'r2' }; page.openAI(); page.data.selectedPoint = { id: 'p2' }; page.openAI(); page.onHide(); page.openAI();
-  assert.deepEqual(navigation, ['/pages/llm/index?scope=explore&source_type=region&source_id=r1', '/pages/llm/index?scope=explore&source_type=region&source_id=r2', '/pages/llm/index?scope=explore&source_type=place&source_id=p2']);
+  assert.deepEqual(navigation, []);
 });
-test('learn entry binds a current public region without leaking article search or place filters', () => {
+test('no-QA release blocks stale learn entry events without accessing search data', () => {
   const { page, navigation } = fixture('learn', { regionId: 'r2', regions: [{ id: '', name: '全部' }, { id: 'r1' }, { id: 'r2' }], place: 'other-place', search: 'private-search', plant_label: 'rose' });
   page.openAI(); page.data.regionId = ''; page.openAI(); page.onHide(); page.openAI();
-  assert.deepEqual(navigation, ['/pages/llm/index?scope=learn&source_type=region&source_id=r2', '/pages/llm/index?scope=learn&source_type=region&source_id=r1']);
+  assert.deepEqual(navigation, []);
 });
-test('place, article and route details bind their displayed object; failed or hidden pages cannot navigate', () => {
-  for (const [kind, scope] of [['place', 'explore'], ['content', 'learn'], ['route', 'learn']]) {
+test('no-QA release blocks place, article and route question entry events', () => {
+  for (const kind of ['place', 'content', 'route']) {
     const { page, navigation } = fixture('detail', { kind, item: { id: 'visible-source' } });
     page._id = 'unrelated'; page.openAI(); page.data.error = '资料已撤回'; page.openAI(); page.data.error = ''; page.onHide(); page.openAI();
-    assert.deepEqual(navigation, ['/pages/llm/index?scope=' + scope + '&source_type=' + kind + '&source_id=visible-source']);
+    assert.deepEqual(navigation, []);
   }
 });
-test('river and data screens bind selected river or current region, never the previous station', () => {
+test('no-QA release blocks stale river and data screen question events', () => {
   const water = fixture('water', { waterBodies: [{ id: 'w1' }, { id: 'w2' }], waterIndex: 1 }); water.page.openAI(); water.page.onHide(); water.page.openAI();
-  assert.deepEqual(water.navigation, ['/pages/llm/index?scope=explore&source_type=water&source_id=w2']);
+  assert.deepEqual(water.navigation, []);
   const data = fixture('data-center', { region: { id: 'r2' }, stations: [{ id: 'old-station' }] }); data.page.openAI(); data.page.data.loading = true; data.page.openAI();
-  assert.deepEqual(data.navigation, ['/pages/llm/index?scope=explore&source_type=region&source_id=r2']);
+  assert.deepEqual(data.navigation, []);
 });
-test('floating AI keeps the custom bottom bar free and hidden buttons cannot emit navigation events', () => {
+test('retained floating component never renders or emits navigation in this release', () => {
   let definition; global.Component = (value) => { definition = value; }; const file = require.resolve('../components/floating-ai/index'); delete require.cache[file]; require(file);
   const events = [], component = { data: { visible: false }, triggerEvent: (name) => events.push(name) };
-  definition.methods.open.call(component); component.data.visible = true; definition.methods.open.call(component); assert.deepEqual(events, ['open']);
+  definition.methods.open.call(component); component.data.visible = true; definition.methods.open.call(component); assert.deepEqual(events, []); assert.equal(definition.data.releaseEnabled, false);
+  const markup = fs.readFileSync(path.join(__dirname, '../components/floating-ai/index.wxml'), 'utf8'); assert.match(markup, /wx:if="{{releaseEnabled && visible}}"/);
   const css = fs.readFileSync(path.join(__dirname, '../components/floating-ai/index.wxss'), 'utf8'); assert.match(css, /80px \+ env\(safe-area-inset-bottom\)/);
 });
 test('chat and history have no persistent quota/consent controls and successful answers use Markdown', () => {

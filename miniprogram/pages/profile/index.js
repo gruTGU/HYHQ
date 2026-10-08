@@ -2,6 +2,7 @@ const { withTheme } = require('../../lib/theme');
 const { selectTab } = require('../../lib/tab-bar');
 const { app, toast } = require('../../lib/page');
 const { message } = require('../../lib/format');
+const releasePolicy = require('../../lib/release-policy');
 const AGREEMENT_VERSION = '2026-10-07';
 Page(withTheme({
   openThemeSettings() { wx.navigateTo({ url: '/pages/themes/index' }); },
@@ -247,7 +248,11 @@ Page(withTheme({
   feedback() { if (this._active()) wx.navigateTo({ url: '/pages/feedback/index' }); },
   submissions() { if (this._canChange() && app().config.transport === 'cloud-function') wx.navigateTo({ url: '/pages/submissions/index' }); },
   management() { if (this._canChange() && this.data.canManage) wx.navigateTo({ url: '/pages/personal-admin/index' }); },
-  aiHistory() { if (this._active()) wx.navigateTo({ url: '/pages/llm-history/index' }); },
+  // Legacy event handlers cannot reopen AI conversations in this release.
+  aiHistory() {
+    if (!releasePolicy.generativeQAEnabled) return;
+    if (this._active()) wx.navigateTo({ url: '/pages/llm-history/index' });
+  },
   logout() { return this._confirmRemoval(false); },
   deleteAccount() { return this._confirmRemoval(true); },
   _confirmRemoval(removeAccount) {
@@ -257,7 +262,7 @@ Page(withTheme({
     const valid = () => this._active() && version === (this._version || 0) && app().session.token() === token;
     let handled = false;
     this._confirming = true;
-    wx.showModal({ title: removeAccount ? '注销账号' : '退出登录', content: removeAccount ? '注销会使现有会话失效，并删除账号、个人记录、AI 解读会话和上传图片。此操作无法恢复，已发送给外部服务的请求不能因此撤回。' : '退出后仍可浏览公开的生态与科普资料。', confirmText: removeAccount ? '确认注销' : '退出登录', confirmColor: removeAccount ? '#d97b4f' : '#3a7d5c', success: async (result) => {
+    wx.showModal({ title: removeAccount ? '注销账号' : '退出登录', content: removeAccount ? '注销会使现有会话失效，并删除账号、个人记录、历史 AI 解读会话和上传图片。此操作无法恢复，已发送给外部服务的请求不能因此撤回。' : '退出后仍可浏览公开的生态与科普资料。', confirmText: removeAccount ? '确认注销' : '退出登录', confirmColor: removeAccount ? '#d97b4f' : '#3a7d5c', success: async (result) => {
       if (handled) return;
       handled = true;
       if (!valid()) {

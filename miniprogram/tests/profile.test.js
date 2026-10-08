@@ -384,3 +384,13 @@ test('cloud login carries explicit agreement version and logout clears the check
   assert.deepEqual(submitted.agreement, { accepted: true, version: '2026-10-07' });
   page.logout(); await modals[0].success({ confirm: true }); assert.equal(page.data.agreed, false);
 });
+
+
+test('retired AI history events never navigate or request for signed-in users or guests', () => {
+  for (const authenticated of [true, false]) {
+    const calls = [];
+    const { page, navigation } = fixture({ request: (...args) => { calls.push(args); throw new Error('retired feature requested data'); } }, authenticated);
+    page.aiHistory(); page.onHide(); page.aiHistory();
+    assert.deepEqual(navigation, []); assert.deepEqual(calls, []);
+  }
+});

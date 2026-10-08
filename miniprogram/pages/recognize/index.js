@@ -1,3 +1,4 @@
+const releasePolicy = require('../../lib/release-policy');
 const { withTheme } = require('../../lib/theme');
 const { selectTab } = require('../../lib/tab-bar');
 const { app, requireLogin, toast, finish, detail } = require('../../lib/page');
@@ -180,6 +181,7 @@ Page(withTheme({
   },
   openContent(event) { if (event.detail.id) detail('content', event.detail.id); },
   openAI() {
+    if (!releasePolicy.generativeQAEnabled) return;
     if (this._destroyed || !this._visible || this.data.busy || !this.data.task || this.data.task.status !== 'succeeded' || this._sessionToken !== app().session.token() || !requireLogin()) return;
     wx.navigateTo({ url: '/pages/llm/index?kind=recognition&jobId=' + encodeURIComponent(this.data.task.id) });
   },

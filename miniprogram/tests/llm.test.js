@@ -206,7 +206,7 @@ test('a history delete response after account renewal clears the old list withou
   application.session.save({ token: 'B', user: { id: 'B' } }); removed.resolve({ data: null }); await deleting;
   assert.equal(page.data.sessions.length, 0); assert.equal(page.data.busy, false); assert.equal(application.session.token(), 'B');
 });
-test('result entries only navigate from a completed current-account task, never create or send automatically', () => {
+test('no-QA release blocks stale completed-result question events for any account', () => {
   for (const kind of ['recognition', 'assessment']) {
     let definition; const navigation = []; let token = 'A';
     global.Page = (value) => { definition = value; }; global.wx = { navigateTo: ({ url }) => navigation.push(url) };
@@ -214,8 +214,8 @@ test('result entries only navigate from a completed current-account task, never 
     const path = require.resolve('../pages/' + (kind === 'recognition' ? 'recognize' : 'assessment') + '/index'); delete require.cache[path]; require(path);
     const page = { ...definition, data: { task: { id: 'job', status: 'queued' }, busy: false }, _visible: true, _sessionToken: 'A' };
     page.openAI(); assert.equal(navigation.length, 0); page.data.task.status = 'succeeded'; page.openAI();
-    assert.deepEqual(navigation, ['/pages/llm/index?kind=' + kind + '&jobId=job']);
-    token = 'B'; page.openAI(); token = 'A'; page._visible = false; page.openAI(); assert.equal(navigation.length, 1);
+    assert.deepEqual(navigation, []);
+    token = 'B'; page.openAI(); token = 'A'; page._visible = false; page.openAI(); assert.equal(navigation.length, 0);
   }
 });
 

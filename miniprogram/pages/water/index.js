@@ -1,3 +1,4 @@
+const releasePolicy = require('../../lib/release-policy');
 const { withTheme } = require('../../lib/theme');
 const { createSeriesPage } = require('../../lib/series');
 const { entryUrl } = require('../../lib/llm');
@@ -17,6 +18,7 @@ definition.selectMetricCard = function (event) {
   this.changeMetric({ detail: { value: index } });
 };
 definition.openAI = function () {
+  if (!releasePolicy.generativeQAEnabled) return;
   if (!this._interactive() || this.data.loading || this.data.error) return;
   const source = this.data.waterBodies[this.data.waterIndex];
   const url = source && entryUrl('explore', 'water', source.id);

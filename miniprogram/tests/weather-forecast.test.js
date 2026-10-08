@@ -188,40 +188,28 @@ test('invalid manual dates do not create an intent, and expired reviews do not o
   assert.equal(asks, 0); assert.equal(page.data.intent, null); assert.match(page.data.actionError, /过期/);
 });
 
-test('natural language fills an editable draft but never creates an intent or subscribes', async () => {
-  const calls = [], schedule = new Date(Date.now() + 86400000).toISOString();
-  const { page } = harness(async (path, options) => {
-    calls.push({ path, options });
-    return { data: { draft: { location: 'tianjin', timezone: 'Asia/Shanghai', scheduled_for: schedule, summary: '天津天气提醒' }, needs_clarification: false } };
-  }, { requestSubscribeMessage() { throw new Error('AI must not subscribe'); } });
-  enable(page); page.data.locations = locations; page.data.intent = null; page.data.aiText = '明天提醒我看天津天气';
-  await page.interpretReminder();
-  assert.equal(calls.length, 1); assert.equal(calls[0].path, 'weather-data/reminders/interpret/');
-  assert.match(calls[0].options.data.request_key, /^[0-9a-f-]{36}$/); assert.equal(calls[0].options.timeout, 55000);
-  assert.equal(page.data.location.slug, 'tianjin'); assert.equal(page.data.bookingDate, localDate(schedule));
-  assert.equal(page.data.intent, null); assert.match(page.data.aiNotice, /请核对/);
+test('no-QA release ignores stale natural-language events and retains editable manual fields', async () => {
+  const { page } = harness(async () => assert.fail('disabled natural-language entry must not request a draft'), {
+    requestSubscribeMessage() { assert.fail('disabled natural-language entry must not subscribe'); },
+  });
+  enable(page); page.data.locations = locations; page.data.intent = null;
+  const selectedDate = page.data.bookingDate;
+  page.inputAiText({ detail: { value: '明天提醒我看天津天气' } });
+  assert.equal(page.data.aiText, '');
+  page.data.aiText = 'stale text from an earlier view';
+  await page.interpretReminder(); await page.interpretReminder();
+  assert.equal(page.data.location.slug, 'beijing'); assert.equal(page.data.bookingDate, selectedDate);
+  assert.equal(page.data.intent, null); assert.equal(page.data.busy, false); assert.equal(page.data.aiBusy, false);
   page.changeBookingTime({ detail: { value: '09:00' } }); assert.equal(page.data.bookingTime, '09:00');
 });
 
-test('ambiguous AI input keeps manual fields usable and a failed retry reuses its request key', async () => {
-  const keys = [];
-  const { page } = harness(async (path, options) => { keys.push(options.data.request_key); if (keys.length === 1) throw new Error('网络暂不可用'); return { data: { needs_clarification: true, message: '请写明具体时间。', draft: null } }; });
-  enable(page); page.data.intent = null; page.data.locations = locations; page.data.aiText = '提醒我';
-  const selectedDate = page.data.bookingDate;
-  await page.interpretReminder(); assert.match(page.data.aiError, /手动预约/); assert.equal(page.data.busy, false);
-  await page.interpretReminder(); assert.equal(keys[0], keys[1]); assert.equal(page.data.bookingDate, selectedDate); assert.match(page.data.aiNotice, /具体时间/);
-  page.inputAiText({ detail: { value: '明早提醒我' } }); await page.interpretReminder(); assert.notEqual(keys[1], keys[2]);
-});
-
-test('account changes and page departure discard delayed AI drafts', async () => {
+test('no-QA release blocks draft generation after account changes or page departure', async () => {
   for (const leave of [false, true]) {
-    let resolve;
-    const env = harness(() => new Promise((done) => { resolve = done; }));
+    const env = harness(async () => assert.fail('disabled draft generation must not access the network'));
     enable(env.page); env.page.data.locations = locations; env.page.data.aiText = '明早天津'; env.page.data.intent = null;
-    const pending = env.page.interpretReminder();
     if (leave) env.page.onHide(); else env.token('user-b');
-    resolve({ data: { draft: { location: 'tianjin', timezone: 'Asia/Shanghai', scheduled_for: new Date(Date.now() + 86400000).toISOString() } } });
-    await pending; assert.equal(env.page.data.location.slug, 'beijing'); assert.equal(env.page.data.intent, null);
+    await env.page.interpretReminder();
+    assert.equal(env.page.data.location.slug, 'beijing'); assert.equal(env.page.data.intent, null);
   }
 });
 

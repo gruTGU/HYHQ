@@ -1,3 +1,4 @@
+const releasePolicy = require('../../lib/release-policy');
 const { app, requireLogin, toast, finish } = require('../../lib/page');
 const { list, message } = require('../../lib/format');
 const { capability, imageEligible, assessmentTask: baseAssessmentTask } = require('../../lib/assessment');
@@ -301,10 +302,12 @@ function createAssessmentController() { return {
   refreshTask() { this._pollCount = 0; return this.data.task ? this.poll(this.data.task.id) : this.load(); },
   allRecords() { wx.navigateTo({ url: '/pages/records/index?kind=assessment-jobs' }); },
   openImageAI() {
+    if (!releasePolicy.generativeQAEnabled) return;
     if (this._destroyed || !this._visible || this.data.busy || !imageEligible(this.data.task) || this._sessionToken !== app().session.token() || !requireLogin()) return;
     wx.navigateTo({ url: '/pages/llm/index?kind=assessment&jobId=' + encodeURIComponent(this.data.task.id) + '&interpretation_mode=image' });
   },
   openAI() {
+    if (!releasePolicy.generativeQAEnabled) return;
     if (this._destroyed || !this._visible || this.data.busy || !this.data.task || this.data.task.status !== 'succeeded' || this._sessionToken !== app().session.token() || !requireLogin()) return;
     wx.navigateTo({ url: '/pages/llm/index?kind=assessment&jobId=' + encodeURIComponent(this.data.task.id) });
   },

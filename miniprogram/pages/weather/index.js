@@ -1,3 +1,4 @@
+const releasePolicy = require('../../lib/release-policy');
 const { withTheme } = require('../../lib/theme');
 const { app } = require('../../lib/page');
 const { message } = require('../../lib/format');
@@ -90,12 +91,14 @@ Page(withTheme({
     this._accepted = null; this.setData({ [field]: value, intent: null, actionError: '', notice: '', aiNotice: '' });
   },
   inputAiText(event) {
+    if (!releasePolicy.naturalLanguageReminderEnabled) return;
     if (!this.active() || this.data.busy || this.data.canConfirmAgain) return;
     const aiText = String(event.detail.value || '').slice(0, 500);
     if (aiText !== this.data.aiText) this._interpretRequest = null;
     this.setData({ aiText, aiNotice: '', aiError: '' });
   },
   async interpretReminder() {
+    if (!releasePolicy.naturalLanguageReminderEnabled) return;
     if (!this.canAct() || !this.data.subscriptionEnabled || !this.data.wechatLogin || !this.data.location || this.data.canConfirmAgain) return;
     const text = this.data.aiText.trim();
     if (!text) { this.setData({ aiError: '先写下想在哪座城市、什么时间收到提醒。' }); return; }

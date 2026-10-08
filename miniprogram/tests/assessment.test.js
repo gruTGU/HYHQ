@@ -354,7 +354,7 @@ test('private history loads the observation summary through the normal identity 
 });
 
 
-test('river AI image entry is explicit, terminal-only, source-bound, and does not call a model', async () => {
+test('no-QA release blocks image and text question events for river tasks', async () => {
   const app = application(fixtureAPI()), instance = page(app), navigation = [];
   await instance.onShow();
   app.api.request = async () => assert.fail('opening image chat must not invoke a model');
@@ -366,8 +366,9 @@ test('river AI image entry is explicit, terminal-only, source-bound, and does no
   instance.data.task = { ...succeeded, status: 'failed', asset_id: '' }; instance.openImageAI();
   assert.equal(navigation.length, 0);
   instance.data.task = { ...succeeded, status: 'failed' }; instance.openImageAI();
-  assert.deepEqual(navigation, ['/pages/llm/index?kind=assessment&jobId=job&interpretation_mode=image']);
-  instance.onHide(); instance.openImageAI(); assert.equal(navigation.length, 1);
+  instance.data.task = { ...succeeded }; instance.openImageAI(); instance.openAI();
+  assert.deepEqual(navigation, []);
+  instance.onHide(); instance.openImageAI(); instance.openAI(); assert.equal(navigation.length, 0);
 });
 
 test('river empty detections retain truthful no-water-quality conclusion without a fake score', () => {

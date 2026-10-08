@@ -44,6 +44,5 @@
       <view wx:if="{{routes.length}}" class="list-footer"><view wx:if="{{routesMoreError}}" class="error-inline">{{routesMoreError}}</view><button wx:if="{{routesNext}}" class="secondary" loading="{{routesLoadingMore}}" disabled="{{routesLoadingMore}}" bindtap="moreRoutes">{{routesMoreError ? '重试加载更多' : '加载更多路线'}}</button><text wx:else class="small muted">· 共 {{routes.length}} 条公开路线 ·</text></view>
     </block>
   </block>
-  <view class="notice">内容由管理员整理，科普示例与模拟路线均有标注。路线供阅读参考，不提供实时导航或到访核验。右下角 AI 可以陪你继续了解当前区域。</view>
-  <floating-ai visible="{{!regionError && regions.length > 1}}" tab-page="{{true}}" bindopen="openAI" />
+  <view class="notice">内容由管理员整理，科普示例与模拟路线均有标注。路线供阅读参考，不提供实时导航或到访核验。</view>
 </view>

@@ -1,12 +1,13 @@
 'use strict';
+const { applyReleasePolicy } = require('./release-policy');
 function configFromEnvironment(env = process.env, deployment = {}) {
   const integer = (name, fallback, max) => { const value = env[name]; return value === undefined || value === '' ? fallback : /^\d+$/.test(value) ? Math.min(+value, max) : 0; };
   const reminderDeployment = deployment.weatherReminders || {};
   const reminderState = env.HYHQ_WEATHER_REMINDERS_STATE || reminderDeployment.state || 'trial';
-  return {
+  return applyReleasePolicy({
     appId: env.HYHQ_APP_ID || deployment.appId || '',
     sessionSecret: env.HYHQ_SESSION_SECRET || '',
-    llmEnabled: env.HYHQ_LLM_ENABLED === 'true', llmGatewayEnabled: env.HYHQ_LLM_ENABLED === 'true',
+    // HYHQ_LLM_ENABLED from earlier deployments cannot reopen this release.
     deepseekApiKey: env.DEEPSEEK_API_KEY || '',
     llmDailyLimit: integer('HYHQ_LLM_DAILY_LIMIT', 5, 5),
     llmPerUserAttemptLimit: integer('HYHQ_LLM_USER_ATTEMPTS', 10, 10),
@@ -34,6 +35,6 @@ function configFromEnvironment(env = process.env, deployment = {}) {
     maintenanceEnabled: env.HYHQ_MAINTENANCE_ENABLED === 'true' || deployment.maintenanceEnabled === true,
     deploymentEnv: typeof deployment.env === 'string' ? deployment.env : '',
     recognitionDailyLimit: 20, recognitionGlobalDailyLimit: 200, inferenceMaxConcurrency: 1, inferenceTimeoutSeconds: 35,
-  };
+  });
 }
 module.exports = { configFromEnvironment };

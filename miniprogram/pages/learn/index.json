@@ -1,6 +1,4 @@
 {
   "navigationBarTitleText": "科普智游",
-  "usingComponents": {
-    "floating-ai": "/components/floating-ai/index"
-  }
+  "usingComponents": {}
 }
