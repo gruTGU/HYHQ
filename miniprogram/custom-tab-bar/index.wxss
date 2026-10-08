@@ -34,8 +34,6 @@
 .symbol-one, .symbol-two { position: absolute; box-sizing: border-box; }
 .symbol-home .symbol-one { width: 29rpx; height: 26rpx; top: 25rpx; left: 14rpx; border: 3rpx solid currentColor; border-top: 0; }
 .symbol-home .symbol-two { width: 29rpx; height: 29rpx; left: 14rpx; top: 12rpx; border-left: 3rpx solid currentColor; border-top: 3rpx solid currentColor; transform: rotate(45deg); }
-.symbol-explore .symbol-one { width: 35rpx; height: 35rpx; left: 10.5rpx; top: 10.5rpx; border: 3rpx solid currentColor; border-radius: 50% 50% 50% 8%; transform: rotate(-45deg); }
-.symbol-explore .symbol-two { width: 12rpx; height: 12rpx; left: 22rpx; top: 20rpx; border: 3rpx solid currentColor; border-radius: 50%; }
 .symbol-learn .symbol-one, .symbol-learn .symbol-two { width: 22rpx; height: 34rpx; top: 14rpx; border: 3rpx solid currentColor; }
 .symbol-learn .symbol-one { left: 7rpx; border-radius: 4rpx 7rpx 0 4rpx; transform: skewY(8deg); }
 .symbol-learn .symbol-two { right: 7rpx; border-radius: 7rpx 4rpx 4rpx 0; transform: skewY(-8deg); }
@@ -43,3 +41,13 @@
 .symbol-profile .symbol-two { width: 36rpx; height: 20rpx; top: 33rpx; left: 10rpx; border: 3rpx solid currentColor; border-radius: 22rpx 22rpx 3rpx 3rpx; }
 .theme-ai-mark { display: flex; align-items: center; justify-content: center; width: 66rpx; height: 66rpx; border: 2rpx solid currentColor; border-radius: 10rpx; }
 .theme-ai-label { font-family: Arial, sans-serif; font-size: 36rpx; font-weight: 600; line-height: 1; letter-spacing: -1rpx; }
+
+/* Same upright, continuous path as My Records / visit. No rotated border pieces. */
+.symbol-explore { background-position: center; background-size: 56rpx 56rpx; background-repeat: no-repeat; }
+.symbol-explore { background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2E3ZDVjIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTkgMTBjMCA1LTcgMTEtNyAxMVM1IDE1IDUgMTBhNyA3IDAgMCAxIDE0IDBaIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMCIgcj0iMi41Ii8+PC9zdmc+"); }
+.theme-design-2 .symbol-explore { background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjIyNjIwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTkgMTBjMCA1LTcgMTEtNyAxMVM1IDE1IDUgMTBhNyA3IDAgMCAxIDE0IDBaIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMCIgcj0iMi41Ii8+PC9zdmc+"); }
+.theme-design-2 .is-selected .symbol-explore { background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjkzYjI4IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTkgMTBjMCA1LTcgMTEtNyAxMVM1IDE1IDUgMTBhNyA3IDAgMCAxIDE0IDBaIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMCIgcj0iMi41Ii8+PC9zdmc+"); }
+.theme-design-3 .symbol-explore { background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzQzNDJkIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTkgMTBjMCA1LTcgMTEtNyAxMVM1IDE1IDUgMTBhNyA3IDAgMCAxIDE0IDBaIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMCIgcj0iMi41Ii8+PC9zdmc+"); }
+.theme-design-3 .is-selected .symbol-explore { background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYWQ0NDJiIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTkgMTBjMCA1LTcgMTEtNyAxMVM1IDE1IDUgMTBhNyA3IDAgMCAxIDE0IDBaIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMCIgcj0iMi41Ii8+PC9zdmc+"); }
+.theme-forest .symbol-explore { opacity: .5; }
+.theme-forest .is-selected .symbol-explore { opacity: 1; }

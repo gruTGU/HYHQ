@@ -27,8 +27,8 @@
       <view class="record-grid">
         <button hover-class="pressable" class="record-entry" data-kind="favorites" bindtap="records"><view class="record-icon icon-favorite"></view><text>我的收藏</text></button>
         <button hover-class="pressable" class="record-entry" data-kind="histories" bindtap="records"><view class="record-icon icon-history"></view><text>浏览记录</text></button>
-        <button hover-class="pressable" class="record-entry" data-kind="recognition-jobs" bindtap="records"><view class="record-icon icon-recognition"><text>AI</text></view><text>识别记录</text></button>
-        <button hover-class="pressable" class="record-entry" data-kind="assessment-jobs" bindtap="records"><view class="record-icon icon-water"><view></view></view><text>河道观察</text></button>
+        <button hover-class="pressable" class="record-entry" data-kind="recognition-jobs" bindtap="records"><view class="record-icon icon-recognition"></view><text>识别记录</text></button>
+        <button hover-class="pressable" class="record-entry" data-kind="assessment-jobs" bindtap="records"><view class="record-icon icon-water"></view><text>河道观察</text></button>
         <button hover-class="pressable" class="record-entry" data-kind="visits" bindtap="records"><view class="record-icon icon-visit"></view><text>游览足迹</text></button>
         <button hover-class="pressable" class="record-entry" bindtap="aiHistory"><view class="record-icon icon-chat"></view><text>AI 对话</text></button>
       </view>
