@@ -1,0 +1,18 @@
+<view class="simulation-journal">
+  <view class="simulation-heading"><text class="simulation-title">生态观察手记</text><text class="simulation-label">科普模拟 · 非实测</text></view>
+  <view class="simulation-campus">海晏河清示范校园</view>
+  <view class="simulation-links"><button class="simulation-button simulation-link" data-page="water" bindtap="navigate"><text>智慧河湖</text><text class="small">模拟指标与观察方法 ›</text></button><button class="simulation-button simulation-link" data-page="data-center" bindtap="navigate"><text>生态数据中心</text><text class="small">历史趋势与观测明细 ›</text></button></view>
+  <view class="simulation-scenarios"><button wx:for="{{scenarios}}" wx:key="id" data-id="{{item.id}}" bindtap="chooseScenario" class="simulation-button scenario-button {{item.id === scenario.id ? 'selected' : ''}}" aria-pressed="{{item.id === scenario.id}}">{{item.name}}</button></view>
+  <view class="simulation-subtitle">{{scenario.subtitle}}</view>
+  <view class="simulation-metrics"><button wx:for="{{metrics}}" wx:key="id" data-id="{{item.id}}" bindtap="chooseMetric" class="simulation-button metric-button {{item.id === metric.id ? 'active' : ''}}" aria-pressed="{{item.id === metric.id}}"><text class="metric-label">{{item.label}}</text><view><text class="metric-value">{{item.value}}</text><text class="metric-unit">{{item.unit}}</text></view></button></view>
+  <canvas wx:if="{{!showReminder}}" class="simulation-canvas" type="2d" binderror="canvasFailure" aria-label="{{scenario.name}}，{{metric.label}}模拟趋势；下方可展开全部数值" />
+  <view wx:else class="simulation-chart-placeholder" aria-hidden="true"></view>
+  <view class="simulation-axis"><text>06:00</text><text>12:00</text><text>18:00</text><text>24:00</text></view>
+  <view class="simulation-note">教学示例日 · {{metric.label}} {{minimum}}–{{maximum}} {{metric.unit}} · 各指标纵轴独立缩放</view>
+  <view class="simulation-explanation"><text class="explanation-title">{{scenario.name}}</text><text>{{scenario.explanation}}</text></view>
+  <button class="simulation-button simulation-reminder" bindtap="bookReminder" hover-class="pressable"><text>体验模拟异常提醒</text></button>
+  <view wx:if="{{chartError}}" class="simulation-note">{{chartError}}</view>
+  <button class="simulation-button table-toggle" bindtap="toggleTable" aria-expanded="{{showTable}}">{{showTable ? '收起数值明细 −' : '查看此情景的全部数值 ＋'}}</button>
+  <view wx:if="{{showTable}}" class="simulation-table"><view class="table-row table-heading"><text class="table-cell table-time">时间</text><text class="table-cell" wx:for="{{metrics}}" wx:key="id">{{item.label}}<text class="table-unit">{{item.unit}}</text></text></view><view wx:for="{{rows}}" wx:key="time" class="table-row"><text class="table-cell table-time">{{item.time}}</text><text class="table-cell" wx:for="{{item.values}}" wx:for-item="value" wx:key="id">{{value.value}}</text></view></view>
+</view>
+<simulation-reminder open="{{showReminder}}" bindclose="closeReminder" />

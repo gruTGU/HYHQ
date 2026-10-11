@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "海晏河清"
+  "navigationBarTitleText": "海晏河清",
+  "usingComponents": {
+    "simulation-journal": "/components/simulation-journal/index"
+  }
 }

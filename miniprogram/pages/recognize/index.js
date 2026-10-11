@@ -4,8 +4,9 @@ const { selectTab } = require('../../lib/tab-bar');
 const { app, requireLogin, toast, finish, detail } = require('../../lib/page');
 const { list, task, message } = require('../../lib/format');
 const { capability } = require('../../lib/recognition');
+const { selectedPhotoIdentity, canAcceptSelectedPhoto, rememberSelectedPhoto, canKeepSelectedPhoto, expiredPhotoNotice } = require('../../lib/selected-photo');
 Page(withTheme({
-  data: { mode: 'recognition', riverBusy: false, loading: false, error: '', busy: false, imagePath: '', imageOrigin: '', imageUnavailable: '', task: null, jobs: [], loggedIn: false, capability: capability(null), capabilityKnown: false, capabilityError: '' },
+  data: { mode: 'recognition', riverBusy: false, loading: false, error: '', busy: false, imagePath: '', imageOrigin: '', imageUnavailable: '', photoError: '', authNotice: '', task: null, jobs: [], loggedIn: false, capability: capability(null), capabilityKnown: false, capabilityError: '' },
   onShow() {
     this._destroyed = false;
     selectTab(this, 2);
@@ -28,6 +29,7 @@ Page(withTheme({
     this._destroyed = true;
     this._loadGeneration = (this._loadGeneration || 0) + 1;
     this._selectionVersion = (this._selectionVersion || 0) + 1;
+    this._pickerGeneration = (this._pickerGeneration || 0) + 1;
     this.stopPolling();
   },
   onPullDownRefresh() {
@@ -42,14 +44,26 @@ Page(withTheme({
   clearPrivate() {
     this.stopPolling();
     this._selectionVersion = (this._selectionVersion || 0) + 1;
-    this.setData({ jobs: [], task: null, imagePath: '', imageOrigin: '', imageUnavailable: '', busy: false });
+    const keepPhoto = canKeepSelectedPhoto(this, app().session);
+    this.setData({ jobs: [], task: null, imagePath: keepPhoto ? this.data.imagePath : '', imageOrigin: keepPhoto ? 'selected' : '', imageUnavailable: '', busy: false });
+    if (!keepPhoto) this._photoOwner = null;
+    this.setData({ authNotice: !app().session.token() && keepPhoto ? expiredPhotoNotice(this) : '' });
+  },
+  current(token) {
+    if (this._destroyed) return false;
+    if (app().session.token() === token) return true;
+    if (this._sessionToken !== undefined && this._sessionToken !== token) return false;
+    this.clearPrivate();
+    this._sessionToken = app().session.token();
+    this.setData({ loggedIn: Boolean(this._sessionToken), error: this._sessionToken ? '登录状态已变化，请再次提交。' : expiredPhotoNotice(this) });
+    return false;
   },
   async load() {
     if (this._destroyed || this.data.mode === 'assessment') return;
     const generation = this._loadGeneration = (this._loadGeneration || 0) + 1;
     const sentToken = app().session.token();
     const loggedIn = Boolean(app().session.token());
-    this.setData({ loggedIn, error: '', loading: true });
+    this.setData({ loggedIn, error: '', loading: true, authNotice: loggedIn ? '' : this.data.authNotice });
     if (!loggedIn) this.clearPrivate();
     try {
       const results = await Promise.all([
@@ -64,11 +78,7 @@ Page(withTheme({
         this.setData({ capability: capability(health), capabilityKnown: true, capabilityError: '' });
       }
       if (results[1].error) throw results[1].error;
-      if (loggedIn && app().session.token() !== sentToken) {
-        this.clearPrivate();
-        this.setData({ loggedIn: Boolean(app().session.token()) });
-        return;
-      }
+      if (loggedIn && !this.current(sentToken)) return;
       const jobs = list(results[1].response).map(task);
       const current = this.data.task && jobs.find((item) => item.id === this.data.task.id);
       this.setData({ jobs, task: current || this.data.task });
@@ -99,33 +109,47 @@ Page(withTheme({
   },
   choose() {
     if (this._destroyed || this.data.mode === 'assessment' || this.data.busy || !requireLogin()) return;
-    const sentToken = app().session.token();
+    this.setData({ photoError: '' });
+    const identity = selectedPhotoIdentity(app().session);
     const modeVersion = this._modeVersion;
+    const pickerGeneration = this._pickerGeneration = (this._pickerGeneration || 0) + 1;
     wx.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['album', 'camera'], sizeType: ['compressed'], success: (result) => {
-      if (this._destroyed || modeVersion !== this._modeVersion || this.data.mode === 'assessment' || app().session.token() !== sentToken) return;
-      const file = result.tempFiles[0];
-      if (!file) return;
-      if (file.size > app().config.maxUploadBytes) { toast(new Error('图片不能超过 5MB，请压缩后重试')); return; }
+      if (this._destroyed || pickerGeneration !== this._pickerGeneration || modeVersion !== this._modeVersion || this.data.mode === 'assessment') return;
+      if (!canAcceptSelectedPhoto(identity, app().session)) { this.clearPrivate(); this.setData({ loggedIn: Boolean(app().session.token()), photoError: '登录账号已变化，请在当前账号重新选择照片。' }); return; }
+      const file = result.tempFiles && result.tempFiles[0];
+      if (!file || typeof file.tempFilePath !== 'string' || !file.tempFilePath) { this.showPhotoError('没有取得可用照片，请重新选择。'); return; }
+      if (file.size > app().config.maxUploadBytes) { this.showPhotoError('这张图片超过 5MB，请压缩或选择较小的照片。'); return; }
       this.stopPolling();
       this._selectionVersion = (this._selectionVersion || 0) + 1;
-      this.setData({ imagePath: file.tempFilePath, imageOrigin: 'selected', imageUnavailable: '', task: null, error: '' });
-    }, fail: (error) => { if (!this._destroyed && !/cancel/i.test(error.errMsg || '')) toast(new Error('未能选择图片，请检查相机与相册权限')); } });
+      rememberSelectedPhoto(this, app().session, identity);
+      this.setData({ imagePath: file.tempFilePath, imageOrigin: 'selected', imageUnavailable: '', task: null, error: '', authNotice: '' });
+      // The native camera/album can outlive a business session. Preserve this
+      // user's newly chosen local file instead of silently discarding it.
+      if (!app().session.token()) this.authError(new Error('登录已失效，请重新登录'));
+    }, fail: (error) => { if (!this._destroyed && pickerGeneration === this._pickerGeneration && !/cancel/i.test(error.errMsg || '')) this.showPhotoError('未能选择图片，请检查相机与相册权限'); } });
+  },
+  showPhotoError(notice) {
+    if (this._destroyed) return;
+    this.setData({ photoError: notice });
+    toast(new Error(notice));
   },
   async submit() {
-    if (this._destroyed || this.data.mode === 'assessment' || this.data.busy || this.data.imageOrigin === 'history' || (this.data.task && ['queued', 'running'].includes(this.data.task.status)) || !this.data.imagePath || !requireLogin()) return;
+    if (this._destroyed || this.data.mode === 'assessment' || this.data.busy || this.data.imageOrigin === 'history' || (this.data.task && ['queued', 'running'].includes(this.data.task.status)) || !this.data.imagePath) return;
+    if (!requireLogin()) { this.authError(new Error('登录已失效，请重新登录')); return; }
+    if (!this._photoOwner && this.data.imageOrigin === 'selected') rememberSelectedPhoto(this, app().session);
     const sentToken = app().session.token();
     this.setData({ busy: true, error: '' });
     try {
       const asset = await app().api.upload(this.data.imagePath, 'recognition');
       if (this._destroyed) return;
-      if (app().session.token() !== sentToken) { if (!app().session.token()) this.authError(new Error('登录已失效，请重新登录')); return; }
+      if (!this.current(sentToken)) return;
       const result = (await app().api.request('recognition-jobs/', { method: 'POST', data: { asset_id: asset.id } })).data;
       if (this._destroyed) return;
-      if (app().session.token() !== sentToken) { if (!app().session.token()) this.authError(new Error('登录已失效，请重新登录')); return; }
+      if (!this.current(sentToken)) return;
       this.setData({ task: task(result) });
       this._pollCount = 0;
       this.poll(result.id);
-    } catch (error) { if (!this._destroyed && (!app().session.token() || app().session.token() === sentToken)) this.authError(error); }
+    } catch (error) { if (!this._destroyed && (!app().session.token() || this.current(sentToken))) this.authError(error); }
     finally { if (!this._destroyed && (!app().session.token() || app().session.token() === sentToken)) this.setData({ busy: false }); }
   },
   async poll(id) {
@@ -152,8 +176,12 @@ Page(withTheme({
   authError(error) {
     if (this._destroyed) return;
     const loggedIn = Boolean(app().session.token());
-    this.setData({ error: message(error), loggedIn });
-    if (!loggedIn) this.clearPrivate();
+    if (!loggedIn) {
+      this.clearPrivate();
+      const notice = expiredPhotoNotice(this);
+      this.setData({ authNotice: notice, error: '', loggedIn: false });
+      toast(new Error(notice));
+    } else this.setData({ error: message(error), loggedIn: true });
   },
   openJob(event) { this.selectJob(event.currentTarget.dataset.id); },
   async selectJob(id) {
@@ -181,7 +209,7 @@ Page(withTheme({
   },
   openContent(event) { if (event.detail.id) detail('content', event.detail.id); },
   openAI() {
-    if (!releasePolicy.generativeQAEnabled) return;
+    if (!releasePolicy.recognitionInterpretationEnabled) return;
     if (this._destroyed || !this._visible || this.data.busy || !this.data.task || this.data.task.status !== 'succeeded' || this._sessionToken !== app().session.token() || !requireLogin()) return;
     wx.navigateTo({ url: '/pages/llm/index?kind=recognition&jobId=' + encodeURIComponent(this.data.task.id) });
   },

@@ -8,15 +8,15 @@ const llm = require('../../cloudfunctions/hyhqApi/lib/llm');
 const { TEMPLATE_ID } = require('../../cloudfunctions/hyhqApi/lib/weather-reminders');
 const NOW = '2026-10-08T04:00:00.000Z', SOURCE = '10000000-0000-4000-8000-000000000001';
 const USAGE = { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 };
-function legacyConfig() {
+function releaseConfig() {
   return { appId: 'wx0123456789abcdef', llmEnabled: true, llmGatewayEnabled: true,
     deepseekApiKey: 'unit-fixture-not-a-live-key', sessionSecret: 'unit-fixture-not-a-live-secret',
     qweatherEnabled: true, qweatherBudgetConfirmed: true, qweatherApiKey: 'unit-weather-fixture', qweatherApiHost: 'unit.qweatherapi.com', qweatherMonthlyLimit: 30,
     weatherReminders: { enabled: true, templateId: TEMPLATE_ID, state: 'trial' }, inferenceEnabled: false,
-    maintenanceEnabled: true, deploymentEnv: 'unit-no-qa-environment' };
+    maintenanceEnabled: true, deploymentEnv: 'unit-guide-environment' };
 }
-async function fixture(runtime = false) {
-  const store = new MemoryStore(), config = legacyConfig(), identity = { APPID: config.appId, OPENID: 'unit_verified_no_qa_openid' };
+async function fixture(runtime = false, overrides = {}) {
+  const store = new MemoryStore(), config = { ...releaseConfig(), ...overrides }, identity = { APPID: config.appId, OPENID: 'unit_verified_guide_openid' };
   let generated = 0;
   const providers = {
     getContext: async (_, kind, id) => ({ context: { id, title: '离线测试资料', body: '科普说明', source_path: '/api/v1/contents/' + id + '/' }, citations: [{ kind: 'content', id, source_path: '/api/v1/contents/' + id + '/', title: '离线测试资料' }] }),
@@ -25,7 +25,7 @@ async function fixture(runtime = false) {
     sendWeatherReminder: () => assert.fail('A reminder must not be sent merely by creating an intent'),
   };
   const app = (runtime ? createRuntime : createApp)({ store, config, cloud: {}, providers, now: () => NOW });
-  const call = (path, method = 'GET', body = {}, token = '') => app({ method, path: '/api/v1/' + path, body, headers: token ? { Authorization: 'Bearer ' + token } : {}, config: legacyConfig(), llmEnabled: true }, identity);
+  const call = (path, method = 'GET', body = {}, token = '') => app({ method, path: '/api/v1/' + path, body, headers: token ? { Authorization: 'Bearer ' + token } : {}, config: releaseConfig(), llmEnabled: true }, identity);
   const auth = (await call('auth/wechat/', 'POST', { code: 'unit-sdk-code' })).data.data;
   const user = await store.get('users', auth.user.id);
   const ctx = { store, config, providers, user, now: NOW, query: new URLSearchParams(),
@@ -45,64 +45,79 @@ async function legacySession(f, kind = 'learn') {
 }
 async function queued(f, session) { return (await f.generic('POST', 'llm/sessions/' + session.id + '/turns/', { question: '原有排队问题', request_id: randomUUID() })).data.data; }
 
-test('production environment and deployment overrides cannot enable generation, but credentials and other capabilities remain', () => {
+test('restored edition obeys explicit server switches and defaults to no provider access without configuration', () => {
   const env = { HYHQ_APP_ID: 'wx0123456789abcdef', HYHQ_LLM_ENABLED: 'true', DEEPSEEK_API_KEY: 'retained-unit-key', HYHQ_SESSION_SECRET: 'retained-unit-secret', HYHQ_INFERENCE_ENABLED: 'true', HYHQ_QWEATHER_ENABLED: 'true', HYHQ_WEATHER_REMINDERS_ENABLED: 'true' };
-  const config = configFromEnvironment(env, { llmEnabled: true, llmGatewayEnabled: true, weatherReminders: { enabled: true, templateId: TEMPLATE_ID } });
-  assert.equal(config.llmEnabled, false); assert.equal(config.llmGatewayEnabled, false);
-  assert.throws(() => { config.llmEnabled = true; }, TypeError);
+  const deployment = { llmEnabled: true, llmGatewayEnabled: true, weatherReminders: { enabled: true, templateId: TEMPLATE_ID } };
+  const config = configFromEnvironment(env, deployment);
+  assert.equal(config.llmEnabled, true); assert.equal(config.llmGatewayEnabled, true);
   assert.equal(config.deepseekApiKey, env.DEEPSEEK_API_KEY); assert.equal(config.sessionSecret, env.HYHQ_SESSION_SECRET);
   assert.equal(config.inferenceEnabled, true); assert.equal(config.qweatherEnabled, true); assert.equal(config.weatherReminders.enabled, true);
-  const wrapped = applyReleasePolicy(legacyConfig()); assert.equal(llm.configFor({ config: wrapped }).enabled, false);
+  const disabled = configFromEnvironment({ ...env, HYHQ_LLM_ENABLED: 'false' }, deployment);
+  assert.equal(disabled.llmEnabled, false); assert.equal(disabled.llmGatewayEnabled, false);
+  assert.equal(configFromEnvironment({ DEEPSEEK_API_KEY: 'key-alone-does-not-enable' }).llmEnabled, false);
+  assert.equal(configFromEnvironment({}, deployment).llmEnabled, true);
+  assert.equal(llm.configFor({ config: applyReleasePolicy(releaseConfig()) }).enabled, true);
 });
 
-test('both production app and runtime report closed capabilities even with stale true flags and client overrides', async () => {
+test('both app and runtime restore only guide and learning conversations while preserving trusted identity and usage limits', async () => {
   for (const runtime of [false, true]) {
     const f = await fixture(runtime);
-    // Mutating the caller's legacy settings after assembly cannot reopen its copy.
-    f.config.llmEnabled = true; f.config.llmGatewayEnabled = true;
     const health = (await f.call('health/')).data.data;
-    assert.equal(health.release, RELEASE_ID); assert.equal(health.features.llm, false); assert.equal(health.optional_services.llm, false);
-    for (const scope of ['recognition', 'explore', 'learn']) {
+    assert.equal(health.release, RELEASE_ID); assert.equal(health.features.llm, true); assert.equal(health.optional_services.llm, true);
+    for (const scope of ['explore', 'learn']) {
       const status = await f.call('llm/status/?scope=' + scope, 'GET', {}, f.auth.token);
-      assert.equal(status.statusCode, 200); assert.equal(status.data.data.enabled, false);
+      assert.equal(status.statusCode, 200); assert.equal(status.data.data.enabled, true);
+      const created = await f.call('llm/sessions/', 'POST', { scope, source_type: scope === 'learn' ? 'content' : 'region', source_id: SOURCE }, f.auth.token);
+      assert.equal(created.statusCode, 201, JSON.stringify(created));
+      const turn = await f.call('llm/sessions/' + created.data.data.id + '/turns/', 'POST', { question: '这份资料讲什么', request_id: randomUUID() }, f.auth.token);
+      assert.equal(turn.statusCode, 201, JSON.stringify(turn));
+      const result = await f.call('llm/turns/' + turn.data.data.id + '/', 'GET', {}, f.auth.token);
+      assert.equal(result.data.data.status, 'succeeded');
+      const stranger = await f.call('llm/turns/' + turn.data.data.id + '/');
+      assert.equal(stranger.statusCode, 401);
     }
-    for (const [path, body] of [
-      ['llm/sessions/', { scope: 'learn', source_type: 'content', source_id: SOURCE }],
-      ['llm/sessions/', { scope: 'recognition', assessment_job_id: SOURCE, interpretation_mode: 'image', include_image: true }],
-      ['llm/sessions/' + SOURCE + '/turns/', { question: '旧客户端继续发送', request_id: randomUUID() }],
-      ['weather-data/reminders/interpret/', { text: '明天下午两点提醒看天气', location: 'tianjin', request_key: randomUUID() }],
-    ]) {
-      const out = await f.call(path, 'POST', body, f.auth.token);
-      assert.equal(out.statusCode, 503, JSON.stringify(out)); assert.equal(out.data.error.code, 'LLM_DISABLED');
-    }
-    assert.equal(f.generated(), 0); assert.equal(await f.store.count('llm_sessions'), 0); assert.equal(await f.store.count('llm_ledger'), 0);
+    assert.equal(f.generated(), 2); assert.equal(await f.store.count('llm_ledger'), 2);
+    assert.equal((await f.store.get('llm_days', '2026-10-08')).accounted_tokens, 6);
   }
 });
 
-test('old queued learn, explore, recognition and image turns settle without provider calls or extra attempts', async () => {
-  for (const kind of ['learn', 'explore', 'recognition', 'image']) {
-    const f = await fixture(), session = await legacySession(f, kind), turn = await queued(f, session);
-    const before = await f.store.get('llm_days', '2026-10-08'); assert.ok(before.reserved_tokens > 0);
-    const out = await f.call('llm/turns/' + turn.id + '/', 'GET', {}, f.auth.token);
-    assert.equal(out.statusCode, 200, JSON.stringify(out)); assert.equal(out.data.data.status, 'failed'); assert.equal(out.data.data.error_code, 'LLM_DISABLED');
-    const after = await f.store.get('llm_days', '2026-10-08');
-    assert.equal(after.attempts, before.attempts); assert.equal(after.accounted_tokens, before.accounted_tokens); assert.equal(after.reserved_tokens, 0);
-    assert.equal(await f.store.count('llm_ledger'), 1); assert.equal(f.generated(), 0);
-    await f.call('llm/turns/' + turn.id + '/', 'GET', {}, f.auth.token); assert.equal(f.generated(), 0);
-    assert.deepEqual(await f.store.get('llm_days', '2026-10-08'), after);
+test('home and identification entry points cannot create sessions or append to legacy identification sessions', async () => {
+  const f = await fixture();
+  for (const scope of ['home', 'recognition']) {
+    const rejected = await f.call('llm/sessions/', 'POST', { scope, assessment_job_id: SOURCE }, f.auth.token);
+    assert.equal(rejected.statusCode, 403); assert.equal(rejected.data.error.code, 'LLM_SCOPE_DISABLED');
   }
+  assert.equal(await f.store.count('llm_sessions'), 0);
+  for (const kind of ['recognition', 'image']) {
+    const session = await legacySession(f, kind);
+    const rejected = await f.call('llm/sessions/' + session.id + '/turns/', 'POST', { question: '旧页面尝试继续', request_id: randomUUID() }, f.auth.token);
+    assert.equal(rejected.statusCode, 403); assert.equal(rejected.data.error.code, 'LLM_SCOPE_DISABLED');
+  }
+  assert.equal(f.generated(), 0); assert.equal(await f.store.count('llm_ledger'), 0);
 });
 
-test('an old successful booking draft cannot bypass the closed production interpretation endpoint', async () => {
+test('server-disabled generation cannot be reenabled by client-supplied flags or stale deployment flags', async () => {
+  const f = await fixture(false, { llmEnabled: false, llmGatewayEnabled: false });
+  const status = await f.call('llm/status/?scope=learn', 'GET', {}, f.auth.token);
+  assert.equal(status.data.data.enabled, false);
+  const out = await f.call('llm/sessions/', 'POST', { scope: 'learn', source_type: 'content', source_id: SOURCE }, f.auth.token);
+  assert.equal(out.statusCode, 503); assert.equal(out.data.error.code, 'LLM_DISABLED');
+  assert.equal(f.generated(), 0); assert.equal(await f.store.count('llm_ledger'), 0);
+});
+
+test('a replayed booking draft is readable through the restored endpoint but never executes an appointment', async () => {
   const f = await fixture(), key = randomUUID(), body = { text: '今天下午两点提醒看天津天气', location: 'tianjin', request_key: key };
   f.providers.generateLlm = async () => ({ text: JSON.stringify({ needs_clarification: false, location: 'tianjin', local_date: '2026-10-08', local_time: '14:00', frequency: 'once' }), usage: USAGE });
   const cached = await require('../../cloudfunctions/hyhqApi/lib/weather-booking-ai').handle({ ...f.ctx, method: 'POST', path: 'weather-data/reminders/interpret/', body });
   assert.equal(cached.data.data.draft.location, 'tianjin');
   const before = await f.store.get('llm_days', '2026-10-08');
   const out = await f.call('weather-data/reminders/interpret/', 'POST', body, f.auth.token);
-  assert.equal(out.statusCode, 503); assert.equal(out.data.error.code, 'LLM_DISABLED');
+  assert.equal(out.statusCode, 200); assert.deepEqual(out.data.data, cached.data.data);
   assert.deepEqual(await f.store.get('llm_days', '2026-10-08'), before);
   assert.equal(await f.store.count('weather_ai_drafts'), 1); assert.equal(await f.store.count('weather_reminders'), 0);
+  assert.equal(await f.store.count('weather_recipients'), 0);
+  const guest = await f.call('weather-data/reminders/interpret/', 'POST', body);
+  assert.equal(guest.statusCode, 401);
 });
 
 test('manual reminder confirmation stays available and does not consume the LLM budget', async () => {

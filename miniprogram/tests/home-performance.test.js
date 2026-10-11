@@ -25,9 +25,8 @@ test('home first screen uses three reads, and AI/navigation are ready before a s
   assert.equal(instance.data.loading, false); assert.equal(instance.data.cityLoading, true); assert.equal(instance.data.region.id, 'r1');
   slow.resolve(summary); await loading;
   instance.onHide(); await instance.onShow(); assert.equal(calls.length, 3);
-  await instance.toggleObservations(); assert.equal(calls.length, 6);
-  instance.toggleObservations(); await instance.toggleObservations(); assert.equal(calls.length, 6);
-  assert.equal(instance.data.weather.temp_label, '0°');
+  assert.equal(instance.data.observationExpanded, true);
+  assert.equal(calls.length, 3, 'local simulation never waits for three extra cloud reads');
 });
 test('home pull refresh invalidates warm cache and retries the current public selection', async () => {
   const { instance, calls } = fixture(summary); await instance.onLoad(); await instance.onPullDownRefresh(); assert.equal(calls.length, 6);

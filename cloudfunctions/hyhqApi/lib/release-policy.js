@@ -1,21 +1,20 @@
 'use strict';
-// This special release keeps generic LLM libraries and their accounting readable,
-// but production assembly has no environment/client switch that enables generation.
 const { ApiError } = require('./core');
-const RELEASE_ID = 'wechat-no-qa-20261008';
+const RELEASE_ID = 'wechat-guide-assistant-20261011';
 function applyReleasePolicy(config = {}) {
-  const output = { ...config };
-  for (const key of ['llmEnabled', 'llmGatewayEnabled']) {
-    Object.defineProperty(output, key, { value: false, enumerable: true, writable: false, configurable: false });
-  }
-  return output;
+  return { ...config, instantSimulationOnly: true };
 }
-function enforceRequestPolicy(ctx) {
-  // History/status reads and private-data deletion stay available. In particular,
-  // queued-turn GETs reach the normal disabled-gateway settlement path so their
-  // reservations are released without deleting past attempts or billed usage.
-  if (ctx.method === 'POST' && (ctx.path.startsWith('llm/') || ctx.path === 'weather-data/reminders/interpret/')) {
-    throw new ApiError('LLM_DISABLED', '此特别版本已关闭 AI 问答与自然语言预约，请使用手动功能。', 503);
+async function enforceRequestPolicy(ctx) {
+  // This edition restores only the guide, learning and weather-draft entry points.
+  if (ctx.method === 'POST' && ctx.path === 'llm/sessions/' && !['explore', 'learn'].includes(ctx.body.scope)) {
+    throw new ApiError('LLM_SCOPE_DISABLED', '请从生态导览或科普智游进入 AI 对话。', 403);
+  }
+  const turn = ctx.path.match(/^llm\/sessions\/([^/]+)\/turns\/$/);
+  if (ctx.method === 'POST' && turn && ctx.user) {
+    const session = await ctx.store.get('llm_sessions', turn[1]);
+    if (session && session.owner_id === ctx.user.id && !['explore', 'learn'].includes(session.scope || session.kind)) {
+      throw new ApiError('LLM_SCOPE_DISABLED', '此版本仅开放生态导览与科普智游对话。', 403);
+    }
   }
 }
 module.exports = { RELEASE_ID, applyReleasePolicy, enforceRequestPolicy };

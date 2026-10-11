@@ -1,8 +1,8 @@
 const { withTheme } = require('../../lib/theme');
 const { selectTab } = require('../../lib/tab-bar');
 const { app } = require('../../lib/page');
-const { time, value, message } = require('../../lib/format');
-const { loadRegions, selectRegion } = require('../../lib/region');
+const { message } = require('../../lib/format');
+const { loadRegions } = require('../../lib/region');
 const { weatherView } = require('../../lib/weather');
 const { locateWeatherCity, weatherCityOptions, weatherCitySlug } = require('../../lib/weather-location');
 const { createWeatherSnapshotStore, RETRY } = require('../../lib/weather-snapshot');
@@ -30,13 +30,12 @@ function alertBadge(alerts) {
   return { visible: true, label: '状态待确认', tone: 'unavailable' };
 }
 Page(withTheme({
-  data: { loading: true, error: '', regions: [], regionIndex: 0, region: null, weather: null, air: null, alerts: [], alertNotice: '', sections: [], observationLoading: false, cityLoading: true, cityError: '', cities: [], cityIndex: 0, city: null, citySummary: null, cityEnabled: false, locationBusy: false, locationNotice: '', weatherTheme: 'calm', airExpanded: false, alertsExpanded: false, alertBadge: null, observationExpanded: false },
+  data: { loading: true, error: '', regions: [], regionIndex: 0, region: null, weather: null, air: null, alerts: [], alertNotice: '', sections: [], observationLoading: false, cityLoading: true, cityError: '', cities: [], cityIndex: 0, city: null, citySummary: null, cityEnabled: false, locationBusy: false, locationNotice: '', weatherTheme: 'calm', airExpanded: false, alertsExpanded: false, alertBadge: null, observationExpanded: true },
   onLoad() { this._alive = true; return this.load(); },
   onShow() {
     if (this._alive === false) return;
     selectTab(this, 0);
-    const selected = app().globalData.region;
-    if (this._hidden || (this._loaded && selected && (!this.data.region || selected.id !== this.data.region.id))) { this._hidden = false; return this.load(); }
+    if (this._hidden) { this._hidden = false; return this.load(); }
   },
   onHide() { this._hidden = true; this.clearWeatherTimer(); this._generation = (this._generation || 0) + 1; this._cityGeneration = (this._cityGeneration || 0) + 1; this._locationGeneration = (this._locationGeneration || 0) + 1; },
   onUnload() { this._alive = false; this.onHide(); },
@@ -54,10 +53,8 @@ Page(withTheme({
       const application = app();
       const selection = await loadRegions(application);
       if (!this.current(generation)) return;
-      selectRegion(application, selection.region);
-      this.setData(selection);
-      // The simulation summary is collapsed by default; read it on demand.
-      if (selection.region && this.data.observationExpanded) await this.loadEnvironment(selection.region.id, generation);
+      const regionIndex = selection.regions.findIndex(region => region.slug === 'demo-campus');
+      this.setData({ regions: selection.regions, regionIndex, region: selection.regions[regionIndex] || null });
       if (this.current(generation)) this._loaded = true;
     } catch (error) { if (this.current(generation)) this.setData({ error: message(error) }); }
     finally {
@@ -167,20 +164,6 @@ Page(withTheme({
     if (this._alive !== false && !this._hidden && !this.data.cityLoading && !this.data.cityError && this.data.citySummary) this.setData({ alertsExpanded: !this.data.alertsExpanded });
   },
   toggleAir() { if (this._alive !== false && !this._hidden) this.setData({ airExpanded: !this.data.airExpanded }); },
-  toggleObservations() {
-    if (this._alive === false || this._hidden) return;
-    const expanded = !this.data.observationExpanded;
-    this.setData({ observationExpanded: expanded });
-    if (!expanded || !this.data.region || this._observationRegion === this.data.region.id) return;
-    if (this._observationLoad) return this._observationLoad;
-    const generation = this._generation;
-    this.setData({ observationLoading: true });
-    const loading = this.loadEnvironment(this.data.region.id, generation).finally(() => {
-      if (this._observationLoad === loading) this._observationLoad = null;
-      if (this.current(generation)) this.setData({ observationLoading: false });
-    });
-    this._observationLoad = loading; return loading;
-  },
   openWeather() { wx.navigateTo({ url: '/pages/weather/index' }); },
   weatherSource() { wx.setClipboardData({ data: 'https://www.qweather.com' }); },
   weatherAttribution(event) {
@@ -189,43 +172,12 @@ Page(withTheme({
     const links = [...(summary.attribution_links || []), ...(summary.alerts && summary.alerts.attribution_links || [])];
     if (typeof url === 'string' && /^https?:\/\/[^\s]+$/i.test(url) && links.some(link => link.url === url)) wx.setClipboardData({ data: url });
   },
-  async loadEnvironment(id, generation) {
-    const definitions = [
-      { key: 'weather', title: '天气', path: 'weather/' },
-      { key: 'air', title: '空气质量', path: 'air-quality/' },
-      { key: 'alerts', title: '气象提示', path: 'weather-alerts/' },
-    ];
-    const settled = await Promise.all(definitions.map(async (definition) => {
-      try { return { key: definition.key, data: (await app().api.request(definition.path, { data: { region: id } })).data }; }
-      catch (error) { return { key: definition.key, title: definition.title, error: message(error) }; }
-    }));
-    if (!this.current(generation)) return;
-    const patch = { sections: settled.filter((item) => item.error) };
-    settled.forEach((result) => {
-      if (result.error) return;
-      const data = result.data || {};
-      if (result.key === 'alerts') {
-        patch.alerts = (Array.isArray(data) ? data : data.alerts || []).map((item) => Object.assign({}, item, { time_label: time(item.issued_at || item.published_at) }));
-        patch.alertNotice = data.notice || '当前仅查询模拟气象提示，不提供真实气象预警。';
-      } else {
-        patch[result.key] = Object.assign({}, data, {
-          temp_label: value(data.temperature, '°'), humidity_label: value(data.humidity, '%'),
-          pm10_label: value(data.pm10), pm25_label: value(data.pm25 !== undefined ? data.pm25 : data.pm2_5),
-          updated_label: time(data.observed_at || data.updated_at),
-        });
-      }
-    });
-    this._observationRegion = id;
-    this.setData(patch);
-  },
-  async changeRegion(event) {
-    const index = Number(event.detail.value), region = this.data.regions[index];
-    if (!region || this._alive === false || this._hidden) return;
-    const generation = this._generation = (this._generation || 0) + 1;
-    selectRegion(app(), region);
-    this.setData(Object.assign({ regionIndex: index, region, loading: true, error: '' }, this.clearEnvironment()));
-    try { await this.loadEnvironment(region.id, generation); }
-    finally { if (this.current(generation)) { this.setData({ loading: false }); wx.stopPullDownRefresh(); } }
+  openSimulation(event) {
+    const page = event.detail && event.detail.page;
+    if (!this.current(this._generation)) return;
+    if (!['water', 'data-center'].includes(page)) return;
+    if (!this.data.region) { wx.showToast({ title: '示范校园目录暂不可用，请稍后重试', icon: 'none' }); return; }
+    this.measurements({ currentTarget: { dataset: { page } } });
   },
   navigate(event) { if (this._alive !== false && !this._hidden) wx.switchTab({ url: '/pages/' + event.currentTarget.dataset.page + '/index' }); },
   measurements(event) {

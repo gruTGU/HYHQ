@@ -1,3 +1,4 @@
+const { SCENARIOS: JOURNAL_SCENARIOS } = require('./simulation-journal');
 const { time, value } = require('./format');
 const OFFSET = 8 * 3600000;
 function localDate(input) {
@@ -24,14 +25,43 @@ function validateBooking(date, clock, now = Date.now()) {
   if (stamp > now + 48 * 3600000) return { error: '请选择未来 48 小时内的一次提醒。' };
   return { scheduled_for: new Date(stamp).toISOString() };
 }
+function nextDailyBooking(clock, now = Date.now()) {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(clock || '')) return { error: '请选择每日提醒时间。' };
+  let stamp = Date.parse(localDate(now) + 'T' + clock + ':00+08:00');
+  // Leave a minute for the platform permission and network round trip on top
+  // of the server's five-minute admission window.
+  while (stamp < now + 6 * 60000) stamp += 86400000;
+  const date = localDate(stamp);
+  const booking = validateBooking(date, clock, now);
+  return Object.assign({}, booking, { bookingDate: date, bookingTime: clock });
+}
+function simulationPreview(scenario) {
+  const row = JOURNAL_SCENARIOS.find(item => item.id === scenario);
+  if (!row) return null;
+  const sample = Object.fromEntries(Object.entries(row.series).map(([key, values]) => [key, values[3]]));
+  const metrics = [
+    { id: 'temperature', label: '水温', value: sample.temperature, unit: '℃', rule: '>30℃', triggered: sample.temperature > 30 },
+    { id: 'ph', label: '酸碱度', value: sample.ph, unit: 'pH', rule: '<6.5或>8.5', triggered: sample.ph < 6.5 || sample.ph > 8.5 },
+    { id: 'turbidity', label: '浊度', value: sample.turbidity, unit: 'NTU', rule: '≥40NTU', triggered: sample.turbidity >= 40 },
+    { id: 'oxygen', label: '溶解氧', value: sample.oxygen, unit: 'mg/L', rule: '<6mg/L', triggered: sample.oxygen < 6 },
+  ];
+  const alerts = metrics.filter(metric => metric.triggered);
+  const summaries = { steady: '模拟：平稳晴日，指标平稳', rain: '模拟：降雨后，浊度46NTU', heat: '模拟：水温32℃，溶氧5.9', check: '模拟：pH9.1，含3项异常' };
+  return { type: 'ecology_simulation', scenario, scenario_name: row.name, campus: '海晏河清示范校园', source_type: 'simulation',
+    sample_label: '固定15:00演示样本，非预约时刻实测值', rule_notice: '本平台仿真规则，不是水质标准', metrics, alert_count: alerts.length,
+    state: alerts.length ? 'simulation_alert' : 'simulation_normal',
+    description: alerts.length ? alerts.map(metric => `${metric.label}${metric.value}${metric.unit}（规则${metric.rule}）`).join('；') : '本组演示指标未触发仿真规则。',
+    reminder_text: summaries[scenario] };
+}
 function aiDraftView(raw, locations, now = Date.now()) {
-  if (!raw || raw.timezone !== 'Asia/Shanghai' || typeof raw.scheduled_for !== 'string') return null;
+  if (!raw || (raw.type && !['weather', 'ecology_simulation'].includes(raw.type)) || (raw.type === 'ecology_simulation' && !simulationPreview(raw.scenario)) || raw.timezone !== 'Asia/Shanghai' || typeof raw.scheduled_for !== 'string') return null;
   const location = (Array.isArray(locations) ? locations : []).find((item) => item.slug === raw.location);
   const stamp = Date.parse(raw.scheduled_for);
   if (!location || !Number.isFinite(stamp)) return null;
   const date = localDate(stamp), clock = localClock(stamp), valid = validateBooking(date, clock, now);
   if (valid.error) return null;
-  return { location, bookingDate: date, bookingTime: clock, scheduled_for: valid.scheduled_for,
+  return { location, type: raw.type === 'ecology_simulation' ? raw.type : 'weather', scenario: raw.type === 'ecology_simulation' ? raw.scenario : '', bookingDate: date, bookingTime: clock, scheduled_for: valid.scheduled_for,
+    frequency: raw.frequency === 'daily' ? 'daily' : 'once',
     summary: typeof raw.summary === 'string' ? raw.summary.slice(0, 280) : '' };
 }
 function number(input) { return typeof input === 'number' && Number.isFinite(input) ? input : null; }
@@ -80,8 +110,9 @@ function reminderView(raw) {
   const item = raw || {};
   const labels = { prepared: '待授权', pending: '已预约', preparing: '准备发送', sending: '发送中', retry: '稍后重试', sent: '已发送',
     cancelled: '已取消', expired: '已过期', failed: '未能发送', unknown: '发送结果待核实' };
-  return Object.assign({}, item, { location_name: item.location_name || (item.location && item.location.name) || '',
-    state_label: labels[item.state] || '待核实', scheduled_label: time(item.scheduled_for),
+  return Object.assign({}, item, { type: item.type === 'ecology_simulation' ? item.type : 'weather',
+    title: item.mode === 'instant_simulation' ? '模拟异常提醒' : item.type === 'ecology_simulation' ? '生态模拟提醒 · ' + ((simulationPreview(item.scenario) || {}).scenario_name || '教学演示') : (item.location_name || (item.location && item.location.name) || '') + ' · 天气预约提醒', location_name: item.location_name || (item.location && item.location.name) || '',
+    reason_label: item.reason === 'simulation_changed_to_instant' ? '功能调整为立即模拟体验' : '', state_label: labels[item.state] || '待核实', scheduled_label: time(item.scheduled_for),
     expiry_label: item.expires_at ? time(item.expires_at) : '' });
 }
-module.exports = { forecastView, reminderView, localDate, localClock, bookingFields, validateBooking, aiDraftView };
+module.exports = { forecastView, reminderView, localDate, localClock, bookingFields, validateBooking, nextDailyBooking, aiDraftView, simulationPreview };

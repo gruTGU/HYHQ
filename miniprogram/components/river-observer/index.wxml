@@ -15,6 +15,9 @@
   <view class="observation-node upload-panel section" wx:else><button class="observation-node observation-button {{(busy) ? 'observation-disabled' : ''}} leaf-camera" hover-class="leaf-camera-pressed" bindtap="choose" disabled="{{busy}}" aria-label="拍照或从相册选择河道照片"><image class="camera-icon" src="/assets/icons/observe-camera.png" mode="aspectFit" /><text class="observation-node camera-label">拍照 / 选图</text></button><view class="observation-node title upload-title">为这段河流，留一张照片</view></view>
   <view class="observation-node small muted gap" wx:if="{{imageUnavailable}}">{{imageUnavailable}}</view>
   <button class="observation-node observation-button {{(busy) ? 'observation-disabled' : ''}} secondary gap" wx:if="{{imagePath}}" disabled="{{busy}}" bindtap="choose">选择另一张照片</button>
+  <view class="observation-node error-inline gap" wx:if="{{photoError}}">{{photoError}}</view>
+  <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{error}}" bindretry="refreshTask" />
+  <view class="observation-node error-inline gap" wx:if="{{authNotice}}">{{authNotice}}</view>
   <view wx:if="{{!loggedIn}}" class="observation-node gap"><button class="observation-node observation-button primary" bindtap="login">登录后上传观察</button><view class="observation-node small muted gap">登录后可保存照片和自己的观察记录。</view></view>
   <block wx:else>
     <view class="observation-node card section association-card" wx:if="{{imageOrigin !== 'history'}}">
@@ -62,7 +65,6 @@
 
   </block>
   <button class="observation-node observation-button {{(busy) ? 'observation-disabled' : ''}} danger gap" wx:if="{{task}}" data-id="{{task.id}}" disabled="{{busy}}" bindtap="remove">删除此记录和图片</button>
-  <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{error}}" bindretry="refreshTask" />
   <view class="observation-node section" wx:if="{{loggedIn}}"><view class="observation-node section-head"><text class="observation-node section-title">最近的河道观察</text><button class="observation-node observation-button text-button history-all" bindtap="allRecords">全部记录 ›</button></view><view class="observation-node small muted" wx:if="{{!jobs.length}}">还没有河道图像观察记录。</view><view class="observation-node card history-row river-history-row" wx:for="{{jobs}}" wx:key="id" data-id="{{item.id}}" bindtap="openJob"><view class="observation-node river-history-details"><text class="observation-node river-history-heading">{{item.result_view ? item.result_view.heading : item.status_label}}</text><view class="observation-node copy" wx:if="{{item.error_label}}">{{item.error_label}}</view></view><text class="observation-node small muted river-history-time">{{item.created_label}}</text><text class="observation-node chevron">›</text></view></view>
   <view class="observation-node card section annotation-example"><view class="observation-node title">标注示例</view><image wx:if="{{themeAssets.riverExample}}" class="annotation-example-image" src="{{themeAssets.riverExample}}" mode="widthFix" lazy-load="true" aria-label="河道标注拼图示例" /><view class="observation-node copy">紫色框展示水面、岸边物体的标注位置，可见塑料瓶、包装物与植物等。示例仅用于理解框选方式，不能据此判断真实水质。</view></view>
 </view>

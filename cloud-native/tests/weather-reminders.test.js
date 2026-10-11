@@ -82,8 +82,54 @@ test('delivery sends exactly one bounded appointment template using trusted reci
   assert.equal(sent.touser, ctx.wechatOpenId); assert.equal(sent.templateId, reminders.TEMPLATE_ID); assert.equal(sent.page, 'pages/weather/index?location=tianjin');
   assert.deepEqual(Object.keys(sent.data), ['thing1', 'thing2', 'thing4', 'time26', 'time9']);
   for (const key of ['thing1', 'thing2', 'thing4']) assert.ok(Array.from(sent.data[key].value).length <= 20);
+  assert.equal(sent.data.thing4.value, '天津：晴，10～20℃');
   assert.equal(sent.data.time26.value, '2026-10-07 08:10'); assert.equal(sent.data.time9.value, '2026-10-07 08:40');
   assert.equal((await reminders.runDueReminders(due)).processed, 0); assert.equal(await ctx.store.count('weather_requests'), 1);
+});
+test('reminder text uses the booked city and date forecast, including night conditions and truncated Celsius temperatures', async () => {
+  for (const [clock, expected] of [['05:59', '夜间小雨，-2～11℃'], ['06:00', '多云，-2～11℃'], ['19:29', '多云，-2～11℃'], ['19:30', '夜间小雨，-2～11℃']]) {
+    const ctx = await context(), scheduled = '2026-10-08T' + clock + ':00+08:00';
+    let sent, requestedCity;
+    ctx.providers.fetchWeather = async (_config, kind, location) => {
+      assert.equal(kind, 'daily'); requestedCity = location.slug;
+      const f = forecast();
+      f.data.days.push({ ...f.data.days[0], date: '2026-10-08', starts_at: '2026-10-07T16:00:00Z', ends_at: '2026-10-08T16:00:00Z', temperature_min: -2.9, temperature_max: 11.9, daytime: { condition: '多云' }, nighttime: { condition: '小雨' } });
+      return f;
+    };
+    ctx.providers.sendWeatherReminder = async request => { sent = request; return { errCode: 0 }; };
+    await confirm(ctx, await intent(ctx, { location: 'beijing', scheduled_for: scheduled }));
+    // A delayed timer crossing into the next day/night period still uses the appointment's time.
+    assert.equal((await reminders.runDueReminders({ ...ctx, now: new Date(Date.parse(scheduled) + 60000).toISOString() })).sent, 1);
+    assert.equal(requestedCity, 'beijing'); assert.equal(sent.data.thing2.value, '北京市天气预约');
+    assert.equal(sent.data.thing4.value, '北京：' + expected); assert.equal(sent.page, 'pages/weather/index?location=beijing');
+  }
+});
+test('long forecast descriptions preserve the full temperature range inside the template limit', async () => {
+  const ctx = await context(); let sent;
+  ctx.providers.fetchWeather = async () => { const f = forecast(); Object.assign(f.data.days[0], { temperature_min: -20.8, temperature_max: 0.9, daytime: { condition: '局部\n地区多云间阴有雷阵雨并伴有短时大风天气' } }); return f; };
+  ctx.providers.sendWeatherReminder = async request => { sent = request; return { errCode: 0 }; };
+  await booked(ctx); assert.equal((await reminders.runDueReminders({ ...ctx, now: stamp(10) })).sent, 1);
+  assert.equal(Array.from(sent.data.thing4.value).length, 20); assert.match(sent.data.thing4.value, /…，-20～0℃$/);
+  assert.doesNotMatch(sent.data.thing4.value, /[\x00-\x1f\x7f]/);
+});
+test('partial measurements never become zero, Fahrenheit never becomes Celsius, and empty weather defers sending', async () => {
+  for (const [overrides, expected] of [
+    [{ temperature_min: null }, '晴，最高20℃'],
+    [{ temperature_max: null }, '晴，最低10℃'],
+    [{ temperature_min: 0, temperature_max: 0 }, '晴，0～0℃'],
+    [{ temperature_unit: '°F' }, '晴'],
+    [{ temperature_unit: '' }, '晴'],
+    [{ temperature_min: 22, temperature_max: 20 }, '晴'],
+    [{ daytime: {}, temperature_min: 10, temperature_max: 20 }, '10～20℃'],
+    [{ daytime: {}, temperature_min: null, temperature_max: null }, null],
+  ]) {
+    const ctx = await context(); let sent;
+    ctx.providers.fetchWeather = async () => { const f = forecast(); Object.assign(f.data.days[0], overrides); return f; };
+    ctx.providers.sendWeatherReminder = async request => { sent = request; return { errCode: 0 }; };
+    const row = await booked(ctx), result = await reminders.runDueReminders({ ...ctx, now: stamp(10) });
+    if (expected === null) { assert.equal(result.deferred, 1); assert.equal(sent, undefined); assert.equal((await record(ctx, row)).attempts, 0); }
+    else { assert.equal(result.sent, 1); assert.equal(sent.data.thing4.value, '天津：' + expected); }
+  }
 });
 test('concurrent timers and two recipients in one city share one daily request and never double-send', async () => {
   const ctx = await context(); let sends = 0, requests = 0;
@@ -223,4 +269,76 @@ test('weather refresh uses live batch time and expired appointments cannot send 
   ctx.providers.sendWeatherReminder = () => assert.fail('appointment expired during provider call');
   await reminders.runDueReminders({ ...ctx, now: stamp(10) });
   assert.notEqual((await record(ctx, row)).state, 'sent'); assert.equal(await ctx.store.count('weather_recipients'), 0);
+});
+
+
+test('ecology simulation uses the same fixed journal sample on both ends and bounded explicit template text', async () => {
+  const simulation = require('../../cloudfunctions/hyhqApi/lib/ecology-simulation');
+  const client = require('../../miniprogram/lib/weather-forecast');
+  for (const [scenario, count] of [['steady', 0], ['rain', 1], ['heat', 2], ['check', 3]]) {
+    const sample = simulation.preview(scenario); assert.deepEqual(sample, client.simulationPreview(scenario));
+    assert.equal(sample.alert_count, count); assert.equal(sample.source_type, 'simulation');
+    assert.match(sample.sample_label, /固定15:00/); assert.match(sample.rule_notice, /不是水质标准/);
+    const ctx = await context(); let sent;
+    ctx.config.qweatherEnabled = false; ctx.config.qweatherApiKey = ''; ctx.config.qweatherMonthlyLimit = 0;
+    ctx.providers.fetchWeather = () => assert.fail('simulation cannot request QWeather');
+    ctx.providers.sendWeatherReminder = async request => { sent = request; return { errCode: 0 }; };
+    const status = (await reminders.handle(ctx)).data.data;
+    assert.equal(status.enabled, false); assert.equal(status.simulation_enabled, true); assert.equal(status.template_id, reminders.TEMPLATE_ID);
+    const row = await intent(ctx, { type: 'ecology_simulation', scenario, scheduled_for: SCHEDULE });
+    assert.equal(row.location_name, simulation.CAMPUS); assert.equal(row.type, 'ecology_simulation'); assert.equal(row.scenario, scenario);
+    assert.deepEqual(row.simulation_preview, sample); assert.equal(row.state, 'prepared');
+    assert.equal((await reminders.runDueReminders({ ...ctx, now: stamp(10) })).sent, 0);
+    await confirm(ctx, row); assert.equal((await reminders.runDueReminders({ ...ctx, now: stamp(10) })).sent, 1);
+    assert.equal(sent.data.thing2.value, '生态模拟提醒'); assert.equal(sent.data.thing4.value, sample.reminder_text);
+    for (const [field, value] of Object.entries(sent.data)) if (field.startsWith('thing')) assert.ok([...value.value].length <= 20, value.value);
+    assert.match(sent.data.thing4.value, /模拟/); assert.equal(sent.page, 'pages/weather/index?type=ecology_simulation&scenario=' + scenario);
+    assert.equal(await ctx.store.count('weather_requests'), 0); assert.equal(await ctx.store.count('weather_gate'), 0);
+    assert.equal((await reminders.runDueReminders({ ...ctx, now: stamp(15) })).sent, 0);
+  }
+});
+
+test('weather and simulation reserve independent day slots while scenario changes cannot reuse an accepted intent', async () => {
+  const ctx = await context(), weatherRow = await intent(ctx);
+  const body = { type: 'ecology_simulation', scenario: 'rain', location: 'tianjin', scheduled_for: SCHEDULE };
+  const rows = await Promise.all(Array.from({ length: 8 }, () => intent(ctx, body)));
+  assert.equal(new Set(rows.map(row => row.id)).size, 1); assert.notEqual(rows[0].id, weatherRow.id);
+  assert.equal(await ctx.store.count('weather_reminder_days'), 2);
+  await confirm(ctx, rows[0]);
+  await assert.rejects(intent(ctx, { ...body, scenario: 'heat' }), { code: 'WEATHER_REMINDER_EXISTS' });
+  await cancel(ctx, rows[0]); const edited = await intent(ctx, { ...body, scenario: 'heat' });
+  assert.notEqual(edited.id, rows[0].id); assert.equal(edited.state, 'prepared');
+  assert.equal((await record(ctx, weatherRow)).state, 'prepared');
+});
+
+test('simulation request accepts no user metrics, thresholds, source claims or non-string scenarios', async () => {
+  const ctx = await context(), base = { type: 'ecology_simulation', scenario: 'rain', scheduled_for: SCHEDULE };
+  for (const patch of [{ scenario: 'unknown' }, { scenario: ['rain'] }, { scenario: { toString: () => 'rain' } }, { scenario: '__proto__' }, { type: 'live_ecology' }, { metrics: { ph: 1 } }, { thresholds: { ph: 0 } }, { source_type: 'live' }, { message: '实测污染' }]) {
+    await assert.rejects(intent(ctx, { ...base, ...patch }), { code: 'VALIDATION_ERROR' });
+  }
+  await assert.rejects(intent(ctx, { location: 'tianjin', scheduled_for: SCHEDULE, scenario: 'rain' }), { code: 'VALIDATION_ERROR' });
+  assert.equal(await ctx.store.count('weather_reminders'), 0); assert.equal(await ctx.store.count('weather_recipients'), 0);
+});
+
+test('simulated delivery keeps ownership, refusal, cancellation and ambiguous-send protections', async () => {
+  const ctx = await context(), body = { type: 'ecology_simulation', scenario: 'check', scheduled_for: SCHEDULE };
+  ctx.providers.fetchWeather = () => assert.fail('simulation cannot request weather');
+  let sent = 0; ctx.providers.sendWeatherReminder = async () => { sent++; throw new Error('uncertain delivery'); };
+  const row = await intent(ctx, body), stranger = { ...ctx, user: { id: 'stranger', is_active: true } };
+  await ctx.store.set('users', 'stranger', stranger.user);
+  await assert.rejects(cancel(stranger, row), { code: 'NOT_FOUND' }); await assert.rejects(confirm(stranger, row), { code: 'NOT_FOUND' });
+  await confirm(ctx, row); assert.equal((await reminders.runDueReminders({ ...ctx, now: stamp(10) })).unknown, 1);
+  await reminders.runDueReminders({ ...ctx, now: stamp(15) }); assert.equal(sent, 1); assert.equal((await record(ctx, row)).state, 'unknown');
+  assert.equal(await ctx.store.count('weather_requests'), 0);
+  const ctx2 = await context(), rejected = await intent(ctx2, body); await confirm(ctx2, rejected, 'reject');
+  ctx2.providers.sendWeatherReminder = () => assert.fail('rejected consent cannot send');
+  assert.equal((await reminders.runDueReminders({ ...ctx2, now: stamp(10) })).sent, 0);
+});
+
+test('legacy weather rows without type remain weather and retain their original day lock', async () => {
+  const ctx = await context(), row = await intent(ctx), stored = await record(ctx, row);
+  delete stored.type; delete stored.scenario; await ctx.store.set('weather_reminders', row.id, stored);
+  assert.equal((await intent(ctx)).id, row.id); assert.equal((await reminders.handle(ctx)).data.data.items[0].type, 'weather');
+  await confirm(ctx, row); assert.equal((await reminders.runDueReminders({ ...ctx, now: stamp(10) })).sent, 1);
+  assert.equal(await ctx.store.count('weather_requests'), 1);
 });

@@ -34,13 +34,17 @@ test('SDK identity alone binds a private recipient and the trusted named timer s
   assert.equal(await f.store.get('maintenance_state', 'global'), null);
   assert.equal(f.sent.length, 1); assert.equal(f.sent[0].touser, f.identity.OPENID);
   assert.equal(f.sent[0].miniprogramState, 'developer'); assert.equal(f.sent[0].templateId, TEMPLATE_ID); assert.equal(f.sent[0].lang, 'zh_CN');
+  const state = await f.store.get('weather_reminder_state', 'global');
+  assert.equal(state.status, 'completed'); assert.equal(state.summary.sent, 1); assert.equal(state.message_state, 'developer');
+  assert.equal(state.last_started_at, '2026-10-07T00:10:00Z'); assert.ok(Number.isFinite(Date.parse(state.last_finished_at)));
+  assert.doesNotMatch(JSON.stringify(state), /verified-sdk-openid|forged-client-openid|touser|thing1|owner_id/);
   await f.runtime(event, {}, trusted); assert.equal(f.sent.length, 1);
 });
 
 test('forged sources, environments and timer names cannot invoke reminder or maintenance work', async () => {
   const f = fixture();
   const request = { method: 'GET', path: '/api/v1/health/', Type: 'Timer', TriggerName: 'hyhqWeatherReminders', source: 'wx_trigger' };
-  for (const trusted of [{}, { source: 'wx_client', env: f.config.deploymentEnv }, { source: 'wx_trigger,wx_client', env: f.config.deploymentEnv }, { source: 'wx_trigger', env: 'another-env' }]) {
+  for (const trusted of [{}, { source: 'wx_client', env: f.config.deploymentEnv }, { source: 'wx_client', triggerSource: 'timer', env: f.config.deploymentEnv }, { source: 'wx_trigger,wx_client', env: f.config.deploymentEnv }, { source: 'wx_trigger', env: 'another-env' }, { triggerSource: 'timer', env: 'another-env' }, { triggerSource: 'http', env: f.config.deploymentEnv }]) {
     const result = await f.runtime(request, f.identity, trusted);
     assert.equal(result.data.data.runtime, 'wechat-personal');
   }
@@ -49,6 +53,90 @@ test('forged sources, environments and timer names cannot invoke reminder or mai
     assert.equal(result.data.data.kind, 'timer-ignored');
   }
   assert.equal(f.sent.length, 0); assert.equal(await f.store.get('maintenance_state', 'global'), null);
+});
+
+test('documented CloudBase TRIGGER_SRC timer invokes the worker without TCB_SOURCE, only from the matching runtime', async () => {
+  const f = fixture(), event = { Type: 'Timer', TriggerName: 'hyhqWeatherReminders', TRIGGER_SRC: 'timer', env: f.config.deploymentEnv };
+  const fromClient = await f.runtime(event, f.identity, { source: 'wx_client', env: f.config.deploymentEnv });
+  assert.equal(fromClient.statusCode, 400); assert.equal(f.sent.length, 0);
+  const result = await f.runtime(event, {}, { triggerSource: 'timer', env: f.config.deploymentEnv });
+  assert.equal(result.statusCode, 200); assert.equal(result.data.data.kind, 'weather-reminders');
+  assert.equal(result.data.data.enabled, true); assert.equal(result.data.data.processed, 0);
+});
+
+test('timer admission diagnostics observe missing runtime markers without granting execution or exposing identities', async () => {
+  const f = fixture(), event = { Type: 'Timer', TriggerName: 'hyhqWeatherReminders', OPENID: 'untrusted-event-identity', extra: 'private-content' };
+  const response = await f.runtime(event, {}, { source: 'wx_unknown_timer', env: 'wrong-private-env' });
+  assert.equal(response.statusCode, 400); assert.equal(f.sent.length, 0);
+  assert.equal(await f.store.get('weather_reminder_state', 'global'), null);
+  const row = await f.store.get('weather_timer_diagnostic', 'global');
+  assert.equal(row.source, 'wx_unknown_timer'); assert.equal(row.trigger_source, 'absent');
+  assert.equal(row.env_present, true); assert.equal(row.env_matches, false); assert.equal(row.trusted_timer, false);
+  assert.doesNotMatch(JSON.stringify(row), /wrong-private-env|untrusted-event-identity|private-content|OPENID/);
+  await f.runtime(event, {}, { source: 'changed_timer', env: f.config.deploymentEnv });
+  assert.equal((await f.store.get('weather_timer_diagnostic', 'global')).source, 'wx_unknown_timer');
+  f.setTime('2026-10-07T00:05:00Z');
+  await f.runtime(event, {}, { triggerSource: 'timer', env: f.config.deploymentEnv });
+  assert.equal((await f.store.get('weather_timer_diagnostic', 'global')).trusted_timer, true);
+});
+
+test('forged client timer payloads cannot write diagnostics or run the worker', async () => {
+  for (const [identity, runtime] of [
+    [{ OPENID: 'trusted-client-openid' }, {}], [{}, { source: 'wx_client' }],
+    [{}, { source: 'wx_devtools' }], [{}, { source: 'wx_trigger,wx_client' }], [{}, { source: 'http' }],
+  ]) {
+    const f = fixture();
+    await f.runtime({ Type: 'Timer', TriggerName: 'hyhqWeatherReminders', source: 'wx_trigger', TRIGGER_SRC: 'timer' }, identity, { env: f.config.deploymentEnv, ...runtime });
+    assert.equal(await f.store.get('weather_timer_diagnostic', 'global'), null); assert.equal(f.sent.length, 0);
+  }
+});
+
+test('formal release messages retain the configured formal destination and one successful dispatch', async () => {
+  const f = fixture(); f.config.weatherReminders.state = 'formal';
+  const login = (await f.call('auth/wechat/', 'POST', { code: 'unit-native-code' })).data.data;
+  const row = (await f.call('weather-data/reminders/intents/', 'POST', { location: 'tianjin', scheduled_for: '2026-10-07T00:10:00Z' }, login.token)).data.data;
+  await f.call('weather-data/reminders/intents/' + row.id + '/confirm/', 'POST', { template_id: TEMPLATE_ID, decision: 'accept' }, login.token);
+  f.setTime('2026-10-07T00:10:00Z');
+  const result = await f.runtime({ Type: 'Timer', TriggerName: 'hyhqWeatherReminders' }, {}, { triggerSource: 'timer', env: f.config.deploymentEnv });
+  assert.equal(result.data.data.sent, 1); assert.equal(f.sent.length, 1); assert.equal(f.sent[0].miniprogramState, 'formal');
+  assert.equal(f.sent[0].data.thing4.value, '天津：晴，10～20℃');
+});
+
+test('observed WeChat lowercase timer with wx_trigger source and tcb marker sends the due appointment once', async () => {
+  const f = fixture(); f.config.weatherReminders.state = 'formal';
+  const login = (await f.call('auth/wechat/', 'POST', { code: 'unit-native-code' })).data.data;
+  const row = (await f.call('weather-data/reminders/intents/', 'POST', { location: 'tianjin', scheduled_for: '2026-10-07T00:10:00Z' }, login.token)).data.data;
+  await f.call('weather-data/reminders/intents/' + row.id + '/confirm/', 'POST', { template_id: TEMPLATE_ID, decision: 'accept' }, login.token);
+  f.setTime('2026-10-07T00:10:00Z');
+  const event = { Type: 'timer', TriggerName: 'hyhqWeatherReminders' }, trusted = { source: 'wx_trigger', triggerSource: 'tcb', env: f.config.deploymentEnv };
+  const rejected = await f.runtime(event, f.identity, { source: 'wx_client', triggerSource: 'tcb', env: f.config.deploymentEnv });
+  assert.equal(rejected.statusCode, 400); assert.equal(f.sent.length, 0);
+  const result = await f.runtime(event, {}, trusted);
+  assert.equal(result.data.data.sent, 1); assert.equal(f.sent.length, 1); assert.equal(f.sent[0].miniprogramState, 'formal');
+  assert.equal((await f.runtime(event, {}, trusted)).data.data.sent, 0); assert.equal(f.sent.length, 1);
+  const state = await f.store.get('weather_timer_diagnostic', 'global');
+  assert.equal(state.event_type, 'timer'); assert.equal(state.source, 'wx_trigger'); assert.equal(state.trigger_source, 'tcb'); assert.equal(state.trusted_timer, true);
+});
+
+test('timer failures leave a bounded administrator-only diagnostic without provider or recipient details', async () => {
+  const f = fixture(), event = { Type: 'Timer', TriggerName: 'hyhqWeatherReminders' };
+  f.store.list = async () => { throw new Error('sensitive database failure fixture'); };
+  await assert.rejects(f.runtime(event, {}, { triggerSource: 'timer', env: f.config.deploymentEnv }), /sensitive database failure fixture/);
+  const record = await f.store.get('weather_reminder_state', 'global');
+  assert.equal(record.status, 'failed'); assert.equal(record.error_type, 'worker_failed');
+  assert.doesNotMatch(JSON.stringify(record), /sensitive|openid|recipient|stack/); assert.equal(f.sent.length, 0);
+});
+
+test('diagnostic write failure cannot change a successful dispatch into a duplicate send', async () => {
+  const f = fixture(), login = (await f.call('auth/wechat/', 'POST', { code: 'unit-native-code' })).data.data;
+  const row = (await f.call('weather-data/reminders/intents/', 'POST', { location: 'tianjin', scheduled_for: '2026-10-07T00:10:00Z' }, login.token)).data.data;
+  await f.call('weather-data/reminders/intents/' + row.id + '/confirm/', 'POST', { template_id: TEMPLATE_ID, decision: 'accept' }, login.token);
+  const originalSet = f.store.set.bind(f.store);
+  f.store.set = (kind, id, value) => kind === 'weather_reminder_state' ? Promise.reject(new Error('diagnostic failed')) : originalSet(kind, id, value);
+  f.setTime('2026-10-07T00:10:00Z');
+  const event = { Type: 'Timer', TriggerName: 'hyhqWeatherReminders' }, trusted = { triggerSource: 'timer', env: f.config.deploymentEnv };
+  assert.equal((await f.runtime(event, {}, trusted)).data.data.sent, 1);
+  assert.equal((await f.runtime(event, {}, trusted)).data.data.sent, 0); assert.equal(f.sent.length, 1);
 });
 
 test('disabled reminders stay disabled even if a stale cloud timer continues firing', async () => {

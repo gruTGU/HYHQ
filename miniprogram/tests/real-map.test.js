@@ -62,11 +62,11 @@ test('real map starts in Tianjin without login or location and filters drafts, s
   assert.deepEqual(calls.find((call) => call.url === 'rivers/').options.data, { page_size: 100, region: city.id });
 });
 
-test('real marker popup, public detail and native navigation work while questions remain disabled', async () => {
+test('real marker popup, public detail and native navigation keep their published source in AI context', async () => {
   const { page, native, urls } = setup(); await page.onShow();
   page.selectRealPoint(mapEvent(page)); assert.equal(page.data.selectedPoint.id, 'p');
   page.open({ currentTarget: { dataset: { id: 'p' } } }); page.openAI(); page.navigatePoint();
-  assert.match(urls[0], /kind=place&id=p/); assert.equal(urls.length, 1);
+  assert.match(urls[0], /kind=place&id=p/); assert.equal(urls.length, 2); assert.match(urls[1], /scope=explore&source_type=place&source_id=p/);
   assert.equal(native.length, 1); assert.equal(native[0].latitude, 39.15); assert.equal(native[0].longitude, 117.25);
   assert.equal(native[0].address, '测试说明');
   page.chooseType({ currentTarget: { dataset: { type: 'park' } } }); assert.equal(page.data.selectedPoint, null); assert.deepEqual(page.data.realMarkers, []);
@@ -221,7 +221,7 @@ test('reference markers share city filters but never masquerade as published pla
   assert.equal(page.data.selectedReference.id, local.id); assert.equal(page.data.selectedPoint, null);
   page.open({ currentTarget: { dataset: { id: local.id } } }); page.navigatePoint();
   assert.deepEqual(urls, []); assert.deepEqual(native, []);
-  page.openAI(); assert.deepEqual(urls, [], 'no-QA release blocks the retained reference question handler');
+  page.openAI(); assert.deepEqual(urls, ['/pages/llm/index?scope=explore&source_type=map_reference&source_id=' + local.id]);
   page.selectRealPoint(mapEvent(page));
   assert.equal(page.data.selectedPoint.id, 'p'); assert.equal(page.data.selectedReference, null);
   page.chooseType({ currentTarget: { dataset: { type: 'park' } } });

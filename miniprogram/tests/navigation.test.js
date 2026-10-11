@@ -50,30 +50,11 @@ test('removed region selection falls back to the demo region without mutating gl
   assert.equal((await loadRegions(application)).region.id, 'a');
   assert.equal(application.globalData.region, old);
 });
-test('changing region while an earlier weather request is pending cannot overwrite the new region', async () => {
-  const pending = deferred();
-  const application = { globalData: {}, api: publicAPI(async (path, options) => path === 'weather/' && options.data.region === 'a' ? pending.promise : null) };
-  const instance = page('home', application);
-  instance.data.observationExpanded = true;
-  const oldLoad = instance.load();
-  await new Promise(setImmediate);
-  await instance.changeRegion({ detail: { value: '1' } });
-  assert.equal(instance.data.region.id, 'b');
-  pending.resolve({ data: { temperature: 99, region: 'a' } });
-  await oldLoad;
-  assert.equal(instance.data.weather.region, 'b');
-  assert.equal(application.globalData.region.id, 'b');
-  assert.equal(instance.data.loading, false);
-});
-test('returning home respects the region selected by another screen', async () => {
+test('home simulation stays on the campus after returning from a different guide city', async () => {
   const application = { globalData: {}, api: publicAPI() };
-  const instance = page('home', application);
-  instance.data.observationExpanded = true;
-  await instance.onLoad();
-  instance.onHide(); application.globalData.region = regions[1];
-  await instance.onShow();
-  assert.equal(instance.data.region.id, 'b');
-  assert.equal(instance.data.weather.region, 'b');
+  const instance = page('home', application); await instance.onLoad();
+  instance.onHide(); application.globalData.region = regions[1]; await instance.onShow();
+  assert.equal(instance.data.region.id, 'a'); assert.equal(application.globalData.region.id, 'b');
 });
 test('late home catalogue response cannot mutate a hidden page or global region', async () => {
   const pending = deferred();
@@ -103,10 +84,20 @@ test('hidden and unloaded home ignores queued refresh and navigation events', as
   for (const unload of [false, true]) {
     if (unload) instance.onUnload();
     await instance.onPullDownRefresh(); await instance.load();
-    await instance.changeRegion({ detail: { value: 1 } });
+    instance.openSimulation({ detail: { page: 'water' } });
+    instance.openSimulation({ detail: { page: 'weather', scenario: 'rain' } });
     instance.navigate({ currentTarget: { dataset: { page: 'explore' } } });
     instance.measurements({ currentTarget: { dataset: { page: 'water' } } }); instance.assessment();
   }
+});
+
+test('old simulation navigation cannot open the removed date-based simulation flow', async () => {
+  const instance = page('home', { globalData: {}, api: publicAPI() });
+  await instance.onLoad(); instance.data.region = null;
+  const urls = []; global.wx.navigateTo = ({ url }) => urls.push(url);
+  instance.openSimulation({ detail: { page: 'weather', scenario: 'rain' } });
+  instance.openSimulation({ detail: { page: 'weather', scenario: '../profile' } });
+  assert.deepEqual(urls, []);
 });
 function detailApp(extra) {
   return { globalData: {}, session: session(), api: { request: async (path, options) => {

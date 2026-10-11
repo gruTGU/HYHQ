@@ -105,13 +105,22 @@ function command(executable, args, cwd, log) {
   fs.appendFileSync(log, `${executable} ${args.join(' ')}\n${result.stdout || ''}${result.stderr || ''}\n`);
   if (result.error || result.status !== 0) throw new Error('本地打包步骤失败；请检查日志：' + log);
 }
+// Application schedules use seconds/minutes/hours/day/month/weekday. CloudBase
+// deployment requires a seventh year field; normalize only at that boundary.
+export const TIMER_SCHEDULES = Object.freeze({ maintenance: '0 */30 * * * *', weatherReminders: '0 */5 * * * *' });
+export function normalizeTimerCron(expression) {
+  if (typeof expression !== 'string') throw new Error('定时表达式必须是六位或七位字符串。');
+  const fields = expression.trim().split(/\s+/);
+  if (![6, 7].includes(fields.length) || fields.some(field => !/^[0-9A-Z*,/?-]+$/.test(field))) throw new Error('定时表达式必须包含六位或七位有效字段。');
+  return (fields.length === 6 ? [...fields, '*'] : fields).join(' ');
+}
 export function schedulingConfiguration({ env, maintenanceEnabled = false, weatherRemindersEnabled = false, weatherRemindersTemplateId = '', weatherRemindersState = 'trial' } = {}) {
   if (typeof maintenanceEnabled !== 'boolean' || typeof weatherRemindersEnabled !== 'boolean' || ((maintenanceEnabled || weatherRemindersEnabled) && !env)) throw new Error('定时任务必须提供云环境 ID 与明确布尔开关。');
   const { TEMPLATE_ID } = require(path.join(repository, 'cloudfunctions/hyhqApi/lib/weather-reminders'));
   if (!['developer', 'trial', 'formal'].includes(weatherRemindersState) || typeof weatherRemindersTemplateId !== 'string' || (weatherRemindersEnabled && weatherRemindersTemplateId !== TEMPLATE_ID)) throw new Error('天气提醒须配置已验证模板及 developer/trial/formal 页面类型。');
   const triggers = [];
-  if (maintenanceEnabled) triggers.push({ name: 'hyhqMaintenance', type: 'timer', config: '0 */30 * * * * *' });
-  if (weatherRemindersEnabled) triggers.push({ name: 'hyhqWeatherReminders', type: 'timer', config: '0 */5 * * * * *' });
+  if (maintenanceEnabled) triggers.push({ name: 'hyhqMaintenance', type: 'timer', config: normalizeTimerCron(TIMER_SCHEDULES.maintenance) });
+  if (weatherRemindersEnabled) triggers.push({ name: 'hyhqWeatherReminders', type: 'timer', config: normalizeTimerCron(TIMER_SCHEDULES.weatherReminders) });
   return { config: { permissions: { openapi: weatherRemindersEnabled ? ['subscribeMessage.send'] : [] }, triggers },
     deployment: { maintenanceEnabled, weatherReminders: { enabled: weatherRemindersEnabled, templateId: weatherRemindersEnabled ? weatherRemindersTemplateId : '', state: weatherRemindersState } } };
 }

@@ -1,8 +1,8 @@
 <view style="{{themeStyle}};{{themeAssetStyle}}" class="page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}} weather-page">
-  <view class="page-heading">天气预报与预约</view>
+  <view class="page-heading">订阅天气推送提醒</view>
   <view class="city-controls">
-    <picker wx:if="{{locations.length}}" class="city-picker" range="{{locations}}" range-key="name" value="{{locationIndex}}" disabled="{{busy || locating || canConfirmAgain || intent}}" bindchange="changeLocation"><view class="location-picker" hover-class="pressable"><view><text class="eyebrow">天气城市</text><text class="location-name">{{location.name}}</text></view><text class="picker-arrow">⌄</text></view></picker>
-    <button class="locate-button" hover-class="pressable" disabled="{{busy || loading || locating || canConfirmAgain || intent}}" loading="{{locating}}" bindtap="locateCity">定位城市</button>
+    <picker wx:if="{{locations.length}}" class="city-picker" range="{{locations}}" range-key="name" value="{{locationIndex}}" disabled="{{busy || locating || canConfirmAgain || canRetryGrant || intent}}" bindchange="changeLocation"><view class="location-picker" hover-class="pressable"><view><text class="eyebrow">天气城市</text><text class="location-name">{{location.name}}</text></view><text class="picker-arrow">⌄</text></view></picker>
+    <button class="locate-button" hover-class="pressable" disabled="{{busy || loading || locating || canConfirmAgain || canRetryGrant || intent}}" loading="{{locating}}" bindtap="locateCity">定位城市</button>
   </view>
   <text wx:if="{{locationNotice}}" class="location-notice">{{locationNotice}}</text>
   <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading}}" error="{{error}}" bind:retry="load" />
@@ -14,20 +14,43 @@
     <view class="source-footer"><view class="source-links"><button class="text-button" bindtap="copySource">{{forecast.source_label}} · 数据来源</button><button wx:for="{{forecast.attribution_links}}" wx:key="url" class="text-button" data-url="{{item.url}}" bindtap="copyForecastSource">{{item.label}}</button></view><text wx:if="{{forecast.attribution}}" user-select="true">{{forecast.attribution}}</text></view>
   </view>
   <view class="card reminder-card">
-    <view class="section-heading"><text class="section-title">预约天气提醒</text><text class="once-tag">仅本次</text></view>
+    <view class="section-heading"><text class="section-title">预约提醒</text><text class="once-tag">微信订阅</text></view>
     <text class="muted">{{subscriptionNotice || '天气预约暂未开放。'}}</text>
     <block wx:if="{{subscriptionEnabled}}">
       <button wx:if="{{!loggedIn || !wechatLogin}}" class="secondary" hover-class="pressable" bindtap="login">使用微信登录后预约</button>
       <block wx:else>
-        <text class="form-caption">手动选择或修改 · 北京时间</text>
-        <view class="booking-fields"><picker mode="date" value="{{bookingDate}}" start="{{minDate}}" end="{{maxDate}}" disabled="{{busy || canConfirmAgain || intent}}" bindchange="changeBookingDate"><view class="field" hover-class="pressable"><text class="field-label">预约日期</text><text>{{bookingDate || '选择日期'}} ⌄</text></view></picker><picker mode="time" value="{{bookingTime}}" disabled="{{busy || canConfirmAgain || intent}}" bindchange="changeBookingTime"><view class="field" hover-class="pressable"><text class="field-label">预约时间</text><text>{{bookingTime}} ⌄</text></view></picker></view>
+        <view class="daily-booking">
+          <view class="section-heading"><text class="intent-title">每日天气提醒</text><text class="daily-timezone">北京时间</text></view>
+          <view class="credit-balance"><view><text class="field-label">剩余提醒次数</text><text class="credit-count">{{subscriptionPool.remaining}} <text>次</text></text></view><button class="credit-add" hover-class="pressable" loading="{{grantBusy}}" disabled="{{busy || loading || grantPreparing || !grantIntent || canConfirmAgain || canRetryGrant || intent}}" bindtap="addSubscriptionCredit">+1</button></view>
+          <text class="booking-help">每次点击 +1 并同意微信订阅，累积 1 次提醒。每发送一条消耗 1 次；用完后暂停，补充后继续。</text>
+          <text wx:if="{{grantPreparing}}" class="booking-help">正在准备订阅…</text>
+          <text wx:if="{{subscriptionPool.needs_resubscribe}}" class="booking-help">微信订阅次数已失效，请点击 +1 重新补充。</text>
+          <text wx:if="{{subscriptionPool.held}}" class="booking-help">{{subscriptionPool.held}} 次发送结果待核实，暂不重复使用。</text>
+          <text wx:if="{{grantError}}" class="action-error">{{grantError}}</text>
+          <button wx:if="{{canRetryGrant}}" class="secondary booking-action" disabled="{{busy}}" loading="{{grantBusy}}" bindtap="retrySubscriptionCredit">重试保存提醒次数</button>
+          <button wx:elif="{{!grantIntent && !grantPreparing}}" class="text-button booking-edit" disabled="{{busy || loading || intent || canConfirmAgain}}" bindtap="prepareSubscriptionGrant">重新准备订阅</button>
+          <picker mode="time" value="{{dailyTime}}" disabled="{{busy || canConfirmAgain || canRetryGrant || intent}}" bindchange="changeDailyTime"><view class="daily-time-field" hover-class="pressable"><text>每日提醒时间</text><text class="daily-clock">{{dailyTime}} ⌄</text></view></picker>
+          <text wx:if="{{dailyNextLabel}}" class="booking-help">所选安排：{{location.name}} · {{dailyNextLabel}}</text>
+          <text wx:if="{{currentDailyPlan && currentDailyPlan.enabled}}" class="daily-plan-state">已开启：{{currentDailyPlan.subject_label}} · {{currentDailyPlan.time}}{{subscriptionPool.remaining ? '' : ' · 等待补充次数'}}</text>
+          <button class="primary booking-action daily-subscribe" hover-class="pressable" disabled="{{busy || loading || (!location) || canConfirmAgain || canRetryGrant || intent}}" loading="{{busy && !aiBusy && !grantBusy}}" bindtap="saveDailyPlan">{{currentDailyPlan && currentDailyPlan.enabled ? '保存每日安排' : '开启每日提醒'}}</button>
+          <button wx:if="{{currentDailyPlan && currentDailyPlan.enabled}}" class="text-button booking-edit" disabled="{{busy || canRetryGrant}}" bindtap="cancelDailyPlan">暂停每日提醒</button>
+        </view>
+        <view wx:if="{{naturalLanguageEnabled}}" class="ai-composer">
+          <view class="ai-heading"><text class="intent-title">一句话预约</text><text class="model-label">DeepSeek Flash</text></view>
+          <textarea class="ai-input" value="{{aiText}}" maxlength="500" auto-height="true" disabled="{{busy || canConfirmAgain || canRetryGrant || intent}}" placeholder="例如：明早八点提醒我看天津天气" bindinput="inputAiText" />
+          <button class="ai-button booking-action" hover-class="pressable" disabled="{{busy || loading || canConfirmAgain || canRetryGrant || intent || !aiText}}" loading="{{aiBusy}}" bindtap="interpretReminder">生成预约草稿</button>
+          <text wx:if="{{aiNotice}}" class="action-notice">{{aiNotice}}</text><text wx:if="{{aiError}}" class="action-error">{{aiError}}</text>
+        </view>
+        <text class="form-caption">手动预约单次提醒 · 北京时间</text>
+        <view class="booking-fields"><picker mode="date" value="{{bookingDate}}" start="{{minDate}}" end="{{maxDate}}" disabled="{{busy || canConfirmAgain || canRetryGrant || intent}}" bindchange="changeBookingDate"><view class="field" hover-class="pressable"><text class="field-label">预约日期</text><text>{{bookingDate || '选择日期'}} ⌄</text></view></picker><picker mode="time" value="{{bookingTime}}" disabled="{{busy || canConfirmAgain || canRetryGrant || intent}}" bindchange="changeBookingTime"><view class="field" hover-class="pressable"><text class="field-label">预约时间</text><text>{{bookingTime}} ⌄</text></view></picker></view>
         <text class="booking-help">未来 48 小时内，至少提前 5 分钟。发送可能比预约时间稍晚；不会自动每天重复。</text>
-        <button wx:if="{{!intent && !canConfirmAgain}}" class="primary booking-action" hover-class="pressable" disabled="{{busy || loading || !location}}" loading="{{busy && !aiBusy}}" bindtap="prepareReminder">核对预约</button>
+        <button wx:if="{{!intent && !canConfirmAgain}}" class="primary booking-action" hover-class="pressable" disabled="{{busy || loading || (!location) || canRetryGrant}}" loading="{{busy && !aiBusy}}" bindtap="prepareReminder">核对预约</button>
       </block>
     </block>
-    <view wx:if="{{intent}}" class="intent-panel"><text class="intent-title">{{intent.location_name}} · 天气预约提醒</text><text class="muted">{{intent.scheduled_label}}</text><text wx:if="{{intent.expiry_label}}" class="booking-help">预约有效期至 {{intent.expiry_label}}</text><text class="booking-help">确认后由微信弹出订阅选择，同意后才会保存这次提醒。</text><button wx:if="{{!canConfirmAgain}}" class="primary booking-action" hover-class="pressable" disabled="{{busy}}" loading="{{busy}}" bindtap="authorizeReminder">确认并订阅本次提醒</button><button wx:if="{{!canConfirmAgain}}" class="text-button booking-edit" disabled="{{busy}}" bindtap="editReminder">修改预约</button></view>
+    <view wx:if="{{intent}}" class="intent-panel"><text class="intent-title">{{intent.title}}</text><text class="muted">{{intent.scheduled_label}}</text><text wx:if="{{intent.expiry_label}}" class="booking-help">预约有效期至 {{intent.expiry_label}}</text><text class="booking-help">确认后由微信弹出订阅选择，同意后才会保存这次提醒。</text><button wx:if="{{!canConfirmAgain}}" class="primary booking-action" hover-class="pressable" disabled="{{busy}}" loading="{{busy}}" bindtap="authorizeReminder">确认并订阅本次提醒</button><button wx:if="{{!canConfirmAgain}}" class="text-button booking-edit" disabled="{{busy}}" bindtap="editReminder">修改预约</button></view>
     <button wx:if="{{canConfirmAgain}}" class="secondary" disabled="{{busy}}" loading="{{busy}}" bindtap="retryConfirmation">重试保存授权结果</button>
     <text wx:if="{{notice}}" class="action-notice">{{notice}}</text><text wx:if="{{actionError}}" class="action-error">{{actionError}}</text>
   </view>
-  <view wx:if="{{reminders.length}}" class="reminder-list"><text class="section-title">我的预约</text><view wx:for="{{reminders}}" wx:key="id" class="card reminder-row"><view><text class="reminder-name">{{item.location_name}}</text><text class="muted">{{item.scheduled_label}}</text><text class="reminder-state">{{item.state_label}}</text><text wx:if="{{item.state === 'unknown'}}" class="booking-help">发送结果尚未核实，请先查看微信服务通知。</text></view><button wx:if="{{item.can_cancel}}" class="text-button" disabled="{{busy}}" data-id="{{item.id}}" bindtap="cancelReminder">取消</button></view></view>
+  <view wx:if="{{legacySimulationPlans.length}}" class="card"><text class="section-title">原模拟每日安排</text><text class="muted">模拟通知已改为首页即时体验，可在此停止之前的每日安排。</text><button class="secondary booking-action" disabled="{{busy || canRetryGrant}}" bindtap="cancelLegacySimulationPlan">停止原模拟每日提醒</button></view>
+  <view wx:if="{{reminders.length}}" class="reminder-list"><text class="section-title">我的预约</text><view wx:for="{{reminders}}" wx:key="id" class="card reminder-row"><view><text class="reminder-name">{{item.title}}</text><text class="muted">{{item.scheduled_label}}</text><text class="reminder-state">{{item.state_label}}</text><text wx:if="{{item.reason_label}}" class="booking-help">{{item.reason_label}}</text><text wx:if="{{item.state === 'unknown'}}" class="booking-help">发送结果尚未核实，请先查看微信服务通知。</text></view><button wx:if="{{item.can_cancel}}" class="text-button" disabled="{{busy}}" data-id="{{item.id}}" bindtap="cancelReminder">取消</button></view></view>
 </view>

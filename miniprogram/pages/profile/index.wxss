@@ -56,6 +56,8 @@
 .setting-help { padding-bottom: 24rpx; color: var(--hyhq-muted, #65796c); font-size: 24rpx; line-height: 1.6; }
 .account-actions { margin-top: 30rpx; }
 .profile-page .account-button { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 88rpx; padding: 20rpx 22rpx; line-height: 1.5; text-align: center; }
+.profile-page .nickname-save { box-sizing: border-box; height: 88rpx; padding: 0 22rpx; line-height: normal; }
+.nickname-save text { display: block; line-height: 1.4; }
 .profile-page .privacy-card .account-delete { color: #b46237; }
 
 .profile-page .profile-edit-link { display: inline-block; width: auto; padding: 4rpx 0; margin: 8rpx 0 0; background: transparent; color: #e5efe0; font-weight: 400; font-size: 23rpx; line-height: 1.6; text-align: left; }

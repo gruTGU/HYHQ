@@ -53,7 +53,7 @@ test('malformed model output charges known usage and cannot create a booking', a
   }
 });
 test('unsupported schedules, cities, calendar rollover and missing details need clarification', () => {
-  for (const patch of [{ frequency: 'daily' }, { location: 'https://bad' }, { local_date: '2026-02-30' }, { local_time: '25:10' }, { local_date: '2026-10-07', local_time: '12:01' }, { local_date: '2026-10-10' }, { needs_clarification: true }]) assert.equal(ai.decode(JSON.stringify({ ...payload, ...patch }), Date.parse(NOW)).needs_clarification, true);
+  for (const patch of [{ frequency: 'weekly' }, { location: 'https://bad' }, { local_date: '2026-02-30' }, { local_time: '25:10' }, { local_date: '2026-10-07', local_time: '12:01' }, { local_date: '2026-10-10' }, { needs_clarification: true }]) assert.equal(ai.decode(JSON.stringify({ ...payload, ...patch }), Date.parse(NOW)).needs_clarification, true);
   assert.equal(ai.decode('```json\n'+JSON.stringify(payload)+'\n```', Date.parse(NOW)).draft.location, 'tianjin');
 });
 test('upstream timeout charges reserved tokens conservatively and replay never redispatches', async () => {
@@ -77,3 +77,38 @@ test('a replay later than appointment returns clarification, without a second ca
 });
 
 test("structured prompt satisfies actual provider validation", () => { assert.doesNotThrow(() => provider.validMessages(ai.messages("明早八点天津天气", "tianjin", Date.parse(NOW)))); });
+
+
+test('daily natural-language request produces only a next-occurrence draft with no recurring grant', async () => {
+  const ctx = await setup(); ctx.providers.generateLlm = async () => ({ text: JSON.stringify({ ...payload, frequency: 'daily', local_time: '08:00' }), usage: USAGE });
+  const out = await call(ctx);
+  assert.equal(out.draft.frequency, 'daily'); assert.equal(out.draft.scheduled_for, '2026-10-08T00:00:00.000Z');
+  assert.match(out.draft.summary, /每日/); assert.equal(out.draft.time, '08:00'); assert.equal(await ctx.store.count('weather_reminders'), 0);
+  assert.equal(await ctx.store.count('weather_recipients'), 0); assert.match(ai.messages('每日八点', 'tianjin', Date.parse(NOW))[0].content, /不代表无限循环授权/);
+  const afternoon = ai.decode(JSON.stringify({ ...payload, frequency: 'daily', local_time: '14:00' }), Date.parse(NOW));
+  assert.equal(afternoon.draft.scheduled_for, '2026-10-07T06:00:00.000Z');
+  const midnight = ai.decode(JSON.stringify({ ...payload, frequency: 'daily', local_time: '00:00' }), Date.parse('2026-10-07T15:58:00Z'));
+  assert.equal(midnight.draft.scheduled_for, '2026-10-08T16:00:00.000Z');
+});
+
+
+test('ecology AI draft returns only allowed scenario and time, creates no appointment and consumes no weather budget', async () => {
+  const ctx = await setup(); Object.assign(ctx.body, { type: 'ecology_simulation', scenario: 'heat', text: '明早八点提醒我查看高温午后模拟' });
+  ctx.config.qweatherEnabled = false; ctx.config.qweatherApiKey = '';
+  ctx.providers.generateLlm = async () => ({ text: JSON.stringify({ ...payload, type: 'ecology_simulation', scenario: 'heat' }), usage: USAGE });
+  const out = await call(ctx); assert.equal(out.draft.type, 'ecology_simulation'); assert.equal(out.draft.scenario, 'heat');
+  assert.match(out.draft.summary, /海晏河清示范校园.*高温午后生态模拟/);
+  assert.equal(await ctx.store.count('weather_requests'), 0); assert.equal(await ctx.store.count('weather_reminders'), 0);
+  assert.match(ai.messages(ctx.body.text, 'tianjin', Date.parse(NOW), { type: 'ecology_simulation', scenario: 'heat' })[0].content, /固定15:00/);
+});
+
+test('simulation AI rejects generated readings and user-invented scenarios rather than executing model content', async () => {
+  for (const patch of [{ scenario: 'live' }, { scenario: ['rain'] }, { type: 'pollution_warning' }]) {
+    assert.equal(ai.decode(JSON.stringify({ ...payload, type: 'ecology_simulation', scenario: 'rain', ...patch }), Date.parse(NOW)).needs_clarification, true);
+  }
+  assert.throws(() => ai.decode(JSON.stringify({ ...payload, type: 'ecology_simulation', scenario: 'rain', metrics: { ph: 100 } }), Date.parse(NOW)), { code: 'WEATHER_AI_INVALID' });
+  for (const scenario of ['bad', ['rain'], null]) {
+    const ctx = await setup(); Object.assign(ctx.body, { type: 'ecology_simulation', scenario });
+    await assert.rejects(call(ctx), { code: 'VALIDATION_ERROR' }); assert.equal(await ctx.store.count('llm_ledger'), 0);
+  }
+});

@@ -3,6 +3,7 @@ const { app, requireLogin, toast, finish } = require('../../lib/page');
 const { list, message } = require('../../lib/format');
 const { capability, imageEligible, assessmentTask: baseAssessmentTask } = require('../../lib/assessment');
 const { summaryView } = require('./summary');
+const { selectedPhotoIdentity, canAcceptSelectedPhoto, rememberSelectedPhoto, canKeepSelectedPhoto, expiredPhotoNotice } = require('../../lib/selected-photo');
 const { requestObservationLocation } = require('../../lib/observation-location');
 const assessmentTask = (job) => Object.assign(baseAssessmentTask(job), { summary_view: summaryView(job) });
 const NONE = { id: '', name: '不关联水体（可直接上传）' };
@@ -12,7 +13,7 @@ function createAssessmentController() { return {
   data: {
     loading: false, error: '', busy: false, loggedIn: false, helpExpanded: false, associationExpanded: false, metadataExpanded: false,
     capability: capability(null), capabilityKnown: false, capabilityError: '',
-    imagePath: '', imageOrigin: '', imageReady: false, imageUnavailable: '', task: null, jobs: [],
+    imagePath: '', imageOrigin: '', imageReady: false, imageUnavailable: '', photoError: '', authNotice: '', task: null, jobs: [],
     waterBodies: [NONE], waterIndex: 0, waterNotice: '', location: null, locating: false, locationNotice: '', locationLabel: '', locationSource: '', referenceLabel: '', referenceAccuracy: '', nearby: null,
   },
   onLoad(options) { this._requestedJob = options && options.jobId || ''; },
@@ -42,6 +43,7 @@ function createAssessmentController() { return {
     this.cancelLocationWork();
     this._loadGeneration = (this._loadGeneration || 0) + 1;
     this._selectionVersion = (this._selectionVersion || 0) + 1;
+    this._pickerGeneration = (this._pickerGeneration || 0) + 1;
     this._locationVersion = (this._locationVersion || 0) + 1;
     this.stopPolling();
   },
@@ -54,10 +56,16 @@ function createAssessmentController() { return {
   clearSelection() {
     this.stopPolling();
     this._selectionVersion = (this._selectionVersion || 0) + 1;
+    this._photoOwner = null;
     this.setData({ task: null, imagePath: '', imageOrigin: '', imageReady: false, imageUnavailable: '', busy: false });
   },
   clearPrivate() {
-    this.clearSelection();
+    const keepPhoto = canKeepSelectedPhoto(this, app().session);
+    this.stopPolling();
+    this._selectionVersion = (this._selectionVersion || 0) + 1;
+    this.setData({ task: null, imagePath: keepPhoto ? this.data.imagePath : '', imageOrigin: keepPhoto ? 'selected' : '', imageReady: keepPhoto && this.data.imageReady, imageUnavailable: '', busy: false });
+    if (!keepPhoto) this._photoOwner = null;
+    this.setData({ authNotice: !app().session.token() && keepPhoto ? expiredPhotoNotice(this) : '' });
     this.cancelLocationWork();
     this._locationVersion = (this._locationVersion || 0) + 1;
     this.setData({ jobs: [], location: null, nearby: null, locating: false, locationNotice: '', locationLabel: '', locationSource: '', referenceLabel: '', referenceAccuracy: '', waterIndex: 0 });
@@ -69,7 +77,7 @@ function createAssessmentController() { return {
     if (this._sessionToken !== undefined && this._sessionToken !== token) return false;
     this.clearPrivate();
     this._sessionToken = app().session.token();
-    this.setData({ loggedIn: Boolean(app().session.token()), error: '登录状态已变化，请重新加载个人记录。' });
+    this.setData({ loggedIn: Boolean(app().session.token()), error: app().session.token() ? '登录状态已变化，请再次提交。' : '', authNotice: !app().session.token() ? expiredPhotoNotice(this) : '' });
     return false;
   },
   async load() {
@@ -77,7 +85,7 @@ function createAssessmentController() { return {
     const generation = this._loadGeneration = (this._loadGeneration || 0) + 1;
     const selection = this._selectionVersion;
     const token = app().session.token();
-    this.setData({ loading: true, error: '', loggedIn: Boolean(token) });
+    this.setData({ loading: true, error: '', loggedIn: Boolean(token), authNotice: token ? '' : this.data.authNotice });
     if (!token) this.clearPrivate();
     const safe = (promise) => promise.then((response) => ({ response })).catch((error) => ({ error }));
     try {
@@ -125,18 +133,30 @@ function createAssessmentController() { return {
   toggleMetadata() { this.setData({ metadataExpanded: !this.data.metadataExpanded }); },
   choose() {
     if (this._destroyed || this.data.busy || !requireLogin()) return;
-    const token = app().session.token();
+    this.setData({ photoError: '' });
+    const identity = selectedPhotoIdentity(app().session);
+    const pickerGeneration = this._pickerGeneration = (this._pickerGeneration || 0) + 1;
     wx.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['album', 'camera'], sizeType: ['compressed'], success: (result) => {
-      if (!this.current(token)) return;
+      if (this._destroyed || pickerGeneration !== this._pickerGeneration) return;
+      if (!canAcceptSelectedPhoto(identity, app().session)) { this.clearPrivate(); this.setData({ loggedIn: Boolean(app().session.token()), photoError: '登录账号已变化，请在当前账号重新选择照片。' }); return; }
       const file = result.tempFiles && result.tempFiles[0];
-      if (!file) return;
-      if (file.size > app().config.maxUploadBytes) { toast(new Error('图片不能超过 5MB，请压缩后重试')); return; }
+      if (!file || typeof file.tempFilePath !== 'string' || !file.tempFilePath) { this.showPhotoError('没有取得可用照片，请重新选择。'); return; }
+      if (file.size > app().config.maxUploadBytes) { this.showPhotoError('这张图片超过 5MB，请压缩或选择较小的照片。'); return; }
       this.clearSelection();
-      this.setData({ imagePath: file.tempFilePath, imageOrigin: 'selected', error: '' });
-    }, fail: (error) => { if (!this._destroyed && !/cancel/i.test(error.errMsg || '')) toast(new Error('未能选择图片，请检查相机与相册权限')); } });
+      rememberSelectedPhoto(this, app().session, identity);
+      this.setData({ imagePath: file.tempFilePath, imageOrigin: 'selected', error: '', authNotice: '' });
+      if (!app().session.token()) this.authError(new Error('登录已失效，请重新登录'));
+    }, fail: (error) => { if (!this._destroyed && pickerGeneration === this._pickerGeneration && !/cancel/i.test(error.errMsg || '')) this.showPhotoError('未能选择图片，请检查相机与相册权限'); } });
+  },
+  showPhotoError(notice) {
+    if (this._destroyed) return;
+    this.setData({ photoError: notice });
+    toast(new Error(notice));
   },
   async submit() {
-    if (this._destroyed || this.data.busy || this.data.locating || this.data.imageOrigin !== 'selected' || !this.data.imagePath || pending(this.data.task) || !requireLogin()) return;
+    if (this._destroyed || this.data.busy || this.data.locating || this.data.imageOrigin !== 'selected' || !this.data.imagePath || pending(this.data.task)) return;
+    if (!requireLogin()) { this.authError(new Error('登录已失效，请重新登录')); return; }
+    if (!this._photoOwner) rememberSelectedPhoto(this, app().session);
     if (!this.data.capabilityKnown || !this.data.capability.enabled) { this.setData({ error: '河道观察模型未启用或状态未知，请稍后刷新。' }); return; }
     const token = app().session.token();
     const version = this._selectionVersion;
@@ -182,8 +202,12 @@ function createAssessmentController() { return {
   },
   authError(error) {
     if (this._destroyed) return;
-    if (!app().session.token()) this.clearPrivate();
-    this.setData({ error: message(error), loggedIn: Boolean(app().session.token()) });
+    if (!app().session.token()) {
+      this.clearPrivate();
+      const notice = expiredPhotoNotice(this);
+      this.setData({ authNotice: notice, error: '', loggedIn: false });
+      toast(new Error(notice));
+    } else this.setData({ error: message(error), loggedIn: true });
   },
   openJob(event) { return this.selectJob(event.currentTarget.dataset.id); },
   async selectJob(id) {
@@ -302,12 +326,12 @@ function createAssessmentController() { return {
   refreshTask() { this._pollCount = 0; return this.data.task ? this.poll(this.data.task.id) : this.load(); },
   allRecords() { wx.navigateTo({ url: '/pages/records/index?kind=assessment-jobs' }); },
   openImageAI() {
-    if (!releasePolicy.generativeQAEnabled) return;
+    if (!releasePolicy.recognitionInterpretationEnabled) return;
     if (this._destroyed || !this._visible || this.data.busy || !imageEligible(this.data.task) || this._sessionToken !== app().session.token() || !requireLogin()) return;
     wx.navigateTo({ url: '/pages/llm/index?kind=assessment&jobId=' + encodeURIComponent(this.data.task.id) + '&interpretation_mode=image' });
   },
   openAI() {
-    if (!releasePolicy.generativeQAEnabled) return;
+    if (!releasePolicy.recognitionInterpretationEnabled) return;
     if (this._destroyed || !this._visible || this.data.busy || !this.data.task || this.data.task.status !== 'succeeded' || this._sessionToken !== app().session.token() || !requireLogin()) return;
     wx.navigateTo({ url: '/pages/llm/index?kind=assessment&jobId=' + encodeURIComponent(this.data.task.id) });
   },

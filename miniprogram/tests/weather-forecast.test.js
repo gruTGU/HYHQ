@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { forecastView, localDate, localClock, bookingFields, validateBooking, aiDraftView, reminderView } = require('../lib/weather-forecast');
+const { forecastView, localDate, localClock, bookingFields, validateBooking, nextDailyBooking, aiDraftView, reminderView } = require('../lib/weather-forecast');
 const locations = [{ slug: 'beijing', name: '北京' }, { slug: 'tianjin', name: '天津' }];
 const intent = { id: 'intent-1', location: 'beijing', location_name: '北京', state: 'prepared', template_id: 'template', can_cancel: true };
 function harness(request, overrides = {}) {
@@ -16,7 +16,7 @@ function harness(request, overrides = {}) {
   page.onLoad({ location: 'beijing' }); page._version = 1; page._token = token;
   return { page, application, token(value) { token = value; } };
 }
-function enable(page) { Object.assign(page.data, { subscriptionEnabled: true, loggedIn: true, wechatLogin: true, location: locations[0], intent: { ...intent }, reminders: [{ ...intent }] }); }
+function enable(page) { Object.assign(page.data, { subscriptionEnabled: true, weatherReminderEnabled: true, simulationEnabled: true, loggedIn: true, wechatLogin: true, location: locations[0], intent: { ...intent }, reminders: [{ ...intent }] }); }
 
 test('forecast dates use Beijing time, preserve zero and attribution, drop ended periods', () => {
   const day = { starts_at: '2026-09-23T22:00:00Z', ends_at: '2026-09-24T22:00:00Z', temperature_min: 0, temperature_max: 12,
@@ -188,29 +188,49 @@ test('invalid manual dates do not create an intent, and expired reviews do not o
   assert.equal(asks, 0); assert.equal(page.data.intent, null); assert.match(page.data.actionError, /过期/);
 });
 
-test('no-QA release ignores stale natural-language events and retains editable manual fields', async () => {
-  const { page } = harness(async () => assert.fail('disabled natural-language entry must not request a draft'), {
-    requestSubscribeMessage() { assert.fail('disabled natural-language entry must not subscribe'); },
-  });
+test('natural-language drafts only fill editable fields and never silently authorize or book', async () => {
+  const calls = [];
+  const { page } = harness(async (path, options) => {
+    calls.push({ path, options });
+    return { data: { draft: { location: 'tianjin', timezone: 'Asia/Shanghai', scheduled_for: new Date(Date.now() + 86400000).toISOString(), frequency: 'once', summary: '明日天气' } } };
+  }, { requestSubscribeMessage() { assert.fail('draft does not authorize'); } });
   enable(page); page.data.locations = locations; page.data.intent = null;
-  const selectedDate = page.data.bookingDate;
-  page.inputAiText({ detail: { value: '明天提醒我看天津天气' } });
-  assert.equal(page.data.aiText, '');
-  page.data.aiText = 'stale text from an earlier view';
-  await page.interpretReminder(); await page.interpretReminder();
-  assert.equal(page.data.location.slug, 'beijing'); assert.equal(page.data.bookingDate, selectedDate);
-  assert.equal(page.data.intent, null); assert.equal(page.data.busy, false); assert.equal(page.data.aiBusy, false);
-  page.changeBookingTime({ detail: { value: '09:00' } }); assert.equal(page.data.bookingTime, '09:00');
+  page.inputAiText({ detail: { value: '明天提醒我看天津天气' } }); await page.interpretReminder();
+  assert.equal(calls.length, 1); assert.equal(calls[0].path, 'weather-data/reminders/interpret/');
+  assert.equal(page.data.location.slug, 'tianjin'); assert.equal(page.data.intent, null);
+  assert.match(page.data.aiNotice, /核对/); assert.equal(page.data.busy, false);
 });
 
-test('no-QA release blocks draft generation after account changes or page departure', async () => {
+test('daily natural-language draft selects usual time but does not create recurring consent', async () => {
+  const now = Date.parse('2026-10-11T05:00:00Z'), saved = [];
+  const { page } = harness(async () => ({ data: { draft: { location: 'tianjin', timezone: 'Asia/Shanghai', frequency: 'daily', scheduled_for: '2026-10-12T00:00:00Z', summary: '常用时间 08:00' } } }), {
+    setStorageSync(key, value) { saved.push(value); }, requestSubscribeMessage() { assert.fail('draft cannot authorize'); },
+  });
+  enable(page); page.data.locations = locations; page.data.intent = null; page.now = () => now;
+  page.inputAiText({ detail: { value: '每天早上八点提醒我看天津天气' } }); await page.interpretReminder();
+  assert.equal(page.data.dailyTime, '08:00'); assert.equal(page.data.dailyNextLabel, '2026-10-12 08:00');
+  assert.match(page.data.aiNotice, /剩余次数/); assert.deepEqual(saved, ['08:00']);
+});
+
+test('late AI drafts are ignored after account changes or page departure', async () => {
   for (const leave of [false, true]) {
-    const env = harness(async () => assert.fail('disabled draft generation must not access the network'));
+    let finish;
+    const env = harness(() => new Promise(resolve => { finish = resolve; }));
     enable(env.page); env.page.data.locations = locations; env.page.data.aiText = '明早天津'; env.page.data.intent = null;
+    const pending = env.page.interpretReminder();
     if (leave) env.page.onHide(); else env.token('user-b');
-    await env.page.interpretReminder();
-    assert.equal(env.page.data.location.slug, 'beijing'); assert.equal(env.page.data.intent, null);
+    finish({ data: { draft: { location: 'tianjin', timezone: 'Asia/Shanghai', scheduled_for: new Date(Date.now() + 86400000).toISOString() } } });
+    await pending; assert.equal(env.page.data.location.slug, 'beijing'); assert.equal(env.page.data.intent, null);
   }
+});
+
+test('daily shortcut picks the next Beijing occurrence and retains its local time preference', () => {
+  const now = Date.parse('2026-10-11T05:00:00Z');
+  assert.equal(nextDailyBooking('14:00', now).scheduled_for, '2026-10-11T06:00:00.000Z');
+  assert.equal(nextDailyBooking('08:00', now).scheduled_for, '2026-10-12T00:00:00.000Z');
+  assert.equal(nextDailyBooking('13:05', now).bookingDate, '2026-10-12');
+  assert.ok(nextDailyBooking('25:00', now).error);
+  assert.equal(nextDailyBooking('00:00', Date.parse('2026-10-11T15:58:00Z')).scheduled_for, '2026-10-12T16:00:00.000Z');
 });
 
 test('public forecast remains available when private reminder status fails', async () => {
@@ -257,4 +277,168 @@ test('forecast attribution keeps source text and uses compact links without prin
   page.copyForecastSource({ currentTarget: { dataset: { url: 'https://unexpected.example' } } });
   page.copyForecastSource({ currentTarget: { dataset: { url: view.attribution_links[0].url } } });
   assert.deepEqual(copied, ['https://developer.qweather.com/attribution.html']);
+});
+
+
+test('daily local preference survives reopening without reading or storing an authorization', () => {
+  const writes = [];
+  const { page } = harness(async () => {}, {
+    getStorageSync(key) { assert.equal(key, 'hyhq.weather.daily-time.v1'); return '07:30'; },
+    setStorageSync(key, value) { writes.push({ key, value }); },
+  });
+  assert.equal(page.data.dailyTime, '07:30');
+  page.changeDailyTime({ detail: { value: '18:00' } });
+  assert.deepEqual(writes, [{ key: 'hyhq.weather.daily-time.v1', value: '18:00' }]);
+  assert.equal(page._grantAccepted, undefined); assert.equal(page.data.intent, null);
+});
+
+test('prepared manual intent cannot be silently replaced by a late input or AI event', async () => {
+  const { page } = harness(async () => assert.fail('editing must cancel the existing intent first'));
+  enable(page); const date = page.data.bookingDate;
+  page.changeBookingDate({ detail: { value: '2099-01-01' } });
+  page.inputAiText({ detail: { value: '明天提醒我' } }); await page.interpretReminder();
+  assert.equal(page.data.bookingDate, date); assert.equal(page.data.aiText, ''); assert.equal(page.data.intent.id, intent.id);
+});
+
+test('old simulation deep links cannot switch the weather page to a simulated date or daily booking', async () => {
+  const { page } = harness(async path => ({ data: path === 'weather-data/locations/' ? { items: locations, forecast_enabled: false } : { enabled: true, wechat_login: true, items: [] } }));
+  page.onLoad({ type: 'ecology_simulation', scenario: 'heat' }); await page.onShow();
+  assert.equal(page.data.simulationScenario, undefined); assert.equal(page.data.reminderType, undefined);
+  assert.equal(page.data.subscriptionEnabled, true);
+  assert.deepEqual(page.reminderRequest('2099-01-01T00:00:00Z'), { location: 'tianjin', scheduled_for: '2099-01-01T00:00:00Z' });
+});
+
+test('a simulation AI draft points to the instant home experience without converting it into a weather appointment', async () => {
+  let request;
+  const { page } = harness(async (path, options) => {
+    request = { path, options }; return { data: { draft: { type: 'ecology_simulation', scenario: 'heat', location: 'tianjin', timezone: 'Asia/Shanghai', scheduled_for: new Date(Date.now() + 86400000).toISOString() } } };
+  });
+  enable(page); Object.assign(page.data, { intent: null, locations });
+  const date = page.data.bookingDate;
+  page.inputAiText({ detail: { value: '模拟异常提醒' } }); await page.interpretReminder();
+  assert.equal(request.options.data.type, undefined); assert.equal(page.data.bookingDate, date);
+  assert.equal(page.data.location.slug, 'beijing'); assert.equal(page.data.intent, null); assert.match(page.data.aiNotice, /首页.*即时/);
+});
+
+test('legacy simulation daily records can still be stopped without new authorization or schedule creation', async () => {
+  const calls = [];
+  const { page } = harness(async (path, options) => { calls.push({ path, options }); return { data: { enabled: false } }; }, { requestSubscribeMessage() { assert.fail('cancel cannot ask for consent'); } });
+  enable(page); page.data.legacySimulationPlans = [{ type: 'ecology_simulation', enabled: true }];
+  await page.cancelLegacySimulationPlan();
+  assert.deepEqual(calls, [{ path: 'weather-data/reminders/daily/ecology_simulation/cancel/', options: { method: 'POST', data: {} } }]);
+  assert.deepEqual(page.data.legacySimulationPlans, []);
+});
+
+
+function grantFixture(id = 'grant-1') { return { id, state: 'prepared', template_id: 'template', expires_at: new Date(Date.now() + 600000).toISOString() }; }
+function enableCredits(page) { enable(page); Object.assign(page.data, { intent: null, templateId: 'template', grantIntent: grantFixture(), reminders: [] }); }
+
+test('grant preparation never prompts and +1 invokes the native subscription synchronously in the tap', async () => {
+  const calls = []; let asks = 0, callback;
+  const { page } = harness(async (path, options) => {
+    calls.push({ path, options });
+    return { data: path.endsWith('/grants/') ? grantFixture('grant-next') : { id: 'grant-next', state: 'accepted', subscription_pool: { remaining: 1 } } };
+  }, { requestSubscribeMessage(options) { asks++; callback = options.success; } });
+  enableCredits(page); page.data.grantIntent = null; await page.prepareSubscriptionGrant();
+  assert.equal(asks, 0); assert.equal(calls.length, 1); assert.equal(calls[0].path, 'weather-data/reminders/grants/');
+  page.addSubscriptionCredit(); assert.equal(asks, 1); assert.equal(calls.length, 1);
+  await callback({ template: 'accept' }); await callback({ template: 'accept' });
+  assert.equal(asks, 1); assert.equal(calls.filter(call => call.path.endsWith('/confirm/')).length, 1);
+  assert.deepEqual(calls[1].options.data, { template_id: 'template', decision: 'accept' });
+  assert.equal(page.data.subscriptionPool.remaining, 1); assert.equal(page.data.grantBusy, false);
+  assert.ok(calls.every(call => !call.path.endsWith('/intents/')));
+});
+
+test('rejecting +1 never books or credits a delivery', async () => {
+  let callback;
+  const { page } = harness(async () => assert.fail('rejection must not credit'), { requestSubscribeMessage(options) { callback = options.success; } });
+  enableCredits(page); page.addSubscriptionCredit(); await callback({ template: 'reject' });
+  assert.equal(page.data.subscriptionPool.remaining, 0); assert.equal(page.data.busy, false); assert.equal(page.data.canRetryGrant, false);
+});
+
+test('uncertain credit confirmation retries one grant without asking a second permission', async () => {
+  let callback, asks = 0, confirms = 0; const paths = [];
+  const { page } = harness(async (path) => {
+    paths.push(path);
+    if (path.endsWith('/grants/')) return { data: grantFixture('grant-next') };
+    if (++confirms === 1) throw new Error('offline');
+    return { data: { id: 'grant-1', state: 'accepted', subscription_pool: { remaining: 1 } } };
+  }, { requestSubscribeMessage(options) { asks++; callback = options.success; } });
+  enableCredits(page); page.addSubscriptionCredit(); await callback({ template: 'accept' });
+  assert.equal(page.data.canRetryGrant, true); assert.equal(page.data.subscriptionPool.remaining, 0);
+  page.changeBookingTime({ detail: { value: '19:00' } }); assert.equal(page.data.bookingTime, '08:00');
+  await page.retrySubscriptionCredit(); assert.equal(asks, 1); assert.equal(confirms, 2);
+  assert.equal(paths[0], paths[1]); assert.equal(page.data.canRetryGrant, false); assert.equal(page.data.subscriptionPool.remaining, 1);
+});
+
+test('expired grant can only prepare a replacement; a fresh explicit tap is required to ask permission', async () => {
+  let asks = 0;
+  const { page } = harness(async () => ({ data: grantFixture('fresh') }), { requestSubscribeMessage() { asks++; } });
+  enableCredits(page); page.data.grantIntent.expires_at = '2000-01-01T00:00:00Z';
+  await page.addSubscriptionCredit(); assert.equal(asks, 0); assert.equal(page.data.grantIntent.id, 'fresh');
+  page.addSubscriptionCredit(); assert.equal(asks, 1);
+});
+
+test('changing accounts discards a late +1 acceptance and private balances', async () => {
+  let callback;
+  const env = harness(async () => assert.fail('must not credit another account'), { requestSubscribeMessage(options) { callback = options.success; } });
+  enableCredits(env.page); env.page.data.subscriptionPool = { remaining: 3 };
+  env.page.addSubscriptionCredit(); env.token('user-b'); await callback({ template: 'accept' });
+  assert.equal(env.page.data.subscriptionPool.remaining, 0); assert.equal(env.page._grantAccepted, null); assert.equal(env.page.data.grantIntent, null);
+});
+
+test('daily schedules save and pause independently of the shared credit balance and never request permission themselves', async () => {
+  const calls = [];
+  const { page } = harness(async (path, options) => {
+    calls.push({ path, options });
+    return { data: { id: 'daily-weather', type: 'weather', time: '08:00', enabled: !path.endsWith('/cancel/') } };
+  }, { requestSubscribeMessage() { assert.fail('saving a plan is not consent'); } });
+  enableCredits(page); Object.assign(page.data, { subscriptionPool: { remaining: 3 } });
+  await page.saveDailyPlan();
+  assert.deepEqual(calls[0].options.data, { type: 'weather', location: 'beijing', time: '08:00', enabled: true });
+  assert.equal(page.data.currentDailyPlan.enabled, true); assert.equal(page.data.subscriptionPool.remaining, 3);
+  await page.cancelDailyPlan(); assert.equal(calls[1].path, 'weather-data/reminders/daily/weather/cancel/');
+  assert.equal(page.data.currentDailyPlan.enabled, false); assert.equal(page.data.subscriptionPool.remaining, 3);
+});
+
+test('empty reminder balance preserves an enabled daily plan while explaining the need to add credit', async () => {
+  const { page } = harness(async () => ({ data: { id: 'daily-weather', type: 'weather', time: '08:00', enabled: true } }));
+  enableCredits(page); await page.saveDailyPlan(); assert.equal(page.data.currentDailyPlan.enabled, true);
+  assert.match(page.data.notice, /点击 \+1 补充/); assert.equal(page.data.subscriptionPool.remaining, 0);
+});
+
+test('page +1 and daily weather plan interoperate with real cloud handlers and stop after the one available credit', async () => {
+  const { MemoryStore } = require('../../cloud-native/tests/memory-store');
+  const { createApp } = require('../../cloudfunctions/hyhqApi');
+  const reminders = require('../../cloudfunctions/hyhqApi/lib/weather-reminders');
+  const store = new MemoryStore(), now = new Date().toISOString(); let sent = 0, callback, asks = 0;
+  const config = { appId: 'wx0123456789abcdef', sessionSecret: 'unit-only-subscription-pool-secret', weatherReminders: { enabled: true, templateId: reminders.TEMPLATE_ID }, qweatherEnabled: true, qweatherBudgetConfirmed: true, qweatherApiKey: 'test-only', qweatherApiHost: 'unit.qweatherapi.com', qweatherMonthlyLimit: 100 };
+  const providers = { sendWeatherReminder: async () => { sent++; return { errCode: 0 }; }, fetchWeather: async () => ({ data: { schema_version: 2, timezone: 'Asia/Shanghai', days: [0, 1, 2].map(i => ({ date: localDate(Date.parse(now) + i * 86400000), starts_at: new Date(Date.parse(now) + i * 86400000 - 3600000).toISOString(), ends_at: new Date(Date.parse(now) + (i + 1) * 86400000).toISOString(), temperature_min: 10, temperature_max: 20, temperature_unit: '°C', daytime: { condition: '晴' }, nighttime: { condition: '晴' } })) } }) };
+  const cloudApp = createApp({ store, config, providers, now: () => now });
+  const identity = { APPID: config.appId, OPENID: 'unit_verified_credit_openid' };
+  const auth = (await cloudApp({ method: 'POST', path: '/api/v1/auth/wechat/', body: { code: 'unit-sdk-code' } }, identity)).data.data;
+  const env = harness(async (path, options = {}) => {
+    const out = await cloudApp({ method: options.method || 'GET', path: '/api/v1/' + path, body: options.data || {}, headers: { Authorization: 'Bearer ' + auth.token } }, identity);
+    assert.ok(out.statusCode < 400, JSON.stringify(out)); return { data: out.data.data };
+  }, { requestSubscribeMessage(options) { asks++; callback = options.success; } });
+  env.token(auth.token); env.page.onLoad({ location: 'tianjin' }); await env.page.onShow();
+  assert.equal(asks, 0); assert.equal(env.page.data.grantIntent.state, 'prepared');
+  env.page.addSubscriptionCredit(); assert.equal(asks, 1); await callback({ [reminders.TEMPLATE_ID]: 'accept' });
+  assert.equal(env.page.data.subscriptionPool.remaining, 1);
+  await env.page.saveDailyPlan(); const first = env.page.data.currentDailyPlan;
+  assert.equal(first.type, 'weather'); assert.equal(first.enabled, true);
+  const worker = { store, config, providers, now: first.next_scheduled_for };
+  assert.equal((await reminders.runDueReminders(worker)).sent, 1); assert.equal(sent, 1);
+  await reminders.runDueReminders({ ...worker, now: new Date(Date.parse(first.next_scheduled_for) + 86400000).toISOString() });
+  assert.equal(sent, 1);
+  await env.page.load(); assert.equal(env.page.data.subscriptionPool.remaining, 0); assert.equal(env.page.data.currentDailyPlan.last_state, 'no_credit');
+  await env.page.cancelDailyPlan(); assert.equal(env.page.data.currentDailyPlan.enabled, false); assert.equal(asks, 1);
+});
+
+
+test('daily plan preview follows its near-future slot and never shows another send on a date already processed', () => {
+  const { page } = harness(async () => {}); page.now = () => Date.parse('2026-10-11T05:04:00Z');
+  page.data.dailyTime = '13:05'; page.updateDailyLabel(); assert.equal(page.data.dailyNextLabel, '2026-10-11 13:05');
+  page.data.currentDailyPlan = { last_target_date: '2026-10-11' }; page.updateDailyLabel();
+  assert.equal(page.data.dailyNextLabel, '2026-10-12 13:05');
 });

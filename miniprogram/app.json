@@ -17,7 +17,9 @@
     "pages/weather/index",
     "pages/personal-admin/index",
     "pages/themes/index",
-    "pages/submissions/index"
+    "pages/submissions/index",
+    "pages/llm/index",
+    "pages/llm-history/index"
   ],
   "window": {
     "navigationBarTitleText": "HYHQ 海晏河清",

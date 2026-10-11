@@ -53,23 +53,5 @@
     <view class="entry" bindtap="assessment" hover-class="pressable" aria-role="button"><image wx:if="{{themeId === 'design-2' && themeAssets.entryRiver}}" class="editorial-small-photo" src="{{themeAssets.entryRiver}}" mode="aspectFill" aria-hidden="true" /><view wx:else class="entry-icon water">≈</view><view class="grow"><view class="title">河道照片观察</view></view><text class="chevron">›</text></view>
   </view>
 
-  <view class="observation-section section">
-    <view class="section-head"><view><text class="section-title">生态观察手记</text></view><text class="pill">模拟数据</text></view>
-    <view class="observation-links"><view class="observation-link" data-page="water" bindtap="measurements" hover-class="pressable" aria-role="button"><text class="title">智慧河湖</text><text class="small muted">四项水环境指标 ›</text></view><view class="observation-link" data-page="data-center" bindtap="measurements" hover-class="pressable" aria-role="button"><text class="title">生态数据中心</text><text class="small muted">趋势与观测明细 ›</text></view></view>
-    <button class="observation-toggle row" bindtap="toggleObservations" hover-class="pressable" aria-expanded="{{observationExpanded}}"><text>示范区环境概览</text><text class="observation-toggle-label">{{observationExpanded ? '收起 −' : '展开 ＋'}}</text></button>
-    <view wx:if="{{observationExpanded}}" class="observation-detail">
-      <view class="small muted">以下为虚构示范区模拟观测，与上方真实城市天气独立，仅用于科普学习。</view>
-      <picker wx:if="{{regions.length}}" range="{{regions}}" range-key="name" value="{{regionIndex}}" bindchange="changeRegion"><view class="region-bar row"><view><text class="small muted">浏览区域</text><view class="title">{{region.name}}</view></view><text class="pill">切换区域 ⌄</text></view></picker>
-      <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{loading || observationLoading}}" error="{{error}}" empty="{{!loading && !observationLoading && !error && !regions.length}}" empty-text="还没有可浏览的观测区域，请稍后再来。" bindretry="load" />
-      <block wx:if="{{!loading && !observationLoading && !error && region}}">
-        <view class="sample-weather row" wx:if="{{weather && weather.status !== 'unavailable'}}"><view><text class="small muted">{{weather.description || weather.condition || '模拟天气'}}</text><view class="title">{{weather.temp_label}} · 湿度 {{weather.humidity_label}}</view><view class="small muted">{{weather.updated_label}}</view></view><source-label source="{{weather.source_type}}" /></view>
-        <view class="notice" wx:if="{{weather.status === 'unavailable'}}">当前暂无模拟天气观测。</view>
-        <view class="sample-air" wx:if="{{air && air.status !== 'unavailable'}}"><view class="sample-air-item"><text class="small muted">PM10 · μg/m³</text><view class="title">{{air.pm10_label}}</view></view><view class="sample-air-item"><text class="small muted">PM2.5 · μg/m³</text><view class="title">{{air.pm25_label}}</view></view></view>
-        <view class="small muted" wx:if="{{air}}">{{air.source.name || '模拟空气数据'}} · {{air.updated_label}}。未提供官方 AQI 指数。</view>
-        <view class="notice" wx:if="{{air.status === 'unavailable'}}">当前暂无模拟空气观测。</view>
-        <view class="notice" wx:for="{{alerts}}" wx:key="id"><view class="row"><text class="title">{{item.title}}</text><source-label source="{{item.source_type}}" /></view><view>{{item.description || item.message}}</view><view class="small">{{item.time_label}}</view></view>
-        <view class="error-inline" wx:for="{{sections}}" wx:key="key">{{item.title}}暂不可用：{{item.error}}<button class="text-button" bindtap="load">重试</button></view>
-      </block>
-    </view>
-  </view>
+  <simulation-journal appearance="{{themeId}}" bindnavigate="openSimulation" />
 </view>

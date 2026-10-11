@@ -7,7 +7,8 @@ function configFromEnvironment(env = process.env, deployment = {}) {
   return applyReleasePolicy({
     appId: env.HYHQ_APP_ID || deployment.appId || '',
     sessionSecret: env.HYHQ_SESSION_SECRET || '',
-    // HYHQ_LLM_ENABLED from earlier deployments cannot reopen this release.
+    llmEnabled: env.HYHQ_LLM_ENABLED === 'true' || (env.HYHQ_LLM_ENABLED === undefined && deployment.llmEnabled === true),
+    llmGatewayEnabled: env.HYHQ_LLM_ENABLED === 'true' || (env.HYHQ_LLM_ENABLED === undefined && deployment.llmGatewayEnabled === true),
     deepseekApiKey: env.DEEPSEEK_API_KEY || '',
     llmDailyLimit: integer('HYHQ_LLM_DAILY_LIMIT', 5, 5),
     llmPerUserAttemptLimit: integer('HYHQ_LLM_USER_ATTEMPTS', 10, 10),

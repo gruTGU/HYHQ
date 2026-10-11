@@ -30,39 +30,24 @@ function loggedApp(api) {
   return { globalData: {}, config: { maxUploadBytes: 5 * 1024 * 1024 }, session: current, api };
 }
 
-test('home obtains real API fixtures, preserves zero values and warns that official alerts are not connected', async () => {
-  const calls = [];
-  const fixtures = {
-    'health/': { status: 'ok', mode: 'simulation' },
-    'regions/': [{ id: 'region1', name: '示范区域' }],
-    'weather/': { temperature: 0, humidity: 0, source_type: 'simulation', status: 'available' },
-    'air-quality/': { pm25: 0, pm10: 10, source_type: 'simulation' },
-    'weather-alerts/': { status: 'not_connected', alerts: [], notice: '官方气象预警尚未接入' },
-  };
-  const app = { globalData: {}, api: { request: async (url, options) => { calls.push({ url, options }); return { data: fixtures[url] }; } } };
-  const instance = page('home', app);
-  instance.data.observationExpanded = true;
-  await instance.load();
-  assert.equal(instance.data.weather.temp_label, '0°');
-  assert.equal(instance.data.air.pm25_label, '0');
-  assert.equal(instance.data.alertNotice, '官方气象预警尚未接入');
-  assert.equal(calls.find((call) => call.url === 'weather/').options.data.region, 'region1');
+test('home simulation selects the demo campus without replacing the guide city or requesting separate simulated weather', async () => {
+  const calls = [], city = { id: 'tj', slug: 'tianjin-nature' };
+  const app = { globalData: { region: city }, api: { request: async url => {
+    calls.push(url);
+    return { data: url === 'regions/' ? [city, { id: 'demo', slug: 'demo-campus' }] : { enabled: false, items: [] } };
+  } } };
+  const instance = page('home', app); await instance.load();
+  assert.equal(instance.data.region.id, 'demo'); assert.equal(app.globalData.region, city);
+  assert.equal(calls.some(url => ['weather/', 'air-quality/', 'weather-alerts/'].includes(url)), false);
   assert.equal(instance.data.loading, false);
 });
-
-test('home displays partial failure instead of silently replacing upstream data', async () => {
-  const app = { globalData: {}, api: { request: async (url) => {
-    if (url === 'health/') return { data: { mode: 'simulation' } };
-    if (url === 'regions/') return { data: [{ id: 'region' }] };
-    if (url === 'weather/') throw new Error('weather unavailable');
-    return { data: { source_type: 'simulation', alerts: [] } };
+test('missing simulation catalogue stays separate from live weather and does not navigate to a real city as a demo', async () => {
+  const app = { globalData: {}, api: { request: async url => {
+    if (url === 'regions/') throw new Error('catalogue unavailable');
+    return { data: { enabled: false, items: [] } };
   } } };
-  const instance = page('home', app);
-  instance.data.observationExpanded = true;
-  await instance.load();
-  assert.equal(instance.data.weather, null);
-  assert.equal(instance.data.sections[0].key, 'weather');
-  assert.equal(instance.data.sections[0].error, 'weather unavailable');
+  const instance = page('home', app); await instance.load();
+  assert.equal(instance.data.region, null); assert.equal(instance.data.error, 'catalogue unavailable');
 });
 
 test('development login is offered only when both client and server enable it', async () => {
@@ -238,7 +223,7 @@ test('401 during submission clears private data and releases the busy state', as
   assert.equal(instance.data.imagePath, '');
   assert.equal(instance.data.loggedIn, false);
   assert.equal(instance.data.busy, false);
-  assert.match(instance.data.error, /Session expired/);
+  assert.match(instance.data.authNotice, /登录已失效/);
 });
 
 test('renewing the same account session during upload releases stale busy state without creating a job', async () => {
@@ -260,7 +245,8 @@ test('renewing the same account session during upload releases stale busy state 
   app.session.save({ token: 'renewed-token', user: { id: 'active-user' } });
   await instance.onShow();
   assert.equal(instance.data.busy, false);
-  assert.equal(instance.data.imagePath, '');
+  assert.equal(instance.data.imagePath, '/tmp/chosen.jpg');
+  assert.equal(instance.data.imageOrigin, 'selected');
   upload.resolve({ id: 'old-session-upload' });
   await submitting;
   assert.equal(created, 0);

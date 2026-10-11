@@ -7,25 +7,31 @@ function createSession(platform, scope) {
   const deviceKey = DEVICE_KEY + suffix;
   let current = null;
   let revision = 0;
+  let invalidation = null;
   const listeners = new Set();
   function changed() {
     revision += 1;
     listeners.forEach((listener) => { try { listener(); } catch (error) { /* One listener cannot stop logout. */ } });
   }
   try { current = platform.getStorageSync(sessionKey) || null; } catch (error) { /* Storage can be disabled. */ }
-  function clear() {
+  function clear(reason = 'logout') {
     const hadSession = !!current;
+    const userId = current && current.user && current.user.id;
     current = null;
+    // Keep no token here. Pages can distinguish expiry from an intentional
+    // logout when deciding whether a not-yet-submitted local photo may remain.
+    invalidation = { reason, userId, revision: revision + (hadSession ? 1 : 0) };
     if (hadSession) changed();
     try { platform.removeStorageSync(sessionKey); } catch (error) { /* Clear in-memory state regardless. */ }
   }
   function get() {
-    if (current && current.expires_at && Date.parse(current.expires_at) <= Date.now()) clear();
+    if (current && current.expires_at && Date.parse(current.expires_at) <= Date.now()) clear('expired');
     return current;
   }
   return {
     get,
     revision: () => revision,
+    invalidation: () => invalidation,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     token: () => (get() || {}).token || '',
     save(value) {

@@ -45,4 +45,5 @@
     </block>
   </block>
   <view class="notice">内容由管理员整理，科普示例与模拟路线均有标注。路线供阅读参考，不提供实时导航或到访核验。</view>
+  <floating-ai tab-page="{{true}}" bindopen="openAI" label="打开科普智游 AI 对话" />
 </view>

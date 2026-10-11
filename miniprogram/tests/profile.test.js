@@ -198,6 +198,36 @@ test('login requires an explicit checkbox while both documents remain readable w
   assert.equal(modals.length, 0);
 });
 
+test('app login confirmation requires agreement and affirmative action before asking WeChat for a code', async () => {
+  const calls = [];
+  const { page, modals, logins, application } = fixture({ request: async (path) => {
+    calls.push(path); return { data: path === 'auth/wechat/' ? { token: 'confirmed-token', user: user() } : user() };
+  } }, false);
+  page.requestLogin(event('mode', 'wechat')); assert.equal(modals.length, 0); assert.equal(logins.length, 0);
+  page.agreementChange({ detail: { value: ['agreed'] } });
+  page.requestLogin(event('mode', 'wechat')); page.requestLogin(event('mode', 'wechat'));
+  assert.equal(modals.length, 1); assert.match(modals[0].title, /海晏河清/);
+  assert.equal(logins.length, 0); assert.deepEqual(calls, []);
+  modals[0].success({ confirm: false }); assert.equal(logins.length, 0);
+  page.requestLogin(event('mode', 'wechat'));
+  const loggingIn = modals[1].success({ confirm: true });
+  assert.equal(logins.length, 1);
+  logins[0].success({ code: 'confirmed-code' }); await loggingIn;
+  assert.equal(application.session.token(), 'confirmed-token');
+  page.requestLogin(event('mode', 'wechat')); assert.equal(modals.length, 2);
+});
+
+test('a delayed login confirmation cannot sign in from a hidden page or overwrite another account', async () => {
+  for (const reason of ['hidden', 'account']) {
+    const { page, modals, logins, application } = fixture({ request: async () => { throw new Error('must not send'); } }, false);
+    page.data.agreed = true; page.requestLogin(event('mode', 'wechat'));
+    if (reason === 'hidden') page.onHide();
+    else application.session.save({ token: 'B-token', user: user('B') });
+    await modals[0].success({ confirm: true });
+    assert.equal(logins.length, 0);
+  }
+});
+
 test('logout and deletion confirmations stay bound to their original account', async () => {
   for (const method of ['logout', 'deleteAccount']) {
     let mutations = 0;

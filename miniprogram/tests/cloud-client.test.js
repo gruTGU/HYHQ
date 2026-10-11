@@ -117,6 +117,9 @@ test('401 clears only its active session and preserves server error metadata', a
   const f = fixture(); f.login(); f.handler(() => ({ statusCode: 401, data: { error: { code: 'AUTH_REQUIRED', message: '请登录' }, request_id: 'req-cloud' } }));
   await assert.rejects(f.client.request('me/'), { code: 'AUTH_REQUIRED', status: 401, requestId: 'req-cloud' });
   assert.equal(f.session.token(), '');
+  assert.equal(f.session.invalidation().reason, 'expired');
+  assert.equal(f.session.invalidation().userId, 'token-A');
+  assert.equal(Object.hasOwn(f.session.invalidation(), 'token'), false);
 });
 
 test('account switching cancels in-flight cloud calls; late success/401 cannot leak or clear new account', async () => {

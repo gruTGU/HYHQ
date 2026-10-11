@@ -66,6 +66,7 @@ test('401 revokes the active local session and preserves stable error metadata',
   calls[0].options.success({ statusCode: 401, data: { error: { code: 'AUTH_REQUIRED', message: '请重新登录' }, request_id: 'req-1' } });
   await assert.rejects(promise, { code: 'AUTH_REQUIRED', requestId: 'req-1' });
   assert.equal(session.token(), '');
+  assert.equal(session.invalidation().reason, 'expired');
 });
 
 test('an old in-flight 401 cannot clear a newly established session', async () => {

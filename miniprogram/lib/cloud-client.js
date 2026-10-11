@@ -131,7 +131,7 @@ function createCloudClient(platform, config, session, apiError) {
     if (response.statusCode === 401 && !cleanup && sentToken && session.token() === sentToken && revision() === context.revision) {
       context.invalidating = true;
       try {
-        session.clear();
+        session.clear('expired');
         unauthorizedSession = { token: context.token, before: context.revision, after: revision() };
       } finally { context.invalidating = false; }
     }

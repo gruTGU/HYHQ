@@ -2,7 +2,6 @@ const { withTheme } = require('../../lib/theme');
 const { selectTab } = require('../../lib/tab-bar');
 const { app, toast } = require('../../lib/page');
 const { message } = require('../../lib/format');
-const releasePolicy = require('../../lib/release-policy');
 const AGREEMENT_VERSION = '2026-10-07';
 Page(withTheme({
   openThemeSettings() { wx.navigateTo({ url: '/pages/themes/index' }); },
@@ -148,6 +147,25 @@ Page(withTheme({
     const values = event && event.detail && event.detail.value;
     this.setData({ agreed: Array.isArray(values) && values.includes('agreed'), error: '' });
   },
+  requestLogin(event) {
+    if (!this._active() || this.data.busy || this._confirming || this._hasPendingMutation() || app().session.token()) return;
+    if (!this.data.agreed) { toast(new Error('请先阅读并勾选同意用户协议与隐私说明')); return; }
+    if (event.currentTarget.dataset.mode === 'dev') return this.login(event);
+    const version = this._version || 0;
+    this._confirming = true;
+    let handled = false;
+    // wx.login exchanges a credential silently; this is the application's own
+    // confirmation, not the retired WeChat avatar/nickname authorization page.
+    wx.showModal({ title: '登录海晏河清', content: '使用当前微信身份登录。头像与昵称由你在登录后自行选择填写。', confirmText: '确认登录', cancelText: '暂不登录', confirmColor: '#3a7d5c', success: (result) => {
+      if (handled) return;
+      handled = true;
+      if (!this._active() || version !== (this._version || 0) || app().session.token()) return;
+      this._confirming = false;
+      if (result.confirm) return this.login(event);
+    }, fail: () => {
+      if (this._active() && version === (this._version || 0)) { this._confirming = false; this.setData({ error: '未能打开登录确认，请重新点击微信登录。' }); }
+    } });
+  },
   async login(event) {
     if (!this._active() || this.data.busy || this._confirming || this._hasPendingMutation()) return;
     if (app().session.token()) return;
@@ -248,11 +266,8 @@ Page(withTheme({
   feedback() { if (this._active()) wx.navigateTo({ url: '/pages/feedback/index' }); },
   submissions() { if (this._canChange() && app().config.transport === 'cloud-function') wx.navigateTo({ url: '/pages/submissions/index' }); },
   management() { if (this._canChange() && this.data.canManage) wx.navigateTo({ url: '/pages/personal-admin/index' }); },
-  // Legacy event handlers cannot reopen AI conversations in this release.
-  aiHistory() {
-    if (!releasePolicy.generativeQAEnabled) return;
-    if (this._active()) wx.navigateTo({ url: '/pages/llm-history/index' });
-  },
+  // AI entry points are limited to guide/learning; no hidden profile entry.
+  aiHistory() {},
   logout() { return this._confirmRemoval(false); },
   deleteAccount() { return this._confirmRemoval(true); },
   _confirmRemoval(removeAccount) {

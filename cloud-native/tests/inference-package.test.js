@@ -59,3 +59,15 @@ test('optional reminder packaging grants only its send API and independent five-
   for (const patch of [{ env: undefined }, { weatherRemindersEnabled: 'true' }, { weatherRemindersTemplateId: 'another-template' }, { weatherRemindersState: 'production' }]) assert.throws(() => schedulingConfiguration({ ...options, ...patch }));
   assert.equal(schedulingConfiguration({ ...options, maintenanceEnabled: false }).config.triggers.length, 1);
 });
+test('six-field project schedules normalize to CloudBase year-inclusive cron only for deployment', async () => {
+  const { TIMER_SCHEDULES, normalizeTimerCron, schedulingConfiguration } = await packaging;
+  assert.equal(TIMER_SCHEDULES.weatherReminders, '0 */5 * * * *');
+  assert.equal(TIMER_SCHEDULES.maintenance, '0 */30 * * * *');
+  assert.equal(normalizeTimerCron(TIMER_SCHEDULES.weatherReminders), '0 */5 * * * * *');
+  assert.equal(normalizeTimerCron(' 0  */30 * * * * '), '0 */30 * * * * *');
+  assert.equal(normalizeTimerCron('0 */5 * * * * 2026'), '0 */5 * * * * 2026');
+  for (const value of [undefined, '', '* * * * *', '* * * * * * * *', '0 */5 * * * *;']) assert.throws(() => normalizeTimerCron(value));
+  const { TEMPLATE_ID } = require('../../cloudfunctions/hyhqApi/lib/weather-reminders');
+  assert.equal(schedulingConfiguration({ env: 'unit-env', weatherRemindersEnabled: true,
+    weatherRemindersTemplateId: TEMPLATE_ID, weatherRemindersState: 'formal' }).deployment.weatherReminders.state, 'formal');
+});

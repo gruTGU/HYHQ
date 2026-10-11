@@ -1,0 +1,17 @@
+<view wx:if="{{open}}" class="reminder-overlay" catchtouchmove="noop">
+  <view class="reminder-mask" bindtap="close"></view>
+  <view class="reminder-dialog" aria-role="dialog" aria-label="模拟异常提醒">
+    <view class="reminder-heading"><text class="reminder-title">模拟异常提醒</text><button class="reminder-button reminder-close {{busy ? 'is-disabled' : ''}}" disabled="{{busy}}" bindtap="close" aria-label="关闭">×</button></view>
+    <view class="reminder-preview"><text class="reminder-preview-label">通知内容</text><text>{{preview}}</text></view>
+    <text class="reminder-note">仅演示通知效果，不代表当前图表或真实水质。</text>
+    <text wx:if="{{preparing}}" class="reminder-note">正在准备提醒…</text>
+    <text wx:if="{{error}}" class="reminder-error">{{error}}</text>
+    <text wx:if="{{notice}}" class="reminder-notice">{{notice}}</text>
+    <button wx:if="{{needsLogin}}" class="reminder-button reminder-primary" bindtap="login"><text>微信登录后体验</text></button>
+    <button wx:elif="{{canRetry}}" class="reminder-button reminder-primary {{busy ? 'is-disabled' : ''}}" disabled="{{busy}}" loading="{{busy}}" bindtap="retry"><text>核对本次发送结果</text></button>
+    <button wx:elif="{{finished}}" class="reminder-button reminder-primary" bindtap="close"><text>完成</text></button>
+    <button wx:elif="{{!intent && !preparing}}" class="reminder-button reminder-primary" bindtap="prepare"><text>重新准备提醒</text></button>
+    <button wx:else class="reminder-button reminder-primary {{busy || preparing || !intent ? 'is-disabled' : ''}}" disabled="{{busy || preparing || !intent}}" loading="{{busy}}" bindtap="authorize"><text>订阅并立即提醒</text></button>
+    <button wx:if="{{!finished}}" class="reminder-button reminder-secondary {{busy ? 'is-disabled' : ''}}" disabled="{{busy}}" bindtap="close"><text>取消</text></button>
+  </view>
+</view>

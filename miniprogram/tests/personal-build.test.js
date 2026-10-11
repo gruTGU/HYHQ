@@ -109,3 +109,23 @@ test('symlink in native function source cannot smuggle files from another direct
   assert.throws(() => preparePersonalMiniprogram({ root: f.root, ...valid }), /符号链接/);
   assert.equal(fs.existsSync(f.destination), false);
 });
+
+test('regenerating a restored assistant edition retains registered dialogue pages and the floating entry component', async (t) => {
+  const { preparePersonalMiniprogram } = await generator; const f = fixture(t);
+  const canonical = path.resolve(__dirname, '..');
+  const restored = ['pages/llm/index', 'pages/llm-history/index', 'components/floating-ai/index'];
+  const files = restored.flatMap(entry => ['.js', '.json', '.wxml', '.wxss'].map(extension => entry + extension));
+  for (const file of files) put(f.source, file, fs.readFileSync(path.join(canonical, file)));
+  put(f.source, 'app.json', JSON.stringify({ pages: ['pages/index/index', 'pages/llm/index', 'pages/llm-history/index'] }));
+  put(f.source, 'pages/explore/index.json', JSON.stringify({ usingComponents: { 'floating-ai': '/components/floating-ai/index' } }));
+  preparePersonalMiniprogram({ root: f.root, ...valid });
+  // Recreate the previous partial-sync failure, then prove a full generation repairs it.
+  fs.rmSync(path.join(f.destination, 'mini/pages/llm'), { recursive: true });
+  fs.rmSync(path.join(f.destination, 'mini/components/floating-ai'), { recursive: true });
+  preparePersonalMiniprogram({ root: f.root, ...valid });
+  const generatedApp = JSON.parse(fs.readFileSync(path.join(f.destination, 'mini/app.json')));
+  assert.ok(generatedApp.pages.includes('pages/llm/index')); assert.ok(generatedApp.pages.includes('pages/llm-history/index'));
+  for (const file of files) assert.deepEqual(fs.readFileSync(path.join(f.destination, 'mini', file)), fs.readFileSync(path.join(canonical, file)), file);
+  const explore = JSON.parse(fs.readFileSync(path.join(f.destination, 'mini/pages/explore/index.json')));
+  assert.equal(explore.usingComponents['floating-ai'], '/components/floating-ai/index');
+});

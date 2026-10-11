@@ -1,5 +1,5 @@
 {
-  "description": "HYHQ 海晏河清 · 生态科普、自然观察与绿色生活",
+  "description": "海晏河清 · 天气快捷预约与生态助手 · 2026-10-11",
   "miniprogramRoot": "./",
   "projectname": "HYHQ",
   "appid": "touristappid",
@@ -53,18 +53,6 @@
       {
         "type": "file",
         "value": "assets/examples/river-annotations.jpg"
-      },
-      {
-        "type": "folder",
-        "value": "pages/llm"
-      },
-      {
-        "type": "folder",
-        "value": "pages/llm-history"
-      },
-      {
-        "type": "folder",
-        "value": "components/floating-ai"
       }
     ]
   }

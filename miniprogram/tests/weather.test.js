@@ -89,10 +89,10 @@ test('home weather artwork follows the actual condition and an unknown condition
 
 test('home optional detail expansion makes no request and ignores callbacks after hide', () => {
   const instance = page({ request() { throw new Error('expansion must not request weather'); } });
-  instance.toggleAir(); instance.toggleObservations();
+  instance.toggleAir();
   assert.equal(instance.data.airExpanded, true);
   assert.equal(instance.data.observationExpanded, true);
   instance.onHide();
   instance.setData = () => { throw new Error('late UI callback'); };
-  instance.toggleAir(); instance.toggleObservations();
+  instance.toggleAir();
 });

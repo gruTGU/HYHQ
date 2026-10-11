@@ -30,7 +30,7 @@ function createClient(platform, config, session) {
   function headers() {
     return session.token() ? { Authorization: 'Bearer ' + session.token() } : {};
   }
-  function invalidate(sentToken) { if (sentToken && session.token() === sentToken) session.clear(); }
+  function invalidate(sentToken) { if (sentToken && session.token() === sentToken) session.clear('expired'); }
   function unwrap(response, sentToken) {
     let body = response.data;
     if (typeof body === 'string') {
