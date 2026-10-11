@@ -1,6 +1,22 @@
 # 网页生产运行与回退
 
-## 当前部署
+## 当前部署（2026-10-11）
+
+- 当前版本：`/srv/hyhq-web/releases/20261011-single-picker`；上一版 `20261011-observation-backgrounds` 保留可回退。
+- 花卉识别与河道观察删除重复的“使用相机”入口，保留“拍照 / 选图”；生产构建及浏览器入口检查通过。此项纯界面删减未重复运行全量测试。
+- 数据库备份：`/srv/hyhq-web/backups/20261011-single-picker`；共享数据、模型、密钥与预算保持，健康及公网构建资源核对通过。
+
+## 2026-10-11 识别背景版本记录
+
+- 正式服务：`https://greatdata.asia`，`hyhq-web.service`，入口链接 `/srv/hyhq-web/current`，回环端口 `18787`。
+- 当前版本：`/srv/hyhq-web/releases/20261011-observation-backgrounds`；在每日天气、模拟异常提醒和河道 AI 看图基础上，移除模拟通知的天气链接，加入纪实自然志花卉/河道选图区照片背景。
+- 上一版本：`/srv/hyhq-web/releases/20261011-river-ai`；更早的 `20261011-weather-instant` 与 `20261009-cover-alignment` 均保留。
+- 每次部署先通过 SQLite backup API 保存一致性副本；本次备份在 `/srv/hyhq-web/backups/20261011-observation-backgrounds`，仅管理员可读。此前两次备份均保留。
+- 沿用 `/srv/hyhq-web/shared/private` 的数据库、上传、模型和环境；部署前后环境文件摘要一致，未改密钥、天气预算、站点或 HTTPS 配置。
+- 发布前全量 135 项测试与构建通过，390 px 手机及 1365 px 电脑背景排版已核对。发布后核对健康接口及公网 HTML、JS/CSS、两张图片与发布包相同。此前真实浏览器选图被权限审批拒绝，未声称看图全链路已实测。
+- 每个版本的 `PREVIOUS_RELEASE` 保存可回退目标。回退只切换 `current` 并重启服务；失败应切回本版本。不要用较旧数据库覆盖当前用户数据或额度账本。
+
+## 2026-10-08 历史部署
 
 - 入口：https://greatdata.asia；独立网页服务 `hyhq-web.service`。
 - 当前版本：`/srv/hyhq-web/releases/20261008-campus-themes`；上一版 `20261008-home-layout`。校园点位与主题入口更新仅涉及代码及静态资料，沿用当前共享数据库和私有环境。

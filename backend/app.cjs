@@ -223,6 +223,10 @@ function createBackend(options = {}) {
         for (const kind of [
           "web_reminders",
           "web_reminder_days",
+          "web_daily_reminders",
+          "web_reminder_requests",
+          "web_simulation_trials",
+          "web_simulation_limits",
           "web_notifications",
         ]) {
           for (let round = 0; round < 100; round++) {

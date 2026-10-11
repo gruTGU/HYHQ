@@ -548,7 +548,13 @@ test("logout revokes session and deleting account removes private records and cr
   r = await request("regions/", { cookie: cookie2 });
   assert.equal(r.status, 200);
   assert.match(r.headers.get("set-cookie"), /Max-Age=0/);
+  const recurring = await request("weather-data/reminders/daily/", {
+    cookie: cookie1, method: "POST", body: { location: "tianjin", time: "08:00" },
+  });
+  assert.equal(recurring.status, 200);
+  assert.equal(await store.count("web_daily_reminders"), 1);
   r = await request("me/", { cookie: cookie1, method: "DELETE", body: {} });
+  assert.equal(await store.count("web_daily_reminders"), 0);
   assert.equal(r.status, 204);
   r = await request("auth/login/", {
     method: "POST",

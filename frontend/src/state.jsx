@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { api } from "./lib/api";
 import { preferenceStorage } from "./lib/privacy";
-import { THEMES } from "./lib/themes";
+import { DEFAULT_THEME, THEMES } from "./lib/themes";
 const Auth = createContext(),
   Theme = createContext(),
   AI = createContext(),
@@ -24,7 +24,7 @@ export function Providers({ children }) {
     [loading, setLoading] = useState(true),
     [theme, setThemeState] = useState(() => {
       const id = preferenceStorage.getItem("hyhq.theme");
-      return THEMES.some((t) => t.id === id) ? id : "forest";
+      return THEMES.some((t) => t.id === id) ? id : DEFAULT_THEME;
     }),
     [context, setContext] = useState(null),
     [notice, setNotice] = useState("");

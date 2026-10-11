@@ -34,3 +34,68 @@
     display: none;
   }
 }
+
+/* Use each theme's surface; --card was undefined in the two paper themes. */
+.home-page .simulation-journal {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+  border-radius: var(--radius);
+}
+.home-page .simulation-body aside {
+  background: color-mix(in srgb, var(--scenario) 6%, var(--surface));
+}
+.home-page .simulation-links--navigation {
+  background: var(--secondary);
+  border-radius: max(8px, calc(var(--radius) - 6px));
+}
+:root[data-theme="dark"] .home-page .simulation-body aside {
+  background: color-mix(in srgb, var(--scenario) 10%, var(--surface));
+}
+
+.simulation-reminder-footer {
+  padding: 20px 30px 26px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+.simulation-reminder-footer .btn,
+.simulation-reminder-modal .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  gap: 8px;
+  line-height: 1.4;
+}
+.simulation-reminder-modal {
+  max-width: 440px;
+  background: var(--surface);
+  color: var(--text);
+}
+.simulation-reminder-modal .modal-body {
+  padding: 22px 24px 26px;
+}
+.simulation-reminder-modal p {
+  margin: 0 0 18px;
+  line-height: 1.8;
+}
+.simulation-reminder-modal blockquote {
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  background: var(--secondary);
+  border-left: 3px solid var(--primary);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.simulation-reminder-modal .btn.full {
+  width: 100%;
+}
+@media (max-width: 800px) {
+  .simulation-reminder-footer {
+    padding: 18px 20px 22px;
+  }
+  .simulation-reminder-footer .btn {
+    width: 100%;
+  }
+}

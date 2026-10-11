@@ -79,15 +79,17 @@ class Boundary extends React.Component {
 }
 function WaterIndex() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const region = new URLSearchParams(location.search).get("region") || "demo-campus";
   const [error, setError] = useState("");
   useEffect(() => {
-    api("water-bodies/", { data: { page_size: 1 } })
+    api("water-bodies/", { data: { page_size: 1, region } })
       .then((r) => {
-        if (r.data[0]) navigate("/water/" + r.data[0].id, { replace: true });
+        if (r.data[0]) navigate("/water/" + r.data[0].id + "?region=" + encodeURIComponent(region), { replace: true });
         else setError("当前还没有河湖资料。");
       })
       .catch((e) => setError(e.message));
-  }, []);
+  }, [region]);
   return <div className="state card">{error || "正在打开河湖资料…"}</div>;
 }
 function Shell() {

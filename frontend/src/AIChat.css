@@ -1,0 +1,109 @@
+.modal.chat-modal {
+  min-width: 0;
+}
+.chat-modal .modal-header {
+  flex-shrink: 0;
+  gap: 16px;
+}
+.chat-modal .modal-header h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 19px;
+  line-height: 1.45;
+}
+.chat-modal .chat-model {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 10px 24px;
+}
+.chat-modal .chat-model span {
+  font-size: 11px;
+}
+.chat-modal .chat-welcome {
+  height: auto;
+  min-height: 210px;
+  gap: 15px;
+  padding: 22px 8px;
+  text-align: center;
+}
+.chat-modal .chat-welcome h3,
+.chat-modal .chat-welcome p {
+  margin: 0;
+}
+.chat-modal .chat-welcome p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+  max-width: 32em;
+}
+.chat-modal .chat-messages {
+  overscroll-behavior: contain;
+}
+.chat-modal .chat-question,
+.chat-modal .chat-answer {
+  overflow-wrap: anywhere;
+}
+.chat-modal .chat-answer {
+  margin-top: 16px;
+}
+.chat-modal .chat-input {
+  flex-shrink: 0;
+  align-items: center;
+  margin: 0 20px 10px;
+  padding: 8px;
+  gap: 8px;
+}
+.chat-modal .chat-input textarea {
+  display: block;
+  min-width: 0;
+  min-height: 52px;
+  margin: 0;
+  padding: 5px 7px;
+  line-height: 1.6;
+}
+.chat-modal .chat-input .icon-btn {
+  display: inline-flex;
+  flex: 0 0 44px;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+}
+.chat-modal .chat-input .icon-btn svg {
+  display: block;
+  flex-shrink: 0;
+}
+.chat-modal .chat-disclaimer {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 24px 18px;
+  font-size: 11px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .modal.chat-modal {
+    height: min(750px, calc(100dvh - 28px));
+    max-height: calc(100dvh - 28px);
+  }
+  .chat-modal .modal-header {
+    padding: 16px 18px;
+  }
+  .chat-modal .chat-model {
+    padding: 9px 18px;
+  }
+  .chat-modal .chat-messages {
+    padding: 16px 18px;
+  }
+  .chat-modal .chat-input {
+    margin: 0 14px 10px;
+  }
+  .chat-modal .chat-disclaimer {
+    padding: 0 18px max(14px, env(safe-area-inset-bottom));
+  }
+}

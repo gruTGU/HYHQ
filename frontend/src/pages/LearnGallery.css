@@ -1,0 +1,107 @@
+/* Covers are editorial content, shared by all themes. */
+[data-theme="design-2"] .learn-page .blog-links .btn:not(.secondary) {
+  color: #fff;
+}
+@media (min-width: 801px) {
+  .public-detail-cover.cover-content {
+    max-width: 900px;
+    margin-inline: auto;
+  }
+}
+.public-card-art.has-cover {
+  height: 184px;
+  min-height: 0;
+}
+.public-card-art.has-cover::before,
+.public-card-art.has-cover::after {
+  display: none;
+}
+.public-card-art.has-cover > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.public-detail-cover {
+  overflow: hidden;
+  border-radius: 14px;
+  margin: 0 0 26px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.public-detail-cover img {
+  display: block;
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+}
+.public-detail-cover.cover-route img {
+  height: 360px;
+}
+.learn-fold-preview {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+  margin-top: 22px;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.72;
+  -webkit-mask-image: linear-gradient(#000 8%, transparent 100%);
+  mask-image: linear-gradient(#000 8%, transparent 100%);
+}
+.learn-expand-row {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0 12px;
+}
+.learn-expand-row .pub-btn {
+  min-height: 44px;
+  gap: 10px;
+}
+.learn-expand-row svg.is-expanded {
+  transform: rotate(180deg);
+}
+@media (max-width: 800px) {
+  .learn-fold-preview {
+    display: none;
+  }
+  .learn-page .public-content-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .learn-page .public-content-card.has-cover {
+    display: flex;
+    flex-direction: column;
+  }
+  .learn-page .public-card-art.has-cover {
+    height: 150px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .learn-page .public-card-body {
+    padding: 18px 20px;
+  }
+  .learn-page .public-card-body > p {
+    -webkit-line-clamp: 2;
+  }
+  .public-detail-cover {
+    margin-bottom: 20px;
+  }
+  .public-detail-cover.cover-route img {
+    height: 280px;
+  }
+}
+@media (max-width: 360px) {
+  .learn-page .public-heading {
+    flex-wrap: wrap;
+  }
+  .learn-page .public-heading > div:first-child {
+    flex: 1 0 100%;
+  }
+  .learn-page .public-heading .blog-links {
+    margin-left: 0;
+  }
+  .learn-page .public-filter-top .pub-btn {
+    white-space: nowrap;
+    padding-inline: 8px;
+  }
+}

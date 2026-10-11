@@ -22,6 +22,7 @@ import {
   Compass,
   BookOpen,
   Waves,
+  FlaskConical,
   BarChart3,
   Leaf,
   AlertTriangle,
@@ -35,7 +36,6 @@ import {
   summaryView,
   weatherSection,
   validDailyDays,
-  validBookingDraft,
   celsius,
   nearestWeatherCity,
 } from "./weather-domain.js";
@@ -43,10 +43,18 @@ import { loadAll } from "./public-domain.js";
 import { useAuth, useTheme, useToast } from "../state";
 import { Markdown, Modal, PageHeader, State, AIButton } from "../components";
 import SimulationJournal from "./SimulationJournal";
-import NotificationButton, { notifyNotificationsChanged } from "../NotificationButton";
+import NotificationButton, {
+  notifyNotificationsChanged,
+} from "../NotificationButton";
 import "./HomePage.css";
+import "./WeatherBooking.css";
+import { validReminderDraft } from "./reminder-domain.js";
 import { weatherAppearance } from "./weather-appearance";
 import { preferenceStorage } from "../lib/privacy";
+import {
+  isSimulationNotification,
+  notificationWeatherHref,
+} from "../lib/notification-actions";
 const CITIES = [
   ["tianjin", "天津", 39.09, 117.2],
   ["beijing", "北京", 39.9, 116.41],
@@ -108,7 +116,9 @@ const formatTime = (s) =>
 const browserStorage = {
   getItem(key) {
     try {
-      return key === "hyhq.weather.city" ? preferenceStorage.getItem(key) : localStorage.getItem(key);
+      return key === "hyhq.weather.city"
+        ? preferenceStorage.getItem(key)
+        : localStorage.getItem(key);
     } catch {
       return null;
     }
@@ -329,119 +339,118 @@ export function WeatherCard() {
     Icon = WEATHER_ICONS[appearance.icon] || Cloud;
   return (
     <>
-    <section
-      className={
-        "weather-card " + (appearance.night ? "night " : "") +
-        (/雨|雪|雷/.test(w?.condition || "") ? "rainy" : "")
-      }
-    >
-      <div className="weather-top">
-        <CitySelect
-          value={city}
-          onChange={setCity}
-          {...{ locating, setLocating, setNote }}
-        />
-        {alerts.length > 0 && (
-          <button className="alert-badge" onClick={() => setAlertOpen(true)}>
-            <AlertTriangle size={16} />
-            {alerts.length}
-            {" 条预警"}
-          </button>
-        )}
-      </div>
-      <time className="weather-date" dateTime={day(now)}>
-        {new Intl.DateTimeFormat("zh-CN", {
-          timeZone: "Asia/Shanghai",
-          month: "long",
-          day: "numeric",
-          weekday: "short",
-        }).format(new Date(now))}
-      </time>
-      {note && <p className="weather-note">{note}</p>}
-      <div className="weather-main">
-        <div>
-          <div className="weather-current">
-            <span className="temperature">
-              {loading && !w
-                ? "—"
-                : celsius(w?.temperature_unit)
-                  ? int(w?.temperature)
-                  : "—"}
-              <sup>°</sup>
-            </span>
-            <div>
-              <strong>
-                {loading && !w ? "读取天气" : appearance.label}
-              </strong>
-              <span className="weather-conditions">
-                {w?.humidity_percent != null && (
-                  <span>湿度 {int(w.humidity_percent)}%</span>
-                )}
-                {w?.wind_direction && <span>{wind(w.wind_direction)}</span>}
-              </span>
-            </div>
-          </div>
-          {error && (
-            <button
-              className="text-btn"
-              onClick={() => {
-                retry.current = true;
-                setTick((t) => t + 1);
-              }}
-            >
-              {error} · 重试
+      <section
+        className={
+          "weather-card " +
+          (appearance.night ? "night " : "") +
+          (/雨|雪|雷/.test(w?.condition || "") ? "rainy" : "")
+        }
+      >
+        <div className="weather-top">
+          <CitySelect
+            value={city}
+            onChange={setCity}
+            {...{ locating, setLocating, setNote }}
+          />
+          {alerts.length > 0 && (
+            <button className="alert-badge" onClick={() => setAlertOpen(true)}>
+              <AlertTriangle size={16} />
+              {alerts.length}
+              {" 条预警"}
             </button>
           )}
-          <div className="temperature-range">
-            <div>
-              <span>今日</span>
-              <strong>
-                {int(today?.temperature_min)}° <i>/</i>{" "}
-                {int(today?.temperature_max)}°
-              </strong>
+        </div>
+        <time className="weather-date" dateTime={day(now)}>
+          {new Intl.DateTimeFormat("zh-CN", {
+            timeZone: "Asia/Shanghai",
+            month: "long",
+            day: "numeric",
+            weekday: "short",
+          }).format(new Date(now))}
+        </time>
+        {note && <p className="weather-note">{note}</p>}
+        <div className="weather-main">
+          <div>
+            <div className="weather-current">
+              <span className="temperature">
+                {loading && !w
+                  ? "—"
+                  : celsius(w?.temperature_unit)
+                    ? int(w?.temperature)
+                    : "—"}
+                <sup>°</sup>
+              </span>
+              <div>
+                <strong>{loading && !w ? "读取天气" : appearance.label}</strong>
+                <span className="weather-conditions">
+                  {w?.humidity_percent != null && (
+                    <span>湿度 {int(w.humidity_percent)}%</span>
+                  )}
+                  {w?.wind_direction && <span>{wind(w.wind_direction)}</span>}
+                </span>
+              </div>
             </div>
-            <div>
-              <span>明日</span>
-              <strong>
-                {int(tomorrow?.temperature_min)}° <i>/</i>{" "}
-                {int(tomorrow?.temperature_max)}°
-              </strong>
+            {error && (
+              <button
+                className="text-btn"
+                onClick={() => {
+                  retry.current = true;
+                  setTick((t) => t + 1);
+                }}
+              >
+                {error} · 重试
+              </button>
+            )}
+            <div className="temperature-range">
+              <div>
+                <span>今日</span>
+                <strong>
+                  {int(today?.temperature_min)}° <i>/</i>{" "}
+                  {int(today?.temperature_max)}°
+                </strong>
+              </div>
+              <div>
+                <span>明日</span>
+                <strong>
+                  {int(tomorrow?.temperature_min)}° <i>/</i>{" "}
+                  {int(tomorrow?.temperature_max)}°
+                </strong>
+              </div>
             </div>
           </div>
+          <Icon className="weather-art" strokeWidth={1.3} aria-hidden="true" />
         </div>
-        <Icon className="weather-art" strokeWidth={1.3} aria-hidden="true" />
-      </div>
-      <div className="weather-bottom">
-        <button
-          className="air-summary"
-          onClick={() => setAirExpanded((v) => !v)}
-          aria-expanded={airExpanded}
-        >
-          <span className="air-dot" />
-          {air
-            ? `空气 ${air.category || ""} · ${air.aqi_display || int(air.aqi)}`
-            : "空气质量暂不可用"}
-          <ChevronDown size={18} />
-        </button>
-        <Link to={"/weather?location=" + city} className="weather-book-link">
-          订阅天气推送提醒 <ArrowUpRight size={17} />
-        </Link>
-      </div>
-      {airExpanded && air && (
-        <div className="air-details">
-          {air.pollutants?.map((p) => (
-            <div key={p.code}>
-              <span>{p.name || p.code}</span>
-              <strong>
-                {p.value ?? "—"} <small>{p.unit}</small>
-              </strong>
-            </div>
-          ))}
-          {air.advice && <p>{air.advice}</p>}
+        <div className="weather-bottom">
+          <button
+            className="air-summary"
+            onClick={() => setAirExpanded((v) => !v)}
+            aria-expanded={airExpanded}
+          >
+            <span className="air-dot" />
+            {air
+              ? `空气 ${air.category || ""} · ${air.aqi_display || int(air.aqi)}`
+              : "空气质量暂不可用"}
+            <ChevronDown size={18} />
+          </button>
+          <Link to={"/weather?location=" + city} className="weather-book-link">
+            订阅天气推送提醒 <ArrowUpRight size={17} />
+          </Link>
         </div>
-      )}
-      <Source data={raw} />
-    </section>
+        {airExpanded && air && (
+          <div className="air-details">
+            {air.pollutants?.map((p) => (
+              <div key={p.code}>
+                <span>{p.name || p.code}</span>
+                <strong>
+                  {p.value ?? "—"} <small>{p.unit}</small>
+                </strong>
+              </div>
+            ))}
+            {air.advice && <p>{air.advice}</p>}
+          </div>
+        )}
+        <Source data={raw} />
+      </section>
       {alertOpen && (
         <Modal title="气象预警" onClose={() => setAlertOpen(false)}>
           <div className="modal-body">
@@ -506,7 +515,12 @@ export function HomePage() {
     <main className="home-page">
       <div className="home-heading">
         <div className="home-brand">
-          <img src="/assets/brand/hyhq-sketch.jpg" alt="" width="76" height="76" />
+          <img
+            src="/assets/brand/hyhq-sketch.jpg"
+            alt=""
+            width="76"
+            height="76"
+          />
           <h1>海晏河清</h1>
         </div>
         <NotificationButton />
@@ -557,15 +571,19 @@ export function HomePage() {
                 }[a.category] || "自然见闻"}
               </small>
               <h3>{a.title}</h3>
-              <div className="journal-preview-excerpt"><p>{a.summary}</p></div>
-              <span className="journal-read-more">阅读全文 <ArrowRight size={14} /></span>
+              <div className="journal-preview-excerpt">
+                <p>{a.summary}</p>
+              </div>
+              <span className="journal-read-more">
+                阅读全文 <ArrowRight size={14} />
+              </span>
             </div>
             <ArrowUpRight size={20} />
           </Link>
         ))}
       </div>
       <SimulationJournal />
-      <AIButton floating context={() => ({scope: "home", weather_location: selectedCity()})} />
+      <AIButton floating context={{ scope: "home" }} />
     </main>
   );
 }
@@ -581,6 +599,7 @@ export function WeatherPage() {
     [note, setNote] = useState(""),
     [reminders, setReminders] = useState(null),
     [when, setWhen] = useState(""),
+    [dailyTime, setDailyTime] = useState("08:00"),
     [busy, setBusy] = useState(false),
     [draft, setDraft] = useState(null),
     [aiText, setAIText] = useState(""),
@@ -597,7 +616,9 @@ export function WeatherPage() {
     currentCity = useRef(city);
   currentCity.current = city;
   const changeCity = (v) => {
-    setParams({ location: v });
+    const updatedParams = new URLSearchParams(params);
+    updatedParams.set("location", v);
+    setParams(updatedParams);
     browserStorage.setItem("hyhq.weather.city", v);
   };
   async function loadReminders(signal) {
@@ -612,6 +633,8 @@ export function WeatherPage() {
       if (!Array.isArray(r.data?.items))
         throw new Error("预约记录返回格式不正确，请重试。");
       setReminders({ ...r.data, owner: ticket.id });
+      const activeDaily = r.data.daily;
+      if (activeDaily?.time) setDailyTime(activeDaily.time);
     }
     return r.data;
   }
@@ -644,6 +667,7 @@ export function WeatherPage() {
     setReminders(null);
     setDraft(null);
     setWhen("");
+    setDailyTime("08:00");
     setAIText("");
     setNotice("");
     mutation.current = false;
@@ -690,6 +714,9 @@ export function WeatherPage() {
     }
     setDraft({
       location: city,
+      type: "weather",
+      scenario: null,
+      request_key: crypto.randomUUID(),
       scheduled_for: new Date(ms).toISOString(),
       owner: user.id,
     });
@@ -741,13 +768,19 @@ export function WeatherPage() {
     try {
       const r = await api("weather-data/reminders/interpret/", {
         method: "POST",
-        data: { text: aiText, location: city, request_key: requestId },
+        data: {
+          text: aiText,
+          location: city,
+          request_key: requestId,
+          type: "weather",
+          scenario: null,
+        },
       });
       if (!scope.valid(ticket) || currentCity.current !== selectedCity) return;
       interpretRequest.current = null;
       setNotice(r.data.message || "");
       if (r.data.draft) {
-        const d = validBookingDraft(
+        const d = validReminderDraft(
           r.data.draft,
           CITIES.map((c) => c[0]),
         );
@@ -756,12 +789,20 @@ export function WeatherPage() {
           return;
         }
         changeCity(d.location);
+        setDraft(null);
+        if (d.frequency === "daily") {
+          setDailyTime(d.time);
+          setNotice(
+            "每日提醒草稿已填入，请核对城市与时间，再点击开启每日提醒。",
+          );
+          return;
+        }
         setWhen(
           new Date(Date.parse(d.scheduled_for) + 8 * 3600000)
             .toISOString()
             .slice(0, 16),
         );
-        setNotice("草稿已填入，请核对城市与北京时间，再确认预约。");
+        setNotice("草稿已填入，请核对提醒内容与北京时间，再确认预约。");
       }
     } catch (e) {
       if (scope.valid(ticket) && currentCity.current === selectedCity) {
@@ -769,6 +810,34 @@ export function WeatherPage() {
           interpretRequest.current = null;
         setNotice(e.message);
       }
+    } finally {
+      finish(ticket);
+    }
+  }
+  async function saveDaily(cancelled = false) {
+    const ticket = begin();
+    if (!ticket) return;
+    try {
+      await api(
+        "weather-data/reminders/daily/" + (cancelled ? "cancel/" : ""),
+        {
+          method: "POST",
+          data: cancelled
+            ? { type: "weather" }
+            : {
+                location: city,
+                time: dailyTime,
+                type: "weather",
+                scenario: null,
+              },
+        },
+      );
+      if (!scope.valid(ticket)) return;
+      await loadReminders();
+      if (scope.valid(ticket))
+        toast(cancelled ? "每日提醒已关闭。" : "已开启每日站内提醒。");
+    } catch (e) {
+      if (scope.valid(ticket)) setNotice(e.message);
     } finally {
       finish(ticket);
     }
@@ -794,6 +863,8 @@ export function WeatherPage() {
       data?.location?.slug === city
         ? weatherSection(data.forecast, now, "daily")
         : weatherSection(null, now, "daily"),
+    dailyReminder =
+      user && reminders?.owner === user.id ? reminders.daily : null,
     visibleReminders =
       user && reminders?.owner === user.id ? reminders.items : [];
   const days = validDailyDays(forecast, now),
@@ -810,96 +881,102 @@ export function WeatherPage() {
           返回首页
         </Link>
       </PageHeader>
-      <div className="weather-page-city">
-        <CitySelect
-          value={city}
-          onChange={changeCity}
-          {...{ locating, setLocating, setNote }}
-        />
-        {note && <small>{note}</small>}
-      </div>
-      <State
-        loading={loading}
-        error={days.length ? null : error}
-        onRetry={() => {
-          retry.current = true;
-          setRevision((v) => v + 1);
-        }}
-      >
-        {forecast.stale && (
-          <p className="inline-warning">当前显示历史预报，实时更新暂不可用。</p>
-        )}
-        {error && days.length > 0 && <p className="inline-warning">{error}</p>}
-        {days.length ? (
-          <div className="forecast-grid">
-            {days.map((d, i) => (
-              <article className="forecast-day card" key={d.date}>
-                <span className="eyebrow">
-                  {d.date === day()
-                    ? "今日"
-                    : d.date === day(Date.now() + 86400000)
-                      ? "明日"
-                      : d.date === day(Date.now() + 2 * 86400000)
-                        ? "后天"
-                        : formatDate(d.date)}
-                </span>
-                <small>{formatDate(d.date)}</small>
-                <CloudSun size={45} strokeWidth={1} />
-                <h2>
-                  {int(d.temperature_min)}° <span>/</span>{" "}
-                  {int(d.temperature_max)}°
-                </h2>
-                <p>
-                  {d.daytime?.condition || "—"}
-                  {d.nighttime?.condition &&
-                  d.nighttime.condition !== d.daytime?.condition
-                    ? " 转 " + d.nighttime.condition
-                    : ""}
-                </p>
-                <div className="forecast-detail">
-                  <Wind size={15} />
-                  {wind(d.daytime?.wind_direction)}
-                  {d.daytime?.wind_scale != null
-                    ? " " + d.daytime.wind_scale + " 级"
-                    : ""}
-                </div>
-                {d.daytime?.precipitation_probability_percent != null && (
+      <>
+        <div className="weather-page-city">
+          <CitySelect
+            value={city}
+            onChange={changeCity}
+            {...{ locating, setLocating, setNote }}
+          />
+          {note && <small>{note}</small>}
+        </div>
+        <State
+          loading={loading}
+          error={days.length ? null : error}
+          onRetry={() => {
+            retry.current = true;
+            setRevision((v) => v + 1);
+          }}
+        >
+          {forecast.stale && (
+            <p className="inline-warning">
+              当前显示历史预报，实时更新暂不可用。
+            </p>
+          )}
+          {error && days.length > 0 && (
+            <p className="inline-warning">{error}</p>
+          )}
+          {days.length ? (
+            <div className="forecast-grid">
+              {days.map((d, i) => (
+                <article className="forecast-day card" key={d.date}>
+                  <span className="eyebrow">
+                    {d.date === day()
+                      ? "今日"
+                      : d.date === day(Date.now() + 86400000)
+                        ? "明日"
+                        : d.date === day(Date.now() + 2 * 86400000)
+                          ? "后天"
+                          : formatDate(d.date)}
+                  </span>
+                  <small>{formatDate(d.date)}</small>
+                  <CloudSun size={45} strokeWidth={1} />
+                  <h2>
+                    {int(d.temperature_min)}° <span>/</span>{" "}
+                    {int(d.temperature_max)}°
+                  </h2>
+                  <p>
+                    {d.daytime?.condition || "—"}
+                    {d.nighttime?.condition &&
+                    d.nighttime.condition !== d.daytime?.condition
+                      ? " 转 " + d.nighttime.condition
+                      : ""}
+                  </p>
                   <div className="forecast-detail">
-                    <Droplets size={14} />
-                    降水概率 {d.daytime.precipitation_probability_percent}%
+                    <Wind size={15} />
+                    {wind(d.daytime?.wind_direction)}
+                    {d.daytime?.wind_scale != null
+                      ? " " + d.daytime.wind_scale + " 级"
+                      : ""}
                   </div>
-                )}
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="state card">
-            <CloudSun />
-            <p>当前预报暂不可用，请稍后再试。</p>
-            <button
-              className="btn secondary"
-              onClick={() => {
-                retry.current = true;
-                setRevision((v) => v + 1);
-              }}
-            >
-              重新加载
-            </button>
-          </div>
-        )}
-        <Source data={{ forecast: data?.forecast }} />
-      </State>
+                  {d.daytime?.precipitation_probability_percent != null && (
+                    <div className="forecast-detail">
+                      <Droplets size={14} />
+                      降水概率 {d.daytime.precipitation_probability_percent}%
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="state card">
+              <CloudSun />
+              <p>当前预报暂不可用，请稍后再试。</p>
+              <button
+                className="btn secondary"
+                onClick={() => {
+                  retry.current = true;
+                  setRevision((v) => v + 1);
+                }}
+              >
+                重新加载
+              </button>
+            </div>
+          )}
+          <Source data={{ forecast: data?.forecast }} />
+        </State>
+      </>
       <div className="booking-layout">
         <section className="card booking-form">
           <div className="section-title">
             <h2>
-              <Bell size={21} /> 订阅天气推送提醒
+              <Bell size={21} /> 订阅提醒
             </h2>
             <span className="tag">站内提醒</span>
           </div>
           <p className="muted">
             北京时间 ·
-            单次预约。到期后在本机网页的通知中心查看，服务需保持运行。
+            到期后在本站通知中心查看。服务需保持运行，不发送微信或系统通知。
           </p>
           {authLoading ? (
             <p className="muted">正在读取预约账号…</p>
@@ -909,6 +986,67 @@ export function WeatherPage() {
             </Link>
           ) : (
             <>
+              <section
+                className="daily-booking"
+                aria-labelledby="daily-booking-title"
+              >
+                <div className="daily-booking-heading">
+                  <div>
+                    <h3 id="daily-booking-title">每日天气提醒</h3>
+                    <p>选好时间，一键开启每天的站内提醒。</p>
+                  </div>
+                  <Bell size={22} aria-hidden="true" />
+                </div>
+                <div className="daily-booking-controls">
+                  <label htmlFor="daily-booking-time">
+                    每天 · 北京时间
+                    <input
+                      id="daily-booking-time"
+                      type="time"
+                      value={dailyTime}
+                      onChange={(e) => setDailyTime(e.target.value)}
+                      onInput={(e) => setDailyTime(e.currentTarget.value)}
+                      onBlur={(e) => setDailyTime(e.currentTarget.value)}
+                      required
+                      disabled={busy}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={busy || !dailyTime}
+                    onClick={() => saveDaily()}
+                  >
+                    {dailyReminder?.enabled
+                      ? "更新每日提醒"
+                      : "一键开启每日提醒"}
+                  </button>
+                </div>
+                {dailyReminder?.enabled && (
+                  <div className="daily-booking-active" role="status">
+                    <div>
+                      <strong>
+                        {dailyReminder.location_name}
+                        {dailyReminder.scenario_name
+                          ? " · " + dailyReminder.scenario_name
+                          : ""}{" "}
+                        · 每天 {dailyReminder.time}
+                      </strong>
+                      <small>
+                        下次提醒：{formatTime(dailyReminder.next_scheduled_for)}
+                      </small>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn secondary small"
+                      disabled={busy}
+                      onClick={() => saveDaily(true)}
+                    >
+                      关闭每日提醒
+                    </button>
+                  </div>
+                )}
+              </section>
               <div className="booking-ai">
                 <label htmlFor="booking-ai">
                   用一句话安排{" "}
@@ -964,7 +1102,12 @@ export function WeatherPage() {
             visibleReminders.map((r) => (
               <article key={r.id}>
                 <div>
-                  <strong>{r.location_name}</strong>
+                  <strong>
+                    {r.location_name}
+                    {r.simulation
+                      ? " · " + r.preview?.scenario_name + "（模拟）"
+                      : ""}
+                  </strong>
                   <span>{formatTime(r.scheduled_for)}</span>
                   <small>
                     {{
@@ -974,6 +1117,7 @@ export function WeatherPage() {
                       cancelled: "已取消",
                       failed: "未完成",
                       expired: "已过期",
+                      paused: "模拟预约已停用",
                     }[r.state] || r.state}
                   </small>
                 </div>
@@ -1064,6 +1208,34 @@ export function NotificationsPage() {
       request.current++;
     };
   }, [user?.id]);
+  useEffect(() => {
+    if (!user || result.owner !== user.id) return;
+    const visible = result.rows.filter(
+      (row) => isSimulationNotification(row) && !row.read,
+    );
+    if (!visible.length) return;
+    const ticket = scope.capture(),
+      controller = new AbortController();
+    // Reading these self-contained cards is the complete interaction. Keep the
+    // unread badge accurate without introducing an unrelated navigation button.
+    Promise.allSettled(
+      visible.map((row) =>
+        api("web/notifications/" + encodeURIComponent(row.id) + "/read/", {
+          method: "POST",
+          data: {},
+          signal: controller.signal,
+        }),
+      ),
+    ).then((outcomes) => {
+      if (
+        !controller.signal.aborted &&
+        scope.valid(ticket) &&
+        outcomes.some((outcome) => outcome.status === "fulfilled")
+      )
+        notifyNotificationsChanged();
+    });
+    return () => controller.abort();
+  }, [result, user?.id]);
   const rows = user && result.owner === user.id ? result.rows : [];
   return (
     <main>
@@ -1082,25 +1254,25 @@ export function NotificationsPage() {
                 <p>{r.body}</p>
                 <small>{formatTime(r.created_at)}</small>
               </div>
-              <Link
-                className="btn secondary"
-                to={
-                  /^\/weather\?location=[a-z0-9-]+$/.test(r.href || "")
-                    ? r.href
-                    : "/weather"
-                }
-                onClick={() => {
-                  if (user?.id === result.owner)
-                    api(
-                      "web/notifications/" +
-                        encodeURIComponent(r.id) +
-                        "/read/",
-                      { method: "POST", data: {} },
-                    ).then(() => notifyNotificationsChanged()).catch(() => {});
-                }}
-              >
-                查看天气
-              </Link>
+              {notificationWeatherHref(r) && (
+                <Link
+                  className="btn secondary"
+                  to={notificationWeatherHref(r)}
+                  onClick={() => {
+                    if (user?.id === result.owner)
+                      api(
+                        "web/notifications/" +
+                          encodeURIComponent(r.id) +
+                          "/read/",
+                        { method: "POST", data: {} },
+                      )
+                        .then(() => notifyNotificationsChanged())
+                        .catch(() => {});
+                  }}
+                >
+                  查看天气
+                </Link>
+              )}
             </article>
           ))
         ) : (

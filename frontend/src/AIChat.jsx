@@ -4,6 +4,8 @@ import { Send, Sparkles, ArrowUpRight, ImagePlus } from "lucide-react";
 import { api, allPages } from "./lib/api";
 import { useAI, useAuth } from "./state";
 import { Markdown, Modal } from "./components";
+import { initialAssistantQuestion } from "./pages/recognition-domain.js";
+import "./AIChat.css";
 const active = (turn) => ["queued", "running"].includes(turn.status);
 const normalizeScope = (scope) =>
   ({ recognize: "recognition", water: "recognition", data: "explore" })[
@@ -50,7 +52,7 @@ function Chat({ context, owner, onClose }) {
   );
   const [session, setSession] = useState(null),
     [turns, setTurns] = useState([]),
-    [text, setText] = useState(""),
+    [text, setText] = useState(() => initialAssistantQuestion(context)),
     [error, setError] = useState(""),
     [errorCode, setErrorCode] = useState(""),
     [busy, setBusy] = useState(false),
@@ -60,7 +62,6 @@ function Chat({ context, owner, onClose }) {
     [loadTick, setLoadTick] = useState(0),
     [loadFailed, setLoadFailed] = useState(false),
     [sendUncertain, setSendUncertain] = useState(false),
-    [weatherCity, setWeatherCity] = useState(context.weather_location || ""),
     [includeImage, setIncludeImage] = useState(context.include_image === true);
   const bottom = useRef(),
     live = useRef(true),
@@ -224,8 +225,6 @@ function Chat({ context, owner, onClose }) {
           ])
             if (context[key] !== undefined) payload[key] = context[key];
           if (recognition && hasJob) payload.include_image = includeImage;
-          else if (!recognition && weatherCity)
-            payload.weather_location = weatherCity;
           creationRef.current = payload;
         }
         s = (
@@ -320,47 +319,31 @@ function Chat({ context, owner, onClose }) {
     >
       <div className="chat-model">
         <Sparkles size={15} /> DeepSeek · Flash{" "}
-        <span>{recognition && !hasJob ? "通用观察问答" : "结合公开资料"}</span>
+        <span>
+          {recognition
+            ? hasJob
+              ? includeImage
+                ? "结合本次照片"
+                : "结合检测结果"
+              : "通用观察问答"
+            : "结合公开资料"}
+        </span>
       </div>
-      {!session && !sessionId && (
+      {!session && !sessionId && recognition && hasJob && (
         <div className="chat-options">
-          {recognition && hasJob ? (
-            <button
-              className={"chat-attachment " + (includeImage ? "selected" : "")}
-              disabled={
-                busy ||
-                !!creationRef.current ||
-                context.interpretation_mode === "image"
-              }
-              onClick={() => setIncludeImage((v) => !v)}
-              aria-pressed={includeImage}
-            >
-              <ImagePlus size={14} />
-              {includeImage ? "已附识别照片" : "附上识别照片"}
-            </button>
-          ) : (
-            !recognition && (
-              <label>
-                天气参考
-                <select
-                  aria-label="AI 天气参考城市"
-                  value={weatherCity}
-                  onChange={(e) => setWeatherCity(e.target.value)}
-                  disabled={busy || !!creationRef.current}
-                >
-                  <option value="">不附加天气</option>
-                  {[
-                    ["tianjin", "天津"],
-                    ["beijing", "北京"],
-                  ].map(([id, name]) => (
-                    <option key={id} value={id}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )
-          )}
+          <button
+            className={"chat-attachment " + (includeImage ? "selected" : "")}
+            disabled={
+              busy ||
+              !!creationRef.current ||
+              context.interpretation_mode === "image"
+            }
+            onClick={() => setIncludeImage((v) => !v)}
+            aria-pressed={includeImage}
+          >
+            <ImagePlus size={14} />
+            {includeImage ? "已附识别照片" : "附上识别照片"}
+          </button>
         </div>
       )}
       <div className="chat-messages">
@@ -377,7 +360,11 @@ function Chat({ context, owner, onClose }) {
                 <p>
                   {recognition && !hasJob
                     ? "可以直接询问拍摄和观察方法；当前没有附带照片或识别结果。"
-                    : "直接输入问题即可，无需先选择文章或地点。"}
+                    : {
+                        home: "了解平台功能，聊聊自然观察。",
+                        explore: "聊聊京津地点、校园与漫步路线。",
+                        learn: "读懂文章里的知识，发现沿途的自然。",
+                      }[scope] || "输入问题，继续了解这次观察。"}
                 </p>
               </div>
             )}
@@ -385,9 +372,6 @@ function Chat({ context, owner, onClose }) {
               <div className="chat-turn" key={t.id}>
                 <div className="chat-question">{t.question}</div>
                 <div className="chat-answer">
-                  <div className="answer-label">
-                    <Sparkles size={15} /> DeepSeek
-                  </div>
                   {t.answer ? (
                     <Markdown text={t.answer} />
                   ) : active(t) ? (
@@ -517,7 +501,7 @@ function Chat({ context, owner, onClose }) {
           <Send size={20} />
         </button>
       </form>
-      <p className="muted">
+      <p className="muted chat-disclaimer">
         问题、相关公开资料和你主动附带的图片会发送给 DeepSeek。AI
         可能出错，请结合来源核实。
       </p>

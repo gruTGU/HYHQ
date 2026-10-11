@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Cookie, ShieldCheck } from "lucide-react";
 import { Modal } from "./components";
 import { privacyChoice, savePrivacyChoice } from "./lib/privacy";
+import "./PrivacyControls.css";
 export default function PrivacyControls() {
   const [choice, setChoice] = useState(privacyChoice),
     [open, setOpen] = useState(false);
@@ -49,43 +50,49 @@ export default function PrivacyControls() {
         </aside>
       )}
       {open && (
-        <Modal title="Cookie 与存储设置" onClose={() => setOpen(false)}>
-          <div className="privacy-option">
-            <ShieldCheck size={20} />
-            <div>
-              <strong>必要功能 · 始终启用</strong>
-              <p>
-                登录与游客会话、验证码、防刷限额、天气缓存和本次隐私选择。它们用于提供你主动使用的服务；不用于广告画像。
-              </p>
+        <Modal
+          title="Cookie 与存储设置"
+          className="privacy-settings-modal"
+          onClose={() => setOpen(false)}
+        >
+          <div className="modal-body privacy-settings-body">
+            <div className="privacy-option">
+              <ShieldCheck size={20} />
+              <div>
+                <strong>必要功能 · 始终启用</strong>
+                <p>
+                  登录与游客会话、验证码、防刷限额、天气缓存和本次隐私选择。它们用于提供你主动使用的服务；不用于广告画像。
+                </p>
+              </div>
             </div>
-          </div>
-          <label className="privacy-option">
-            <input
-              type="checkbox"
-              checked={preferences}
-              onChange={(e) => setPreferences(e.target.checked)}
-            />
-            <div>
-              <strong>记住我的偏好</strong>
-              <p>
-                将主题和天气／导览城市保存在此浏览器。关闭后仍可切换，但不再跨浏览器会话记住选择。
-              </p>
+            <label className="privacy-option">
+              <input
+                type="checkbox"
+                checked={preferences}
+                onChange={(e) => setPreferences(e.target.checked)}
+              />
+              <div>
+                <strong>记住我的偏好</strong>
+                <p>
+                  将主题和天气／导览城市保存在此浏览器。关闭后仍可切换，但不再跨浏览器会话记住选择。
+                </p>
+              </div>
+            </label>
+            <p className="muted">
+              无分析或营销 Cookie。底图和 AI 等外部服务的说明见{" "}
+              <Link to="/legal/privacy" onClick={() => setOpen(false)}>
+                隐私政策
+              </Link>
+              ；拒绝偏好不会退出账号，也不会删除服务端私人记录。
+            </p>
+            <div className="cookie-actions">
+              <button className="btn secondary" onClick={() => save(false)}>
+                仅必要
+              </button>
+              <button className="btn" onClick={() => save(preferences)}>
+                保存选择
+              </button>
             </div>
-          </label>
-          <p className="muted">
-            无分析或营销 Cookie。底图和 AI 等外部服务的说明见{" "}
-            <Link to="/legal/privacy" onClick={() => setOpen(false)}>
-              隐私政策
-            </Link>
-            ；拒绝偏好不会退出账号，也不会删除服务端私人记录。
-          </p>
-          <div className="cookie-actions">
-            <button className="btn secondary" onClick={() => save(false)}>
-              仅必要
-            </button>
-            <button className="btn" onClick={() => save(preferences)}>
-              保存选择
-            </button>
           </div>
         </Modal>
       )}

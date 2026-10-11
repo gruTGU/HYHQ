@@ -39,6 +39,8 @@ import { useAuth, useTheme } from "../state.jsx";
 import { PageHeader, Markdown, Modal, AIButton } from "../components.jsx";
 import AltchaField from "../AltchaField.jsx";
 import NotificationButton from "../NotificationButton.jsx";
+import { FlowerCategoryLabels } from "../FlowerCategoryIcons.jsx";
+import { riverAssistant } from "./recognition-domain.js";
 import {
   time,
   pending,
@@ -1217,7 +1219,6 @@ function ObservationPanel({ river, requestedId, onBusy }) {
     [locating, setLocating] = useState(false),
     [picker, setPicker] = useState(false);
   const input = useRef(null),
-    camera = useRef(null),
     selection = useRef(0),
     locationVersion = useRef(0),
     uploaded = useRef(null);
@@ -1237,6 +1238,30 @@ function ObservationPanel({ river, requestedId, onBusy }) {
       : null;
   const picture = origin === "history" ? privateImage.src : preview;
   const Icon = river ? Waves : Flower2;
+  const riverAI = river ? riverAssistant(task, view) : null;
+  const assistant = (riverAI || (!river && view)) && (
+    <div className={"card p-ai-next" + (river ? " p-ai-next-river" : "")}>
+      <div>
+        <span className="p-eyebrow">✦ DeepSeek Flash</span>
+        <h2>{river ? "一起看看这段河流" : "听听这朵花的故事"}</h2>
+        <p>
+          {river
+            ? "已准备好原图和问题，打开后可修改，确认发送后开始观察。"
+            : "核对候选特征，了解更多植物知识。原图可由你主动选择附带。"}
+        </p>
+      </div>
+      <div className="p-actions">
+        <AIButton
+          context={riverAI?.context || {
+            scope: "recognition",
+            recognition_job_id: task?.id,
+            include_image: false,
+          }}
+          label={river ? "AI 看图 · 解读检测结果" : "问问 AI"}
+        />
+      </div>
+    </div>
+  );
   useEffect(() => {
     active.current = true;
     return () => {
@@ -1468,7 +1493,7 @@ function ObservationPanel({ river, requestedId, onBusy }) {
     );
   }
   return (
-    <div className="p-observation">
+    <div className={`p-observation p-observation-${river ? "river" : "flower"}`}>
       <div className="p-flow-steps">
         {[
           "选择照片",
@@ -1555,33 +1580,14 @@ function ObservationPanel({ river, requestedId, onBusy }) {
           </>
         )}
         {user && (
-          <>
-            <input
-              ref={input}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={selectFile}
-              className="p-visually-hidden"
-              aria-label="从相册选择照片"
-            />
-            <input
-              ref={camera}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={selectFile}
-              className="p-visually-hidden"
-              aria-label="使用相机拍照"
-            />
-            <button
-              className="p-link-button p-camera-link"
-              onClick={() => camera.current?.click()}
-              disabled={busy}
-            >
-              <Camera size={15} />
-              使用相机
-            </button>
-          </>
+          <input
+            ref={input}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={selectFile}
+            className="p-visually-hidden"
+            aria-label="从相册选择照片"
+          />
         )}
       </div>
       <Notice>{privateImage.error}</Notice>
@@ -1729,16 +1735,7 @@ function ObservationPanel({ river, requestedId, onBusy }) {
           <p>
             目前只支持以下五类常见花卉的识别。这是一项轻量的图片分类功能，帮你初步认识身边的花草，并非专业植物鉴定。如果拍到五类之外的植物，系统仍可能给出一个“最像”的候选——这属于正常现象，请把结果当作初步参考，并与实物对比确认。
           </p>
-          <div className="p-flower-labels">
-            {["雏菊类", "郁金香类", "蒲公英类", "蔷薇属", "向日葵类"].map(
-              (label) => (
-                <span key={label}>
-                  <Flower2 size={17} />
-                  {label}
-                </span>
-              ),
-            )}
-          </div>
+          <FlowerCategoryLabels />
           <p className="p-small p-muted">
             识别模型为 {cap.modelName || "flowers-efficientnet-b0"} ·{" "}
             {cap.modelVersion || "v1"}
@@ -1747,6 +1744,7 @@ function ObservationPanel({ river, requestedId, onBusy }) {
       )}
       <Notice error>{error}</Notice>
       {!account && /次数|额度/.test(error) && <Link className="btn secondary" to="/login">登录后继续</Link>}
+      {riverAI?.beforeResult && assistant}
       {task && !view && (
         <div className="card p-task-status">
           <div>
@@ -1782,45 +1780,7 @@ function ObservationPanel({ river, requestedId, onBusy }) {
         ) : (
           <FlowerResult result={view} />
         ))}
-      {task &&
-        (view || (river && ["succeeded", "failed"].includes(task.status))) && (
-          <div className="card p-ai-next">
-            <div>
-              <span className="p-eyebrow">✦ DeepSeek Flash</span>
-              <h2>{river ? "一起看看这段河流" : "听听这朵花的故事"}</h2>
-              <p>
-                {river
-                  ? "主动发送问题后，AI 可结合你选择的原图观察可见细节。"
-                  : "核对候选特征，了解更多植物知识。原图可由你主动选择附带。"}
-              </p>
-            </div>
-            <div className="p-actions">
-              {river && (
-                <AIButton
-                  context={{
-                    scope: "recognition",
-                    assessment_job_id: task.id,
-                    interpretation_mode: "image",
-                    include_image: true,
-                  }}
-                  label="AI 看图"
-                />
-              )}
-              {view && (
-                <AIButton
-                  context={{
-                    scope: "recognition",
-                    ...(river
-                      ? { assessment_job_id: task.id }
-                      : { recognition_job_id: task.id }),
-                    include_image: false,
-                  }}
-                  label={river ? "解读检测结果" : "问问 AI"}
-                />
-              )}
-            </div>
-          </div>
-        )}
+      {!riverAI?.beforeResult && assistant}
       {task && (
         <button
           className="p-link-button p-danger-text"

@@ -9,6 +9,7 @@ import {
 import L from "leaflet";
 import TencentMap from "../TencentMap";
 import { preferenceStorage } from "../lib/privacy";
+import { contentCover, featuredContents } from "../lib/content-covers";
 import "leaflet/dist/leaflet.css";
 import {
   ArrowLeft,
@@ -61,6 +62,7 @@ import {
   gcjToWgs,
 } from "./public-domain.js";
 import "./PublicPages.css";
+import "./LearnGallery.css";
 import { BlogLinks, BlogComments } from "./BlogPages.jsx";
 
 const errorText = (e) => e?.message || "暂时无法加载，请稍后重试。";
@@ -243,9 +245,10 @@ function useRegions(includeDemo = false) {
 }
 function ContentCard({ item, index = 0, route = false }) {
   const Icon = route ? Route : item.category === "water" ? Droplets : Leaf;
+  const cover = contentCover(item, route ? "route" : "content");
   return (
     <Link
-      className={"public-content-card " + (route ? "route-content-card" : "")}
+      className={"public-content-card " + (route ? "route-content-card " : "") + (cover ? "has-cover" : "")}
       to={
         !route && item.origin === "blog"
           ? "/blog/" + encodeURIComponent(item.id)
@@ -255,12 +258,11 @@ function ContentCard({ item, index = 0, route = false }) {
       <div
         className={
           "public-card-art category-" +
-          (route ? "route" : item.category || "plants")
+          (route ? "route" : item.category || "plants") + (cover ? " has-cover" : "")
         }
         aria-hidden="true"
       >
-        <Icon size={54} strokeWidth={1.1} />
-        <span>{String(index + 1).padStart(2, "0")}</span>
+        {cover ? <img src={cover.src} alt="" loading="lazy" decoding="async" style={{objectPosition: cover.position}} /> : <><Icon size={54} strokeWidth={1.1} /><span>{String(index + 1).padStart(2, "0")}</span></>}
       </div>
       <div className="public-card-body">
         <div className="public-card-meta">
@@ -307,10 +309,18 @@ function ContentCard({ item, index = 0, route = false }) {
     </Link>
   );
 }
+function ContentCover({ item, kind }) {
+  const cover = contentCover(item, kind);
+  return cover ? <figure className={"public-detail-cover cover-" + kind}>
+    <img src={cover.src} alt={cover.alt} style={{objectPosition: cover.position}} decoding="async" />
+  </figure> : null;
+}
 function usePaged(endpoint, query) {
   const key = JSON.stringify(query),
+    dataKey = endpoint + ":" + key,
     [revision, reload] = useState(0),
     [state, set] = useState({
+      dataKey,
       loading: true,
       items: [],
       next: "",
@@ -325,6 +335,7 @@ function usePaged(endpoint, query) {
       c = new AbortController();
     seen.current = new Set();
     set({
+      dataKey,
       loading: true,
       items: [],
       next: "",
@@ -343,6 +354,7 @@ function usePaged(endpoint, query) {
         );
         seen.current.add(page.key);
         set({
+          dataKey,
           loading: false,
           items: page.items,
           next: page.next,
@@ -361,7 +373,7 @@ function usePaged(endpoint, query) {
     };
   }, [endpoint, key, revision]);
   async function more() {
-    if (state.loading || state.moreLoading || !state.next) return;
+    if (state.dataKey !== dataKey || state.loading || state.moreLoading || !state.next) return;
     const g = generation.current,
       path = state.next;
     set((s) => ({ ...s, moreLoading: true, moreError: "" }));
@@ -385,7 +397,11 @@ function usePaged(endpoint, query) {
         set((s) => ({ ...s, moreLoading: false, moreError: errorText(e) }));
     }
   }
-  return { ...state, more, reload: () => reload((v) => v + 1) };
+  // A new tab/filter must never render the previous dataset as the new kind.
+  const visible = state.dataKey === dataKey ? state : {
+    loading: true, items: [], next: "", error: "", moreError: "", moreLoading: false,
+  };
+  return { ...visible, more, reload: () => reload((v) => v + 1) };
 }
 
 export function LearnPage() {
@@ -432,6 +448,11 @@ export function LearnPage() {
       : {}),
   };
   const list = usePaged(tab === "contents" ? "web/blog/posts/" : "routes/", query);
+  const [expandedKey, setExpandedKey] = useState("");
+  const listKey = tab + JSON.stringify(query);
+  const expanded = expandedKey === listKey;
+  const orderedItems = featuredContents(list.items, tab === "routes" ? "route" : "content");
+  const hasMore = orderedItems.length > 3 || !!list.next;
   const selectedRegion =
     regions.data?.find((r) => r.id === region || r.slug === region) ||
     regions.data?.[0];
@@ -626,8 +647,8 @@ export function LearnPage() {
             : "暂时没有符合条件的手记，试试清除筛选或切换区域。"
         }
       >
-        <div className="public-content-grid">
-          {list.items.map((item, i) => (
+        <div className="public-content-grid learn-primary-grid" id="learn-content-list">
+          {(expanded ? orderedItems : orderedItems.slice(0, 3)).map((item, i) => (
             <ContentCard
               key={item.id}
               item={item}
@@ -636,6 +657,20 @@ export function LearnPage() {
             />
           ))}
         </div>
+        {!expanded && orderedItems.length > 3 && (
+          <div className="learn-fold-preview" aria-hidden="true" inert>
+            <div className="public-content-grid">
+              {orderedItems.slice(3, 6).map((item, i) => <ContentCard key={item.id} item={item} index={i + 3} route={tab === "routes"} />)}
+            </div>
+          </div>
+        )}
+        {hasMore && <div className="learn-expand-row">
+          <button className="pub-btn outline" aria-expanded={expanded} aria-controls="learn-content-list" onClick={() => setExpandedKey(expanded ? "" : listKey)}>
+            {expanded ? "收起" : "展开更多"}{tab === "routes" ? "路线" : "科普"}
+            <ChevronDown size={17} className={expanded ? "is-expanded" : ""} />
+          </button>
+        </div>}
+        {(expanded || !hasMore) && (
         <div className="public-list-footer">
           {list.moreError && (
             <p className="public-inline-error">{list.moreError}</p>
@@ -660,6 +695,7 @@ export function LearnPage() {
             </span>
           )}
         </div>
+        )}
       </Status>
       <p className="public-footnote">
         文章与评论审核后公开。科普示例与模拟路线均有标注；路线供阅读参考，不提供实时导航或到访核验。
@@ -1752,6 +1788,7 @@ export function DetailPage() {
                 <span>{formatTime(item.updated_at || item.published_at)}</span>
               </div>
             </div>
+            <ContentCover item={item} kind={kind} />
             {(kind === "content" || kind === "route") && (
               <Narration kind={kind} id={item.id} />
             )}
@@ -2182,7 +2219,7 @@ function SeriesPage({ waterMode = false }) {
   const { id: waterId } = useParams(),
     [params] = useSearchParams();
   const [filters, setFilters] = useState(() => ({
-    region: params.get("region") || (waterMode && waterId ? "" : savedRegion()),
+    region: params.get("region") || (waterMode && waterId ? "" : "demo-campus"),
     kind: params.get("kind") || "water",
     water: waterId || "",
     station: params.get("stationId") || "",

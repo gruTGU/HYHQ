@@ -14,7 +14,7 @@ const unreadStore = createUnreadStore(async (signal) => {
   return response.data?.length > 0;
 });
 
-// Call only after a notification has successfully been read or deleted.
+// Refresh after a notification has been created, read or deleted successfully.
 export function notifyNotificationsChanged() {
   return unreadStore.refresh({ force: true });
 }

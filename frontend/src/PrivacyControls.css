@@ -1,0 +1,62 @@
+.privacy-settings-modal {
+  width: min(600px, calc(100vw - 32px));
+}
+.privacy-settings-modal .privacy-settings-body {
+  padding: 24px 28px 28px;
+}
+.privacy-settings-modal .privacy-option {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  margin: 0 0 18px;
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--secondary);
+  gap: 13px;
+}
+.privacy-settings-modal .privacy-option > svg,
+.privacy-settings-modal .privacy-option > input {
+  flex-shrink: 0;
+  margin: 2px 0 0;
+}
+.privacy-settings-modal .privacy-option > div {
+  min-width: 0;
+}
+.privacy-settings-modal .privacy-option strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.privacy-settings-modal .privacy-option p {
+  overflow-wrap: anywhere;
+}
+.privacy-settings-modal .privacy-settings-body > .muted {
+  margin: 4px 0 22px;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.privacy-settings-modal .cookie-actions {
+  justify-content: flex-end;
+  gap: 10px;
+}
+.privacy-settings-modal .cookie-actions .btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 560px) {
+  .privacy-settings-modal .privacy-settings-body {
+    padding: 18px;
+  }
+  .privacy-settings-modal .privacy-option {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 14px;
+  }
+  .privacy-settings-modal .cookie-actions .btn {
+    flex: 1;
+  }
+}

@@ -1,0 +1,95 @@
+/* Weather reservations share theme surfaces and normal flex-centred controls. */
+.weather-page .daily-booking {
+  margin: 22px 0 8px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--secondary);
+}
+.weather-page .daily-booking-heading,
+.weather-page .daily-booking-active {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.weather-page .daily-booking-heading h3 {
+  margin: 0;
+  font-size: 17px;
+}
+.weather-page .daily-booking-heading p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.weather-page .daily-booking-heading > svg {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+.weather-page .daily-booking-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: 18px;
+}
+.weather-page .daily-booking-controls > label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+.weather-page .daily-booking-controls input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  background: var(--surface);
+}
+.weather-page .booking-form .btn,
+.weather-page .booking-list .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 11px 16px;
+  line-height: 1.4;
+  text-align: center;
+}
+.weather-page .daily-booking-active {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.weather-page .daily-booking-active strong {
+  font-size: 13px;
+}
+.weather-page .daily-booking-active small {
+  display: block;
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--muted);
+}
+:root[data-theme="design-2"] .home-page .weather-book-link {
+  color: #fff;
+}
+@media (max-width: 560px) {
+  .weather-page .daily-booking {
+    padding: 16px;
+  }
+  .weather-page .daily-booking-controls {
+    gap: 10px;
+  }
+  .weather-page .daily-booking-controls .btn {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+  }
+  .weather-page .daily-booking-active {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .weather-page .daily-booking-active .btn {
+    width: 100%;
+  }
+}

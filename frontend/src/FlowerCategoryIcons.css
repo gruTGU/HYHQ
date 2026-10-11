@@ -1,0 +1,22 @@
+.p-flower-category-labels > span {
+  min-height: 36px;
+  box-sizing: border-box;
+  justify-content: center;
+  line-height: 1.4;
+}
+
+.p-flower-category-labels .flower-category-icon {
+  display: block;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
+
+@media (max-width: 600px) {
+  .p-flower-category-labels .flower-category-icon {
+    flex-basis: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

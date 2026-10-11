@@ -1,3 +1,4 @@
+export const DEFAULT_THEME = "design-2";
 export const THEMES = [
   {
     id: "forest",
