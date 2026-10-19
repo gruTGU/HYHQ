@@ -11,7 +11,8 @@
     <page-state appearance="{{themeId || 'forest'}}" empty-image="{{themeAssets.emptyState || ''}}" loading="{{cityLoading}}" error="{{cityError}}" bindretry="loadCityLocations" />
     <view class="notice" wx:if="{{!cityLoading && !cityError && (!cityEnabled || !cities.length)}}">天气正在休息，稍后再来看看。</view>
     <block wx:if="{{!cityLoading && !cityError && citySummary}}">
-      <view class="weather-card weather-{{weatherTheme}}">
+      <view class="weather-card weather-{{weatherTheme}} {{themeId === 'design-2' && themeAssets.weatherRiver ? 'editorial-weather-card' : ''}}">
+        <image wx:if="{{themeId === 'design-2' && themeAssets.weatherRiver}}" class="editorial-weather-photo" src="{{themeAssets.weatherRiver}}" mode="aspectFill" aria-hidden="true" />
         <view class="weather-top">
           <view class="weather-heading"><text class="weather-condition">{{citySummary.weather.available ? citySummary.weather.condition_label : '天气暂不可用'}}</text><text wx:if="{{citySummary.weather.stale || citySummary.weather.status !== 'fresh'}}" class="weather-state">{{citySummary.weather.status_label}}</text></view>
           <button wx:if="{{alertBadge.visible}}" class="alert-badge alert-badge-{{alertBadge.tone}}" hover-class="pressable" bindtap="toggleAlerts" aria-expanded="{{alertsExpanded}}" aria-label="气象预警，{{alertBadge.label}}，{{alertsExpanded ? '收起详情' : '查看详情'}}"><text class="alert-badge-title">气象预警 {{alertsExpanded ? '−' : '＋'}}</text><text class="alert-badge-value">{{alertBadge.label}}</text></button>
@@ -39,10 +40,8 @@
       <view class="notice" wx:else>空气质量暂不可用。</view>
       <view class="source-copy" wx:for="{{citySummary.source_notes}}" wx:key="*this">{{item}}</view>
     </block>
-    <view class="weather-links"><button class="weather-entry" hover-class="pressable" bindtap="openWeather">订阅天气推送提醒 ↗</button><view class="weather-credits"><button class="source-link" hover-class="pressable" bindtap="weatherSource" aria-label="和风天气，复制官网链接">和风天气</button><button wx:for="{{citySummary.attribution_links}}" wx:key="id" class="source-link attribution-link" data-url="{{item.url}}" hover-class="pressable" bindtap="weatherAttribution" aria-label="{{item.label}}，复制原始归因链接">· {{item.label}}</button></view></view>
+    <view class="weather-links"><view class="weather-entry-row"><button class="weather-entry" hover-class="pressable" bindtap="openWeather">订阅天气推送提醒 ↗</button><button class="weather-entry weather-calendar-entry" hover-class="pressable" bindtap="events">活动日历 ›</button></view><view class="weather-credits"><button class="source-link" hover-class="pressable" bindtap="weatherSource" aria-label="和风天气，复制官网链接">和风天气</button><button wx:for="{{citySummary.attribution_links}}" wx:key="id" class="source-link attribution-link" data-url="{{item.url}}" hover-class="pressable" bindtap="weatherAttribution" aria-label="{{item.label}}，复制原始归因链接">· {{item.label}}</button></view></view>
   </view>
-
-  <image wx:if="{{themeId === 'design-2' && themeAssets.weatherRiver}}" class="editorial-weather-photo" src="{{themeAssets.weatherRiver}}" mode="aspectFill" aria-hidden="true" />
 
   <view class="section"><view class="section-head"><text class="section-title">与自然相遇</text></view>
     <view class="discovery-grid">

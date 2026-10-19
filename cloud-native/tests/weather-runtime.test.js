@@ -192,3 +192,28 @@ test('account deletion removes reminder recipients, appointments and AI drafts w
   for (const kind of ['weather_reminders', 'weather_reminder_days', 'weather_ai_drafts', 'weather_recipients']) assert.equal(await f.store.count(kind), 0, kind);
   assert.equal((await f.store.get('weather_budget', '2026-10')).used, 12);
 });
+
+test('instant simulation traverses the real subscription adapter and sends the home-page message once', async () => {
+  const f = fixture();
+  const token = (await f.call('auth/wechat/', 'POST', { code: 'unit-code' })).data.data.token;
+  const prepared = (await f.call('weather-data/reminders/simulation-intents/', 'POST', {}, token)).data.data;
+  const path = `weather-data/reminders/simulation-intents/${prepared.id}/confirm/`;
+  const result = await f.call(path, 'POST', { template_id: TEMPLATE_ID, decision: 'accept' }, token);
+  assert.equal(result.data.data.state, 'sent'); assert.equal(f.sent.length, 1);
+  assert.equal(f.sent[0].page, 'pages/home/index'); assert.equal(f.sent[0].data.thing4.value, '模拟异常：浊度偏高，请复核');
+  assert.equal(f.sent[0].touser, f.identity.OPENID);
+  await f.call(path, 'POST', { template_id: TEMPLATE_ID, decision: 'accept' }, token);
+  assert.equal(f.sent.length, 1);
+});
+
+test('subscription adapter accepts only fixed application routes and marks preflight rejection as not dispatched', async () => {
+  const calls = [];
+  const send = createWeatherReminderSender({ openapi: { subscribeMessage: { async send(payload) { calls.push(payload); return { errCode: 0 }; } } } }, { weatherReminders: { templateId: TEMPLATE_ID, state: 'formal' } });
+  for (const page of ['pages/home/index', 'pages/weather/index?location=tianjin', 'pages/weather/index?type=ecology_simulation&scenario=rain']) {
+    await send({ touser: 'trusted-fixture-openid', templateId: TEMPLATE_ID, page, data: {} });
+  }
+  for (const page of ['https://invalid.example', 'pages/home/index?redirect=secret', 'pages/profile/index', 'pages/weather/index?location=tianjin&other=1', 'pages/weather/index?type=ecology_simulation&scenario=bad']) {
+    await assert.rejects(send({ touser: 'trusted-fixture-openid', templateId: TEMPLATE_ID, page, data: {} }), error => error.code === 'SUBSCRIPTION_PAYLOAD_INVALID' && error.dispatched === false);
+  }
+  assert.equal(calls.length, 3);
+});

@@ -2,7 +2,7 @@
 // This policy controls both the volatile read cache and omission of a business
 // bearer. WeChat still supplies/validates trusted SDK identity on every call.
 const TTL = {
-  'health/': 30000, 'regions/': 30000, 'weather-data/locations/': 30000,
+  'events/': 10000, 'health/': 30000, 'regions/': 30000, 'weather-data/locations/': 30000,
   'weather-data/summary/': 15000,
   'rivers/': 10000, 'places/': 10000, 'maps/': 10000, 'contents/': 10000, 'routes/': 10000,
   'content-tags/': 10000, 'water-bodies/': 10000,
@@ -16,6 +16,7 @@ const contents = { ...region, category: value => ['plants', 'water', 'green', 't
 const provenance = { ...region, source_type: value => value === 'simulation', source: id, scenario: id,
   simulation_run: value => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) };
 const SCHEMAS = {
+  'events/': { place_id: value => /^[a-f0-9-]{36}$/i.test(value), map_reference_id: value => /^reference-[a-z0-9_-]{1,110}$/.test(value) },
   'health/': {}, 'weather-data/locations/': {},
   'weather-data/summary/': { location: value => /^[a-z0-9][a-z0-9-]{0,79}$/.test(value) },
   'rivers/': { ...page, ...region }, 'regions/': page, 'maps/': { ...page, ...region }, 'routes/': { ...page, ...region }, 'water-bodies/': { ...page, ...region },

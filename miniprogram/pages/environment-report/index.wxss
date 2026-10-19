@@ -1,0 +1,9 @@
+@import "../../styles/activity-ui.wxss";
+.report-photo { width: 100%; height: 360rpx; margin-top: 24rpx; border-radius: 20rpx; }
+.report-form input, .report-form textarea, .report-picker { box-sizing: border-box; width: 100%; margin-top: 22rpx; padding: 20rpx; border-radius: 16rpx; background: var(--hyhq-surface, #f0f4ed); }
+.report-form input { height: 92rpx; }
+.report-form textarea { height: 230rpx; }
+.report-actions { display: flex; gap: 16rpx; margin-top: 24rpx; flex-wrap: wrap; }
+.report-actions button { margin: 0; }
+.official-site { margin-top: 24rpx; }
+.official-site-url { display: block; margin-top: 8rpx; color: var(--hyhq-primary, #3a7d5c); word-break: break-all; }

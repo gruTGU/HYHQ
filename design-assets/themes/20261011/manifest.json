@@ -1,0 +1,17 @@
+{
+  "source": "用户提供，两张原图未修改；仅云存储装饰素材，不进入小程序主包。",
+  "assets": [
+    {
+      "file": "editorial-observation-flower.png",
+      "bytes": 1085320,
+      "sha256": "67521ed225c31c353893354756bd17441dd942811c14632c67ee0eff77643c37",
+      "cloud_path": "hyhq-ui-20261011/editorial-observation-flower.png"
+    },
+    {
+      "file": "editorial-observation-river.png",
+      "bytes": 1156901,
+      "sha256": "412d02eb9f40aaa91be1127010c493baa5117ecd6e1b330ec5feea469ef5bb67",
+      "cloud_path": "hyhq-ui-20261011/editorial-observation-river.png"
+    }
+  ]
+}

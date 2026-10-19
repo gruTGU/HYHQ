@@ -1,0 +1,34 @@
+@import "../../styles/activity-ui.wxss";
+.event-card .actions { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 24rpx; }
+.event-card .actions button { flex: 1; min-width: 200rpx; margin: 0; }
+.reminder-pool { margin-top: 28rpx; padding-top: 24rpx; border-top: 1rpx solid var(--hyhq-border, #dce7de); }
+.reminder-status { margin-top: 20rpx; padding: 18rpx 22rpx; border-radius: 16rpx; background: var(--hyhq-secondary, #e5f0e5); color: var(--hyhq-secondary-text, #244d39); line-height: 1.6; }
+.activity-dialog-backdrop { position: fixed; z-index: 1000; inset: 0; box-sizing: border-box; padding: 40rpx; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .46); }
+.activity-dialog { box-sizing: border-box; width: 100%; max-width: 680rpx; padding: 32rpx; border-radius: var(--hyhq-card-radius, 28rpx); background: var(--hyhq-surface, #fffefa); color: var(--hyhq-text, #233b31); box-shadow: 0 16rpx 60rpx rgba(0, 0, 0, .2); }
+.activity-dialog-scroll { max-height: 78vh; }
+.activity-dialog-actions { display: flex; flex-direction: column; gap: 18rpx; margin-top: 28rpx; }
+.activity-dialog-actions button { width: 100%; margin: 0; }
+
+/* Same balance/+1 proportions as the existing weather booking card. */
+.events-page .credit-balance { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; padding: 18rpx 0; }
+.events-page .credit-summary { display: flex; flex-direction: column; gap: 10rpx; }
+.events-page .field-label { font-size: 26rpx; line-height: 1.5; }
+.events-page .credit-count { font-size: 40rpx; font-weight: 650; color: var(--hyhq-primary, #3a7d5c); line-height: 1.25; }
+.events-page .credit-unit { font-size: 23rpx; font-weight: 400; }
+.events-page .credit-add { display: flex; align-items: center; justify-content: center; flex: none; width: 104rpx; min-height: 76rpx; margin: 0; padding: 10rpx 16rpx; font-size: 31rpx; font-weight: 600; line-height: 1.25; text-align: center; border-radius: 22rpx; background: var(--hyhq-primary, #3a7d5c); color: #fff; }
+.events-page .credit-add::after { border: 0; }
+.events-page .pool-feedback { margin-top: 14rpx; font-size: 24rpx; line-height: 1.6; color: var(--hyhq-primary, #3a7d5c); }
+.events-page .calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
+.events-page .calendar-title { flex: 1; min-width: 0; white-space: nowrap; text-align: center; font-size: 30rpx; font-weight: 600; }
+.events-page .calendar-arrow { display: flex; align-items: center; justify-content: center; flex: none; width: 72rpx; height: 72rpx; padding: 0; margin: 0; font-size: 38rpx; line-height: 1; background: var(--hyhq-secondary, #e5efdf); color: var(--hyhq-secondary-text, #326849); border-radius: 18rpx; }
+.events-page .calendar-arrow::after, .events-page .calendar-day::after { border: none; }
+.events-page .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6rpx; }
+.events-page .calendar-week { margin: 20rpx 0 12rpx; text-align: center; font-size: 23rpx; color: var(--hyhq-muted, #65796c); }
+.events-page .calendar-day { box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3rpx; min-width: 0; width: 100%; min-height: 82rpx; margin: 0; padding: 8rpx 2rpx; border-radius: 14rpx; background: var(--hyhq-secondary, #edf3e9); color: var(--hyhq-text, #2c3e33); line-height: 1.3; text-align: center; }
+.events-page .calendar-number { font-size: 26rpx; font-weight: 600; }
+.events-page .calendar-count { font-size: 20rpx; }
+.events-page .calendar-today { box-shadow: inset 0 0 0 2rpx var(--hyhq-primary, #3a7d5c); }
+.events-page .calendar-past { opacity: .65; }
+.events-page .calendar-selected { background: var(--hyhq-primary, #3a7d5c); color: #fff; opacity: 1; }
+.events-page .calendar-footer { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; min-height: 72rpx; margin-top: 16rpx; font-size: 25rpx; }
+.events-page .calendar-all { width: auto; min-height: 64rpx; margin: 0; padding: 10rpx 16rpx; font-size: 23rpx; }

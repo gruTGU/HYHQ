@@ -1,8 +1,8 @@
 'use strict';
 const { ApiError } = require('./core');
-const RELEASE_ID = 'wechat-guide-assistant-20261011';
+const RELEASE_ID = 'wechat-event-reminders-20261019';
 function applyReleasePolicy(config = {}) {
-  return { ...config, instantSimulationOnly: true };
+  return { ...config, instantSimulationOnly: true, llmWeatherContextEnabled: false };
 }
 async function enforceRequestPolicy(ctx) {
   // This edition restores only the guide, learning and weather-draft entry points.

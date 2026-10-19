@@ -329,4 +329,4 @@ async function handle(ctx) {
   throw new ApiError('METHOD_NOT_ALLOWED', '此管理路径或方法暂不支持', 405);
 }
 
-module.exports = { handle, cleanupPreview, policyValue, EDITABLE };
+module.exports = { handle, cleanupPreview, policyValue, EDITABLE, authorize, listPage, mutate, audit };

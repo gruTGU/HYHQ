@@ -404,7 +404,7 @@ test('daily schedules save and pause independently of the shared credit balance 
 test('empty reminder balance preserves an enabled daily plan while explaining the need to add credit', async () => {
   const { page } = harness(async () => ({ data: { id: 'daily-weather', type: 'weather', time: '08:00', enabled: true } }));
   enableCredits(page); await page.saveDailyPlan(); assert.equal(page.data.currentDailyPlan.enabled, true);
-  assert.match(page.data.notice, /点击 \+1 补充/); assert.equal(page.data.subscriptionPool.remaining, 0);
+  assert.match(page.data.dailyNotice, /点击 \+1 补充/); assert.equal(page.data.subscriptionPool.remaining, 0);
 });
 
 test('page +1 and daily weather plan interoperate with real cloud handlers and stop after the one available credit', async () => {
@@ -441,4 +441,27 @@ test('daily plan preview follows its near-future slot and never shows another se
   page.data.dailyTime = '13:05'; page.updateDailyLabel(); assert.equal(page.data.dailyNextLabel, '2026-10-11 13:05');
   page.data.currentDailyPlan = { last_target_date: '2026-10-11' }; page.updateDailyLabel();
   assert.equal(page.data.dailyNextLabel, '2026-10-12 13:05');
+});
+
+test('daily save gives immediate local feedback and toast only after a confirmed response', async () => {
+  let finish; const toasts = [];
+  const { page } = harness(() => new Promise(resolve => { finish = resolve; }), { showToast: event => toasts.push(event) });
+  enableCredits(page); const saving = page.saveDailyPlan();
+  assert.equal(page.data.savingDaily, true); assert.equal(toasts.length, 0); assert.equal(page.data.dailyNotice, '');
+  finish({ data: { id: 'daily-weather', type: 'weather', time: '08:00', enabled: true } }); await saving;
+  assert.equal(page.data.savingDaily, false); assert.match(page.data.dailyNotice, /已保存/); assert.equal(page.data.notice, '');
+  assert.equal(toasts.length, 1); assert.equal(toasts[0].title, '每日安排已保存');
+  page.changeDailyTime({ detail: { value: '09:00' } }); assert.equal(page.data.dailyNotice, '');
+});
+
+test('daily save error stays by its action and a hidden-page result cannot toast success', async () => {
+  const toasts = [];
+  const failed = harness(async () => { throw new Error('连接失败'); }, { showToast: e => toasts.push(e) });
+  enableCredits(failed.page); await failed.page.saveDailyPlan();
+  assert.equal(failed.page.data.dailyError, '连接失败'); assert.equal(failed.page.data.actionError, ''); assert.equal(toasts.length, 0);
+  let finish;
+  const hidden = harness(() => new Promise(r => { finish = r; }), { showToast: e => toasts.push(e) });
+  enableCredits(hidden.page); const saving = hidden.page.saveDailyPlan(); hidden.page.onHide();
+  finish({ data: { id: 'daily-weather', type: 'weather', time: '08:00', enabled: true } }); await saving;
+  assert.equal(hidden.page.data.dailyNotice, ''); assert.equal(toasts.length, 0);
 });

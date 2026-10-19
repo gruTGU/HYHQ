@@ -1,3 +1,4 @@
+@import "../../styles/activity-ui.wxss";
 .result-card { padding: 30rpx; background: var(--hyhq-surface, #fffefa); border-radius: var(--hyhq-card-radius, 32rpx); margin-top: 24rpx; color: var(--hyhq-text, #2c3e33); }
 .result-eyebrow { font-size: 18rpx; letter-spacing: 2rpx; color: var(--hyhq-primary, #719358); }
 .result-heading { font-size: 37rpx; font-weight: 600; line-height: 1.5; margin: 12rpx 0; }

@@ -19,6 +19,9 @@ const STATES = { queued: '等待解读', running: '正在解读', succeeded: '�
 function pending(turn) { return turn && ['queued', 'running'].includes(turn.status); }
 function turnView(turn) {
   if (!turn || typeof turn.id !== 'string' || !turn.id || !STATES[turn.status]) throw new Error('AI 解读返回格式不正确，请刷新核对。');
+  if (turn.status === 'succeeded' && (typeof turn.answer !== 'string' || !turn.answer.trim())) {
+    turn = Object.assign({}, turn, { status: 'failed', error_code: 'LLM_ANSWER_MISSING', message: '回答正文暂未读取，请先刷新核对；问题已保留。' });
+  }
   return Object.assign({}, turn, { citations: Array.isArray(turn.citations) ? turn.citations.filter(publicCitation).slice(0, 8) : [], status_label: STATES[turn.status], created_label: time(turn.created_at), finished_label: turn.finished_at ? time(turn.finished_at) : '', image_label: pending(turn) ? '图像使用情况待处理完成后确认' : turn.used_image ? '本轮已使用原图' : '本轮仅使用文字结果与对话', model_label: modelLabel(turn.model), answer: typeof turn.answer === 'string' ? turn.answer : '' });
 }
 function sessionView(session) {

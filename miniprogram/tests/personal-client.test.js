@@ -168,7 +168,7 @@ test('App startup selects actual function-specific storage and leaves HTTP/conta
   const wx = { getStorageSync: (key) => storage.get(key), setStorageSync: (key, value) => storage.set(key, value), removeStorageSync: (key) => storage.delete(key) };
   function startup(config) {
     let application;
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8'), { wx, App: (value) => { application = value; }, require: (name) => name === './config/index' ? config : name === './lib/session' ? { createSession } : name === './lib/theme' ? require('../lib/theme') : name === './lib/theme-assets' ? require('../lib/theme-assets') : { createClient: () => ({}) } });
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8'), { wx, App: (value) => { application = value; }, require: (name) => name === './config/index' ? config : name === './lib/session' ? { createSession } : name === './lib/theme' ? require('../lib/theme') : name === './lib/theme-assets' ? require('../lib/theme-assets') : name === './lib/events' ? require('../lib/events') : { createClient: () => ({}) } });
     application.onLaunch(); return application;
   }
   const a = startup({ transport: 'cloud-function', cloud: { env: 'test-env', function: 'hyhqApi' } }); a.session.save({ token: 'fn-A' });
@@ -186,4 +186,18 @@ test('personal legal page enables existing cloud-only retention and cache explan
     page.setData = (value) => Object.assign(page.data, value);
     page.onLoad({ kind: 'privacy' }); assert.equal(page.data.cloudMode, transport !== 'http'); assert.equal(page.data.privacy, true);
   }
+});
+
+test('environment report thumbnails use the controlled private file bridge and are removed on logout', async () => {
+  const f = fixture(); f.login(); const data = Buffer.from('report-thumbnail');
+  const report = '/api/v1/environment-reports/' + ID + '/photo/';
+  f.handler(call => {
+    const url = new URL(call.data.path, 'https://hyhq.invalid');
+    assert.equal(url.pathname, '/api/v1/cloud-files/download/');
+    assert.equal(url.searchParams.get('path'), report);
+    return ok({ data_base64: data.toString('base64'), offset: 0, next_offset: data.length, total_size: data.length, complete: true, content_type: 'image/jpeg', extension: 'jpg' });
+  });
+  const local = await f.client.download(report); assert.deepEqual(f.files.get(local), data);
+  f.session.clear(); assert.equal(f.files.has(local), false);
+  await assert.rejects(f.client.download(report), { code: 'AUTH_REQUIRED' });
 });

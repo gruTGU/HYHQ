@@ -30,6 +30,29 @@ test('only whitelisted deployment assets can be signed; private/unrecognized fie
   assert.equal(JSON.stringify(reply).includes('cloud://'), false);
 });
 
+test('the deployed whitelist signs twelve unique public files and limits observation photos to editorial', async () => {
+  const deployed = require('../../cloudfunctions/hyhqApi/data/theme-assets');
+  const calls = [];
+  const handler = createThemeAssetsHandler({ getTempFileURL: async request => {
+    calls.push(request);
+    return { fileList: request.fileList.map(({ fileID }) => signed(fileID)) };
+  } }, { clock: () => 0 });
+  const editorial = unwrap(await handler(context()));
+  assert.deepEqual(Object.keys(editorial.assets).sort(), ['emptyState', 'entryExplore', 'entryFlower', 'entryLearn', 'entryRiver', 'observationFlower', 'observationRiver', 'riverExample', 'weatherRiver']);
+  assert.match(deployed.themes['design-2'].observationFlower, /\/hyhq-ui-20261011\/editorial-observation-flower\.png$/);
+  assert.match(deployed.themes['design-2'].observationRiver, /\/hyhq-ui-20261011\/editorial-observation-river\.png$/);
+  for (const theme of ['forest', 'design-3']) {
+    const reply = unwrap(await handler(context('theme=' + theme)));
+    assert.equal(reply.assets.observationFlower, undefined);
+    assert.equal(reply.assets.observationRiver, undefined);
+  }
+  const signedIDs = calls.flatMap(request => request.fileList.map(({ fileID }) => fileID));
+  const manifestIDs = [...Object.values(deployed.shared), ...Object.values(deployed.themes).flatMap(theme => Object.values(theme))];
+  assert.equal(signedIDs.length, 12);
+  assert.equal(new Set(signedIDs).size, 12);
+  assert.deepEqual(new Set(signedIDs), new Set(manifestIDs));
+});
+
 test('invalid themes, extra file IDs, duplicate parameters and request bodies never invoke the SDK', async () => {
   let calls = 0;
   const handler = createThemeAssetsHandler({ getTempFileURL: async () => { calls++; throw new Error('should not call'); } }, { manifest });

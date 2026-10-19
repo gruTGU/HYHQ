@@ -199,8 +199,10 @@ function storageFor(ctx, cloud) {
       if ([...ctx.query.keys()].some(key => !['path', 'offset'].includes(key)) || ctx.query.getAll('path').length !== 1 || ctx.query.getAll('offset').length > 1) throw new ApiError('INVALID_DOWNLOAD_PATH', '下载参数无效');
       const path = ctx.query.get('path') || '', offsetValue = ctx.query.get('offset') || '0';
       match = /^\/api\/v1\/uploads\/([a-f0-9-]{36})\/content\/(?:\?variant=(thumbnail|original))?$/.exec(path);
-      if (!match || !validId(match[1]) || !/^(0|[1-9][0-9]{0,8})$/.test(offsetValue)) throw new ApiError('INVALID_DOWNLOAD_PATH', '仅支持受控图片下载');
-      const asset = await readAsset(requireUser(ctx), match[1], { variant: match[2] || 'thumbnail' }), offset = +offsetValue, total = asset.bytes.length;
+      const report = /^\/api\/v1\/environment-reports\/([a-f0-9-]{36})\/photo\/$/.exec(path);
+      if ((!match && !report) || !validId((match || report)[1]) || !/^(0|[1-9][0-9]{0,8})$/.test(offsetValue)) throw new ApiError('INVALID_DOWNLOAD_PATH', '仅支持受控图片下载');
+      const asset = report ? await require('./environment-reports').readPhoto(ctx, report[1]) : await readAsset(requireUser(ctx), match[1], { variant: match[2] || 'thumbnail' });
+      const offset = +offsetValue, total = asset.bytes.length;
       if (offset >= total || offset % CHUNK) throw new ApiError('INVALID_OFFSET', '下载分块位置无效', 416);
       const part = asset.bytes.subarray(offset, offset + CHUNK), next = offset + part.length;
       return response({ data_base64: part.toString('base64'), offset, next_offset: next, total_size: total, complete: next === total, content_type: 'image/jpeg', extension: 'jpg' });

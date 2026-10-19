@@ -41,6 +41,7 @@ Page(withTheme({
   onUnload() { this._destroyed = true; this.onHide(); },
   onPullDownRefresh() { if (app().api.invalidatePublicCache) app().api.invalidatePublicCache(); return this.load(); },
   onResize() { this.resizeMap(); },
+  events() { if (this.alive()) wx.navigateTo({ url: '/pages/events/index' }); },
   alive() { return !this._destroyed && this._visible !== false; },
   current(generation) { return this.alive() && generation === this._generation; },
   width() {

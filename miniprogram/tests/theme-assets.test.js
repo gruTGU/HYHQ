@@ -38,20 +38,22 @@ test('concurrent loads merge, signed URLs restore only in their environment and 
   assert.equal(store.read('design-2'), null);
   assert.equal(f.data.size, 0);
 });
-test('old v1 one-hour URLs are ignored and new cache entries never exceed five minutes', async () => {
-  const f = fixture(), suffix = encodeURIComponent('cloud-function|env-a|hyhqApi') + '.design-3';
-  f.data.set('hyhq.theme-assets.v1.' + suffix, response('design-3', { paperTile: URL + '&old=1' }).data);
+test('old v1 and v2 manifests refresh immediately to include observation photos and retain the five-minute cap', async () => {
+  const f = fixture(), suffix = encodeURIComponent('cloud-function|env-a|hyhqApi') + '.design-2';
+  for (const version of ['v1', 'v2']) f.data.set('hyhq.theme-assets.' + version + '.' + suffix, response('design-2', { entryFlower: URL + '&old=1' }).data);
   const store = createThemeAssetStore(f.platform, f.config, f.now);
-  assert.equal(store.read('design-3'), null, 'a still-dated v1 entry may already have an invalid signature');
+  assert.equal(store.read('design-2'), null, 'older still-dated caches must not hide newly added observation photos');
+  const assets = { entryFlower: URL, observationFlower: URL + '&photo=flower', observationRiver: URL + '&photo=river' };
   let calls = 0;
-  const loaded = await store.load('design-3', { request: async () => { calls++; return response('design-3'); } });
-  assert.equal(calls, 1); assert.equal(KEY, 'hyhq.theme-assets.v2.');
+  const loaded = await store.load('design-2', { request: async () => { calls++; return response('design-2', { ...assets, observationPrivate: URL }); } });
+  assert.equal(calls, 1); assert.equal(KEY, 'hyhq.theme-assets.v3.');
+  assert.deepEqual(loaded.assets, assets, 'only the public observation keys survive normalization');
   assert.equal(loaded.expires_at, new Date(START + 300000).toISOString());
-  assert.equal(f.data.get(KEY + suffix).assets.paperTile, URL);
+  assert.deepEqual(f.data.get(KEY + suffix).assets, assets);
   f.tick(299000);
-  assert.equal(createThemeAssetStore(f.platform, f.config, f.now).read('design-3').assets.paperTile, URL);
+  assert.deepEqual(createThemeAssetStore(f.platform, f.config, f.now).read('design-2').assets, assets);
   f.tick(1000);
-  assert.equal(store.read('design-3'), null);
+  assert.equal(store.read('design-2'), null);
 });
 test('network or invalid signing failures stay retryable and never cache an unusable asset set', async () => {
   const f = fixture(), store = createThemeAssetStore(f.platform, f.config, f.now); let calls = 0;

@@ -3,10 +3,10 @@ const { app } = require('../../lib/page');
 const { message, time } = require('../../lib/format');
 const { requestId } = require('../../lib/community');
 const editable = ['contents', 'routes', 'places'];
-const tabs = ['stats', ...editable, 'feedback', 'audit', 'maintenance', 'submissions', 'comments', 'reports'];
+const tabs = ['stats', ...editable, 'feedback', 'environment-reports', 'audit', 'maintenance', 'submissions', 'comments', 'reports'];
 const communityTabs = ['submissions', 'comments', 'reports'];
 const communityStatus = { checking: '原始反馈安全检查中', reviewing: '编辑稿安全检查中', pending: '待审核', approved: '已采用，原稿私密', rejected: '未通过', resolved: '已处理', dismissed: '不予受理' };
-const auditNames = { community_submitted: '提交资料反馈', community_approved: '审核通过', community_rejected: '审核驳回或下架', community_deleted: '删除社区内容', community_withdrawn: '撤回资料反馈', community_reported: '提交举报', community_report_handled: '处理举报', community_editorial_check_failed: '编辑稿检查未通过', community_safety_verified: '内容检查联通核验', catalog_created: '新增资料', catalog_updated: '修改资料', catalog_withdrawn: '撤下资料', feedback_resolved: '处理反馈', retention_updated: '修改保留策略', simulation_withdrawn: '维护模拟批次' };
+const auditNames = { environment_report_resolved: '处理模拟环境上报', community_submitted: '提交资料反馈', community_approved: '审核通过', community_rejected: '审核驳回或下架', community_deleted: '删除社区内容', community_withdrawn: '撤回资料反馈', community_reported: '提交举报', community_report_handled: '处理举报', community_editorial_check_failed: '编辑稿检查未通过', community_safety_verified: '内容检查联通核验', catalog_created: '新增资料', catalog_updated: '修改资料', catalog_withdrawn: '撤下资料', feedback_resolved: '处理反馈', retention_updated: '修改保留策略', simulation_withdrawn: '维护模拟批次' };
 const kindNames = { sessions: '登录会话', uploads: '上传任务', upload_chunks: '上传临时块', assets: '私人图片', storage_cleanup: '存储清理任务', llm_sessions: 'AI 会话', llm_turns: 'AI 对话', recognition_jobs: '图像识别记录', assessment_jobs: '河湖评估记录', asset_usage: '上传用量记录', llm_owners: 'AI 账户状态', llm_ledger: 'AI 用量账本', llm_quotas: 'AI 额度记录', llm_days: 'AI 每日用量', upload_budget: '上传预算记录', inference_daily: '识别每日用量', weather_requests: '天气请求记录', auth_gates: '登录频率记录' };
 function cleared() { return { allowed: false, rows: [], next: null, editor: null, revision: 0, cleanup: null, retention: null, maintenance: null, editorial: null, metricGroups: [], countingNote: '', asOf: '', notice: '' }; }
 function cards(data) {
@@ -19,8 +19,8 @@ function cards(data) {
   ];
 }
 function rowView(row, tab) {
-  return { ...row, title_label: communityTabs.includes(tab) ? row.title || (tab === 'comments' ? '用户评论' : '用户举报') : editable.includes(tab) ? row.title || row.name : tab === 'feedback' ? '用户反馈' : auditNames[row.action] || '管理操作',
-    status_label: communityTabs.includes(tab) ? communityStatus[row.status] || row.status : tab === 'feedback' ? row.status === 'resolved' ? '已处理' : '待处理' : editable.includes(tab) ? row.deleted ? '已撤下' : row.published ? '已发布' : '草稿' : '',
+  return { ...row, title_label: communityTabs.includes(tab) ? row.title || (tab === 'comments' ? '用户评论' : '用户举报') : editable.includes(tab) ? row.title || row.name : tab === 'environment-reports' ? '模拟环境上报' : tab === 'feedback' ? '用户反馈' : auditNames[row.action] || '管理操作',
+    status_label: communityTabs.includes(tab) ? communityStatus[row.status] || row.status : ['feedback', 'environment-reports'].includes(tab) ? row.status === 'resolved' ? '已处理' : '待处理' : editable.includes(tab) ? row.deleted ? '已撤下' : row.published ? '已发布' : '草稿' : '',
     time_label: time(row.created_at || row.updated_at), detail_label: tab === 'audit' ? (row.target_id ? '资料编号：' + row.target_id : '批量维护') : '',
     fields_label: (row.changed_fields || []).join('、') };
 }
@@ -154,11 +154,18 @@ Page(withTheme({
       decision, expected_version: row.version, ...(!report ? { reason: decision === 'rejected' ? confirmed.content.trim() : '' } : {}) } }));
     if (result) return this.load();
   },
+  async reportPhoto(event) {
+    const row = this.data.rows.find(item => item.id === event.currentTarget.dataset.id);
+    if (!row || this.data.tab !== 'environment-reports') return;
+    const photo = await this.operation(() => app().api.download(row.photo_url));
+    if (photo) wx.previewImage({ current: photo, urls: [photo] });
+  },
   async resolveFeedback(event) {
-    const id = event.currentTarget.dataset.id, revision = this.data.revision;
-    const result = await this.confirm({ title: '答复用户反馈', editable: true, placeholderText: '填写答复内容' });
+    const id = event.currentTarget.dataset.id, revision = this.data.revision, tab = this.data.tab;
+    if (!['feedback', 'environment-reports'].includes(tab)) return;
+    const result = await this.confirm({ title: tab === 'environment-reports' ? '答复模拟环境上报' : '答复用户反馈', editable: true, placeholderText: '填写答复内容' });
     if (!result || !result.content || !result.content.trim()) return;
-    const saved = await this.operation(() => app().api.request('personal-admin/feedback/' + id + '/resolve/', { method: 'POST', data: { reply: result.content.trim(), expected_revision: revision } }));
+    const saved = await this.operation(() => app().api.request('personal-admin/' + tab + '/' + id + '/resolve/', { method: 'POST', data: { reply: result.content.trim(), expected_revision: revision } }));
     if (saved) return this.load();
   },
   retentionField(event) { const field = event.currentTarget.dataset.field; if (this._active && this.data.retention && !this.data.busy && ['retain_days', 'keep_successful'].includes(field)) this.setData({ ['retention.' + field]: event.detail.value }); },

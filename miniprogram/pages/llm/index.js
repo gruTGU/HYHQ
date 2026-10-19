@@ -1,12 +1,13 @@
 const { withTheme } = require('../../lib/theme');
 const { app } = require('../../lib/page');
+const { renderMarkdown } = require('../../lib/markdown');
 const { message, task } = require('../../lib/format');
 const { assessmentTask } = require('../../lib/assessment');
 const { loadAll, selectRegion } = require('../../lib/region');
 const mapReferences = require('../../lib/map-reference-points');
 const { DISCLAIMER, SOURCE_LABELS, SCOPE_LABELS, publicSource, modelLabel, pending, turnView, sessionView, readPage, requestId } = require('../../lib/llm');
 Page(withTheme({
-  data: { weatherLocations: [{ slug: '', name: '不附加天气资料' }], weatherIndex: 0, weatherError: '', entryValid: false, creationUncertain: false, loading: true, busy: false, loggedIn: false, error: '', actionError: '', unavailable: false, status: null, modelLabel: 'DeepSeek Flash', scopeLabel: '识别解读', session: null, source: null, sourceLoading: false, sourceError: '', sourceKind: '', isRecognition: true, isImageMode: false, imageModeBlocked: false, includeImage: false, question: '', questionCount: 0, turns: [], next: '', loadingMore: false, moreError: '', polling: false, pollNotice: '', hasPending: false, displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, disclaimer: DISCLAIMER },
+  data: { entryValid: false, creationUncertain: false, loading: true, busy: false, loggedIn: false, error: '', actionError: '', unavailable: false, status: null, modelLabel: 'DeepSeek Flash', scopeLabel: '识别解读', session: null, source: null, sourceLoading: false, sourceError: '', sourceKind: '', isRecognition: true, isImageMode: false, imageModeBlocked: false, includeImage: false, question: '', questionCount: 0, turns: [], next: '', loadingMore: false, moreError: '', polling: false, pollNotice: '', hasPending: false, displayTurns: [], contextExpanded: false, keyboardHeight: 0, composerHeight: 0, disclaimer: DISCLAIMER },
   onLoad(options) {
     this._alive = true; this._scope = 'recognition'; this._interpretationMode = 'result'; this._followLatest = true;
     if (options && options.sessionId) this._sessionId = options.sessionId;
@@ -17,8 +18,6 @@ Page(withTheme({
     }
     else if (options && publicSource(options.scope, options.source_type, options.source_id)) { this._scope = options.scope; this._sourceType = options.source_type; this._sourceId = options.source_id; }
     else this._invalid = true;
-    this._requestedWeather = this._scope !== 'recognition' && options && typeof options.weather_location === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(options.weather_location) ? options.weather_location : '';
-    if (!this._requestedWeather && this._sourceType === 'map_reference') this._requestedWeather = mapReferences.weatherSlug(this._sourceId);
     this.setData({ entryValid: !this._invalid, loggedIn: Boolean(app().session.token()), isRecognition: this._scope === 'recognition', isImageMode: this._interpretationMode === 'image', includeImage: this._interpretationMode === 'image', scopeLabel: this._interpretationMode === 'image' ? '河道 AI 看图' : SCOPE_LABELS[this._scope] });
   },
   async onShow() {
@@ -63,7 +62,7 @@ Page(withTheme({
         // These are independent reads. A public entry used to wait for three
         // complete cloud round trips before enabling its blank composer.
         const results = await Promise.allSettled([
-          this.loadStatus(generation, token), this.loadPublicSource(), this.loadWeatherChoices(generation, token),
+          this.loadStatus(generation, token), this.loadPublicSource(),
         ]);
         if (!this.current(generation, token)) return;
         const failed = results.find(result => result.status === 'rejected');
@@ -88,7 +87,6 @@ Page(withTheme({
         const source = await this.loadPublicSource();
         if (!this.current(generation, token)) return;
         this.setData({ source, sourceKind: this._scope, isRecognition: false, scopeLabel: SCOPE_LABELS[this._scope] });
-        await this.loadWeatherChoices(generation, token);
       } else {
         const endpoint = this._sourceKind === 'recognition' ? 'recognition-jobs/' : 'assessment-jobs/';
         const result = await app().api.request(endpoint + encodeURIComponent(this._sourceId) + '/');
@@ -106,25 +104,6 @@ Page(withTheme({
     } catch (error) { if (this.current(generation, token)) this.handleError(error); }
     finally { if (this.current(generation, token)) { this.setData({ loading: false }, () => { if (this.current(generation, token)) this.measureComposer({ scroll: true }); }); wx.stopPullDownRefresh(); } }
   },
-  async loadWeatherChoices(generation, token) {
-    this.setData({ weatherError: '' });
-    try {
-      const response = await app().api.request('weather-data/locations/');
-      if (!this.current(generation, token)) return;
-      if (!response.data || !Array.isArray(response.data.items)) throw new Error('天气地点暂不可用');
-      const weatherLocations = [{ slug: '', name: '不附加天气资料' }].concat(response.data.items.filter((item) => item && typeof item.slug === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(item.slug) && typeof item.name === 'string' && item.name.trim()));
-      const previous = this.data.weatherLocations[this.data.weatherIndex];
-      const selectedSlug = this._weatherSelected ? previous && previous.slug || '' : this._requestedWeather || '';
-      const weatherIndex = Math.max(0, weatherLocations.findIndex((item) => item.slug === selectedSlug));
-      this._weatherSelected = true;
-      this.setData({ weatherLocations, weatherIndex });
-    } catch (error) { if (this.current(generation, token)) this.setData({ weatherError: '天气地点暂不可用，本次可仅围绕页面资料对话。', weatherLocations: [{ slug: '', name: '不附加天气资料' }], weatherIndex: 0 }); }
-  },
-  chooseWeather(event) {
-    const weatherIndex = Number(event.detail.value);
-    if (this.canAct() && !this._sessionId && Number.isInteger(weatherIndex) && this.data.weatherLocations[weatherIndex]) { this._weatherSelected = true; this.setData({ weatherIndex }); }
-  },
-  openWeather() { if (this.canAct()) wx.navigateTo({ url: '/pages/weather/index' }); },
   openCitation(event) {
     if (!this.canAct()) return;
     const { turn, id, kind } = event.currentTarget.dataset;
@@ -208,7 +187,10 @@ Page(withTheme({
   },
   updateTurns(turns, scroll = false, anchor = '') {
     const generation = this._generation, token = this._token;
-    this.setData({ turns, displayTurns: turns.slice().reverse(), hasPending: turns.some(pending) }, () => {
+    // Bind the parsed answer directly to the native renderer. A newly completed
+    // turn must not depend on a lazy custom component's property observer.
+    const displayTurns = turns.slice().reverse().map(turn => Object.assign({}, turn, { answerNodes: turn.status === 'succeeded' ? renderMarkdown(turn.answer) : [] }));
+    this.setData({ turns, displayTurns, hasPending: turns.some(pending) }, () => {
       if (!this.current(generation, token)) return;
       if (anchor && typeof wx.pageScrollTo === 'function') wx.pageScrollTo({ selector: '#turn-' + anchor, duration: 0 });
       else this.measureComposer({ scroll });
@@ -278,8 +260,6 @@ Page(withTheme({
     else {
       if (!publicSource(this._scope, this._sourceType, this._sourceId)) throw new Error('当前资料来源无效，请返回重新选择。');
       Object.assign(data, { source_type: this._sourceType, source_id: this._sourceId });
-      const weather = this.data.weatherLocations[this.data.weatherIndex];
-      if (weather && weather.slug) data.weather_location = weather.slug;
     }
     // Session creation has no server idempotency key. If its response is lost,
     // do not guess that it failed and silently create a duplicate on retry.

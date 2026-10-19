@@ -286,7 +286,7 @@ function createCloudClient(platform, config, session, apiError) {
     download(path) {
       return operation(async (context) => {
         const target = pathOf(path);
-        const imagePath = /^\/api\/v1\/uploads\/([a-f0-9-]{36})\/content\/(?:\?variant=(?:thumbnail|original))?$/.exec(target);
+        const imagePath = /^\/api\/v1\/uploads\/([a-f0-9-]{36})\/content\/(?:\?variant=(?:thumbnail|original))?$/.exec(target) || /^\/api\/v1\/environment-reports\/([a-f0-9-]{36})\/photo\/$/.exec(target);
         const audioPath = /^\/api\/v1\/narrations\/([a-f0-9-]{36})\/audio\/$/.exec(target);
         if (!(imagePath && UUID.test(imagePath[1])) && !(audioPath && UUID.test(audioPath[1]))) throw problem('UNSAFE_FILE_URL', '文件地址不是受支持的图片或讲解音频');
         if (imagePath && !context.token) throw problem('AUTH_REQUIRED', '请先登录后查看图片');

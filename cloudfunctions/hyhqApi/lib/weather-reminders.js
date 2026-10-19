@@ -15,15 +15,15 @@ function iso(n) { return new Date(n).toISOString(); }
 function cnTime(n) { return new Date(n + 8 * 3600000).toISOString().slice(0, 16).replace('T', ' '); }
 function settings(ctx) { return ctx.config && ctx.config.weatherReminders || {}; }
 function deliveryEnabled(ctx) { return settings(ctx).enabled === true && settings(ctx).templateId === TEMPLATE_ID && typeof (ctx.providers || {}).sendWeatherReminder === 'function'; }
-function enabled(ctx, type = 'weather') { return deliveryEnabled(ctx) && (type === 'ecology_simulation' || weather.configured(ctx.config)); }
+function enabled(ctx, type = 'weather') { return deliveryEnabled(ctx) && (['ecology_simulation', 'event'].includes(type) || weather.configured(ctx.config)); }
 function requireEnabled(ctx, type) { if (!enabled(ctx, type)) throw new ApiError('SUBSCRIPTIONS_DISABLED', '天气预约提醒暂未开放', 503); }
 function identity(ctx) { requireUser(ctx); if (typeof ctx.wechatOpenId !== 'string' || !/^[A-Za-z0-9_-]{8,128}$/.test(ctx.wechatOpenId)) throw new ApiError('WECHAT_IDENTITY_REQUIRED', '请通过微信小程序重新登录后预约', 403); return ctx.wechatOpenId; }
 function bodyOnly(ctx, fields) { const b = ctx.body; if (!b || typeof b !== 'object' || Array.isArray(b) || Object.keys(b).sort().join(',') !== [...fields].sort().join(',')) throw new ApiError('VALIDATION_ERROR', '预约参数无效'); return b; }
-function reminderType(row) { return row.type === 'ecology_simulation' ? 'ecology_simulation' : 'weather'; }
+function reminderType(row) { return ['ecology_simulation', 'event'].includes(row.type) ? row.type : 'weather'; }
 function lockId(owner, date, type = 'weather') { return sha256(owner + ':' + (type === 'ecology_simulation' ? 'ecology_simulation:' : '') + date); }
 function present(row) {
   const type = reminderType(row), simulated = type === 'ecology_simulation' ? simulation.preview(row.scenario) : null;
-  const location = simulated ? { slug: 'demo-campus', name: simulation.CAMPUS } : weather.locationFor(row.location);
+  const location = type === 'event' ? { slug: '', name: row.event && row.event.location_name || '' } : simulated ? { slug: 'demo-campus', name: simulation.CAMPUS } : weather.locationFor(row.location);
   return { id: row.id, type, scenario: simulated ? row.scenario : '', simulation_preview: simulated, ...(row.instant_simulation ? { mode: 'instant_simulation', message_preview: INSTANT_SIMULATION_MESSAGE, notice: '固定教学模拟，不是当前曲线或真实水质异常。' } : {}), location: location ? { slug: location.slug, name: location.name } : null, location_name: location && location.name || '',
     state: row.state, scheduled_for: row.scheduled_for, target_date: row.target_date, expires_at: row.expires_at, consent_expires_at: row.consent_expires_at,
     template_id: row.template_id, recurrence: row.recurrence || 'once', created_at: row.created_at, updated_at: row.updated_at, can_cancel: CANCELLABLE.has(row.state), reason: row.reason || '' };
@@ -107,7 +107,9 @@ async function confirm(ctx, id, oldRoute, instant = false) {
   const decision = oldRoute ? input.acceptance : input.decision;
   if (input.template_id !== TEMPLATE_ID || !['accept', 'reject', 'ban'].includes(decision)) throw new ApiError('VALIDATION_ERROR', '订阅模板或授权结果无效');
   const row = await ctx.store.transaction(async tx => {
-    await owner(tx, ctx.user.id); const row = await owned(tx, ctx, id); requireEnabled(ctx, reminderType(row));
+    await owner(tx, ctx.user.id); const row = await owned(tx, ctx, id);
+    if (row.type === 'event') throw new ApiError('VALIDATION_ERROR', '请在活动订阅页面管理此提醒');
+    requireEnabled(ctx, reminderType(row));
     if (!!row.instant_simulation !== instant) throw new ApiError('VALIDATION_ERROR', '请使用对应的提醒确认入口');
     if (ctx.config.instantSimulationOnly && reminderType(row) === 'ecology_simulation' && !instant) throw new ApiError('SIMULATION_MOVED', '模拟异常体验已移至首页生态观察', 409);
     if (row.template_id !== TEMPLATE_ID) throw new ApiError('TEMPLATE_CHANGED', '预约模板已调整，请重新预约', 409);
@@ -147,6 +149,7 @@ async function cancel(ctx, id) {
   requireUser(ctx); bodyOnly(ctx, []); const now = time(ctx);
   const row = await ctx.store.transaction(async tx => {
     await owner(tx, ctx.user.id); const row = await owned(tx, ctx, id);
+    if (row.type === 'event') throw new ApiError('VALIDATION_ERROR', '请在活动订阅页面管理此提醒');
     if (row.state === 'cancelled') return row;
     if (!CANCELLABLE.has(row.state)) throw new ApiError(row.state === 'sending' ? 'REMINDER_ALREADY_SENDING' : 'REMINDER_STATE_CHANGED', row.state === 'sending' ? '提醒已进入发送阶段，无法撤回' : '预约已经结束，请刷新查看', 409);
     Object.assign(row, { state: 'cancelled', reason: 'user_cancelled', updated_at: iso(now), lease_token: null, lease_until: null });
@@ -161,7 +164,13 @@ async function handle(ctx) {
     const now = time(ctx); let rows = [];
     if (ctx.user) {
       if (ctx.config.instantSimulationOnly) await retireLegacySimulation(ctx, { ownerId: ctx.user.id });
-      rows = await ctx.store.list('weather_reminders', { where: { owner_id: ctx.user.id }, orderBy: [{ field: 'created_at', direction: 'desc' }], limit: 30 });
+      // Activity jobs share delivery infrastructure, not the weather page's
+      // history window. Page past them, including legacy weather rows without type.
+      for (let offset = 0; offset < 1000 && rows.length < 30; offset += 100) {
+        const batch = await ctx.store.list('weather_reminders', { where: { owner_id: ctx.user.id }, orderBy: [{ field: 'created_at', direction: 'desc' }], offset, limit: 100 });
+        rows.push(...batch.filter(row => row.type !== 'event').slice(0, 30 - rows.length));
+        if (batch.length < 100) break;
+      }
       rows = await Promise.all(rows.map(row => ctx.store.transaction(async tx => {
         const current = await tx.get('weather_reminders', row.id); if (!current || current.owner_id !== ctx.user.id) return null;
         if (expireRow(current, now)) { await tx.set('weather_reminders', current.id, current); await releaseRecipient(tx, current); } return current;
@@ -169,7 +178,7 @@ async function handle(ctx) {
     }
     const ready = enabled(ctx), simulationReady = !ctx.config.instantSimulationOnly && enabled(ctx, 'ecology_simulation');
     return response({ enabled: ready, simulation_enabled: simulationReady, reason: ready ? '' : 'subscriptions_not_configured', template_id: ready || simulationReady ? TEMPLATE_ID : '', mode: 'once_and_daily',
-      instant_simulation_enabled: enabled(ctx, 'ecology_simulation'), notice: '每日提醒消耗主动订阅次数，用完后停止；单次预约单独授权。北京时间，通常在预约后 5 分钟内发送。', ...await daily.status(ctx), items: rows.filter(Boolean).map(present),
+      instant_simulation_enabled: enabled(ctx, 'ecology_simulation'), notice: '每日提醒消耗主动订阅次数，用完后停止；单次预约单独授权。北京时间，通常在预约后 5 分钟内发送。', ...await daily.status(ctx), items: rows.filter(row => row && row.type !== 'event').map(present),
       wechat_login: !!ctx.user && typeof ctx.wechatOpenId === 'string', server_time: iso(now), min_lead_minutes: 5, max_ahead_hours: 48 });
   }
   if (ctx.method !== 'POST') return undefined;
@@ -207,6 +216,9 @@ function forecastSummary(day, scheduledFor, location) {
   return prefix + label + suffix;
 }
 function message(row, user, recipient, summary) {
+  if (reminderType(row) === 'event') return { touser: recipient.openid, templateId: TEMPLATE_ID, page: 'pages/events/index',
+    data: { thing1: { value: short(user.nickname, '海晏河清用户') }, thing2: { value: short('模拟活动：' + row.event.title, '模拟活动') },
+      thing4: { value: summary }, time26: { value: cnTime(Date.parse(row.event.starts_at)) }, time9: { value: cnTime(Date.parse(row.event.ends_at)) } } };
   const isSimulation = reminderType(row) === 'ecology_simulation', location = weather.locationFor(row.location);
   const page = row.instant_simulation ? 'pages/home/index' : isSimulation ? 'pages/weather/index?type=ecology_simulation&scenario=' + row.scenario : 'pages/weather/index?location=' + location.slug;
   return { touser: recipient.openid, templateId: TEMPLATE_ID, page,
@@ -264,20 +276,21 @@ async function dispatch(ctx, reservation, now, summary) {
     await tx.set('weather_reminders', row.id, row); return { request: message(row, user, recipient, summary), row };
   });
   if (!outbound) return 'cancelled';
-  let result, refusal = null, ambiguous = false, timer;
+  let result, refusal = null, ambiguous = false, notDispatched = false, timer;
   try {
     result = await Promise.race([Promise.resolve().then(() => ctx.providers.sendWeatherReminder(outbound.request)), new Promise((_, reject) => { timer = setTimeout(() => reject(Object.assign(new Error('delivery_timeout'), { ambiguous: true })), 10000); })]);
     const code = result && (result.errCode === undefined ? result.errcode : result.errCode);
     if (code !== 0) { if (Number.isInteger(code) && code !== 0) refusal = code; else ambiguous = true; }
   } catch (error) {
     const code = error && (error.errCode === undefined ? error.errcode : error.errCode);
-    if (Number.isInteger(code) && code !== 0 && error.ambiguous !== true) refusal = code; else ambiguous = true;
+    if (error && error.code === 'SUBSCRIPTION_PAYLOAD_INVALID' && error.dispatched === false) notDispatched = true;
+    else if (Number.isInteger(code) && code !== 0 && error.ambiguous !== true) refusal = code; else ambiguous = true;
   } finally { clearTimeout(timer); }
-  const state = ambiguous ? 'unknown' : refusal === null ? 'sent' : [-1, 45009].includes(refusal) && outbound.row.attempts < 2 && Date.parse(outbound.row.expires_at) > now + 5 * MINUTE ? 'retry' : 'failed';
+  const state = notDispatched ? 'failed' : ambiguous ? 'unknown' : refusal === null ? 'sent' : [-1, 45009].includes(refusal) && outbound.row.attempts < 2 && Date.parse(outbound.row.expires_at) > now + 5 * MINUTE ? 'retry' : 'failed';
   await ctx.store.transaction(async tx => {
     const row = await tx.get('weather_reminders', reservation.id);
     if (!row || row.state !== 'sending' || row.lease_token !== reservation.lease_token) return;
-    Object.assign(row, { state, reason: ambiguous ? 'delivery_unconfirmed' : refusal === null ? '' : 'platform_rejected',
+    Object.assign(row, { state, reason: notDispatched ? 'delivery_not_dispatched' : ambiguous ? 'delivery_unconfirmed' : refusal === null ? '' : 'platform_rejected',
       ...(refusal === null ? {} : { platform_error_code: refusal }), next_attempt_at: state === 'retry' ? iso(now + 5 * MINUTE) : null,
       lease_token: null, lease_until: null, updated_at: iso(now), ...(state === 'sent' ? { sent_at: iso(now) } : {}) });
     await tx.set('weather_reminders', row.id, row); if (state !== 'retry') await releaseRecipient(tx, row);
@@ -292,7 +305,12 @@ async function runDueReminders(ctx, { limit = 4 } = {}) {
   await daily.materialize(ctx, 20);
   // Equality queries plus bounded sorted pages work on the native store; expired
   // rows become terminal so they cannot permanently starve later appointments.
-  for (const state of ['sending', 'preparing', 'retry', 'pending']) rows.push(...await ctx.store.list('weather_reminders', { where: { state }, orderBy: [{ field: 'scheduled_for', direction: 'asc' }], limit }));
+  for (const state of ['sending', 'preparing', 'retry', 'pending']) {
+    rows.push(...await ctx.store.list('weather_reminders', { where: { state }, orderBy: [{ field: 'scheduled_for', direction: 'asc' }], limit }));
+    // Disabled weather rows cannot occupy the entire query window ahead of
+    // independently configured event messages. Preserve the legacy untyped path.
+    rows.push(...await ctx.store.list('weather_reminders', { where: { state, type: 'event' }, orderBy: [{ field: 'scheduled_for', direction: 'asc' }], limit }));
+  }
   const seen = new Set(), output = { enabled: true, processed: 0, sent: 0, deferred: 0, unknown: 0, failed: 0 };
   for (const item of rows.sort((a, b) => a.scheduled_for.localeCompare(b.scheduled_for))) {
     if (seen.has(item.id)) continue; seen.add(item.id);
@@ -302,7 +320,11 @@ async function runDueReminders(ctx, { limit = 4 } = {}) {
     const row = await claim(ctx, item.id, liveNow()); if (!row) continue;
     output.processed++;
     let summary;
-    if (reminderType(row) === 'ecology_simulation') {
+    if (reminderType(row) === 'event') {
+      const event = row.event;
+      summary = event && event.simulated === true && typeof event.location_name === 'string' && Number.isFinite(Date.parse(event.starts_at))
+        && Date.parse(event.ends_at) > liveNow() ? short('模拟地点：' + event.location_name, '模拟活动地点') : null;
+    } else if (reminderType(row) === 'ecology_simulation') {
       const sample = simulation.preview(row.scenario); summary = row.instant_simulation ? INSTANT_SIMULATION_MESSAGE : sample && sample.reminder_text;
     } else {
       let forecast;
@@ -335,7 +357,7 @@ async function retireLegacySimulation(ctx, { limit = 20, ownerId } = {}) {
 async function cleanupReminders(ctx, { limit = 20, alive = () => true } = {}) {
   if (!Number.isInteger(limit) || limit < 1 || limit > 100 || typeof alive !== 'function') throw new ApiError('VALIDATION_ERROR', 'Invalid reminder cleanup limit');
   const start = Date.now(), admitted = time(ctx), now = () => admitted + Math.max(0, Date.now() - start);
-  const out = { processed: 0, prepared_expired: 0, expired: 0, unknown: 0, reminders_removed: 0, day_locks_removed: 0, grants_removed: 0 };
+  const out = { processed: 0, prepared_expired: 0, expired: 0, unknown: 0, reminders_removed: 0, day_locks_removed: 0, grants_removed: 0, event_receipts_removed: 0 };
   const available = () => out.processed < limit && alive();
   // Reserve a small bounded share for old subscription receipts as well.
   if (available()) {
@@ -350,6 +372,18 @@ async function cleanupReminders(ctx, { limit = 20, alive = () => true } = {}) {
         await tx.remove('weather_subscription_grants', row.id); return true;
       });
       if (removed) { out.processed++; out.grants_removed++; }
+    }
+  }
+  if (available()) {
+    const receipts = await ctx.store.list('event_delivery_receipts', { orderBy: [{ field: 'retain_until', direction: 'asc' }], limit: Math.max(1, Math.floor(limit / 5)) });
+    for (const candidate of receipts) {
+      if (!available() || !(Date.parse(candidate.retain_until) <= now())) break;
+      const removed = await ctx.store.transaction(async tx => {
+        const row = await tx.get('event_delivery_receipts', candidate.id);
+        if (!row || !(Date.parse(row.retain_until) <= now())) return false;
+        await tx.remove('event_delivery_receipts', row.id); return true;
+      });
+      if (removed) { out.processed++; out.event_receipts_removed++; }
     }
   }
   // A third of the batch is reserved for historical records and day locks so
@@ -407,7 +441,7 @@ async function cleanupReminders(ctx, { limit = 20, alive = () => true } = {}) {
 async function purgeOwnerReminders(ctx, ownerId) {
   // Call only after the account was made inactive. This marker and dispatch's
   // final user read prevent a concurrent worker recreating deliverable records.
-  for (const kind of ['weather_reminders', 'weather_reminder_days', 'weather_subscription_grants', 'weather_subscription_pools', 'weather_daily_plans', 'weather_simulation_trials']) {
+  for (const kind of ['weather_reminders', 'event_delivery_receipts', 'weather_reminder_days', 'weather_subscription_grants', 'weather_subscription_pools', 'weather_daily_plans', 'weather_simulation_trials']) {
     for (;;) {
       const rows = await ctx.store.list(kind, { where: { owner_id: ownerId }, limit: 100 }); if (!rows.length) break;
       for (const row of rows) await ctx.store.remove(kind, row.id);

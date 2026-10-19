@@ -121,3 +121,11 @@ test('public runtime enforces the new release policy with trusted SDK identity a
   assert.equal(result.statusCode, 200); assert.equal(result.data.data.state, 'sent'); assert.equal(sent.length, 1); assert.equal(sent[0].touser, identity.OPENID);
   assert.doesNotMatch(JSON.stringify(result), /verified-fixture-openid|owner_id/); assert.equal(await store.count('weather_requests'), 0);
 });
+
+test('a sender preflight refusal is failed, not falsely unknown or sent, and does not retry', async () => {
+  const ctx = await context(); let calls = 0;
+  ctx.providers.sendWeatherReminder = async () => { calls++; throw Object.assign(new Error('invalid payload'), { code: 'SUBSCRIPTION_PAYLOAD_INVALID', dispatched: false, ambiguous: false }); };
+  const prepared = await prepare(ctx), result = await confirm(ctx, prepared);
+  assert.equal(result.state, 'failed'); assert.equal(result.reason, 'delivery_not_dispatched');
+  assert.equal((await confirm(ctx, prepared)).state, 'failed'); assert.equal(calls, 1);
+});

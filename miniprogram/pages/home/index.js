@@ -31,11 +31,14 @@ function alertBadge(alerts) {
 }
 Page(withTheme({
   data: { loading: true, error: '', regions: [], regionIndex: 0, region: null, weather: null, air: null, alerts: [], alertNotice: '', sections: [], observationLoading: false, cityLoading: true, cityError: '', cities: [], cityIndex: 0, city: null, citySummary: null, cityEnabled: false, locationBusy: false, locationNotice: '', weatherTheme: 'calm', airExpanded: false, alertsExpanded: false, alertBadge: null, observationExpanded: true },
+  events() { wx.navigateTo({ url: '/pages/events/index' }); },
   onLoad() { this._alive = true; return this.load(); },
   onShow() {
     if (this._alive === false) return;
     selectTab(this, 0);
-    if (this._hidden) { this._hidden = false; return this.load(); }
+    const wasHidden = this._hidden; this._hidden = false;
+    if (app().eventExperience) app().eventExperience.showLoginSummary(() => this._alive !== false && !this._hidden);
+    if (wasHidden) return this.load();
   },
   onHide() { this._hidden = true; this.clearWeatherTimer(); this._generation = (this._generation || 0) + 1; this._cityGeneration = (this._cityGeneration || 0) + 1; this._locationGeneration = (this._locationGeneration || 0) + 1; },
   onUnload() { this._alive = false; this.onHide(); },

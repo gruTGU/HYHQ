@@ -2,7 +2,7 @@
 
 // Public decorative assets only. Never add private user photos to this whitelist.
 module.exports = {
-  "version": "20261008-1",
+  "version": "20261011-1",
   "shared": {
     "riverExample": "cloud://a1-20261003-d3gwzbyol6df0a98a.6131-a1-20261003-d3gwzbyol6df0a98a-1499924072/hyhq-ui-20261008/shared-river-annotations.jpg"
   },
@@ -14,6 +14,8 @@ module.exports = {
       "entryFlower": "cloud://a1-20261003-d3gwzbyol6df0a98a.6131-a1-20261003-d3gwzbyol6df0a98a-1499924072/hyhq-ui-20261008/editorial-entry-flower.jpg",
       "entryLearn": "cloud://a1-20261003-d3gwzbyol6df0a98a.6131-a1-20261003-d3gwzbyol6df0a98a-1499924072/hyhq-ui-20261008/editorial-entry-learn.jpg",
       "entryRiver": "cloud://a1-20261003-d3gwzbyol6df0a98a.6131-a1-20261003-d3gwzbyol6df0a98a-1499924072/hyhq-ui-20261008/editorial-entry-river.jpg",
+      "observationFlower": "cloud://a1-20261003-d3gwzbyol6df0a98a.6131-a1-20261003-d3gwzbyol6df0a98a-1499924072/hyhq-ui-20261011/editorial-observation-flower.png",
+      "observationRiver": "cloud://a1-20261003-d3gwzbyol6df0a98a.6131-a1-20261003-d3gwzbyol6df0a98a-1499924072/hyhq-ui-20261011/editorial-observation-river.png",
       "emptyState": "cloud://a1-20261003-d3gwzbyol6df0a98a.6131-a1-20261003-d3gwzbyol6df0a98a-1499924072/hyhq-ui-20261008/editorial-empty-state.jpg"
     },
     "design-3": {

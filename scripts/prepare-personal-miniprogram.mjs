@@ -6,6 +6,16 @@ import { fileURLToPath } from 'node:url';
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const markerName = '.hyhq-generated-personal';
 const markerText = 'HYHQ generated native cloud function project v1\n';
+export const PERSONAL_FRONTEND_IGNORED = Object.freeze(['tests', 'node_modules', 'project.config.json', 'project.private.config.json', 'project.private.config.example.json', 'config/local.js', 'config/local.example.js', 'config/cloud.example.js', 'config/personal.example.js', 'config.local.js', 'package.json', 'README.md']);
+
+export function personalSourceExcluded(relative, frontend = true) {
+  const components = relative.split(path.sep);
+  return components.some((part) => part.startsWith('.') || part === 'node_modules' || part === 'tests' || part === '__pycache__')
+    || (frontend && PERSONAL_FRONTEND_IGNORED.includes(relative))
+    || /(?:\.pem|\.key|\.env|\.pyc)$/i.test(relative)
+    || /(?:^|\/)(?:config|deployment)\.local\.(?:js|json)$/.test(relative)
+    || /(?:^|\/)project\.private\.config\.json$/.test(relative);
+}
 
 export function preparePersonalMiniprogram({ root = repository, env, appid, functionName = 'hyhqApi' }) {
   if (!/^[a-z0-9][a-z0-9_-]{0,99}$/i.test(env || '')) throw new Error('必须提供有效的云环境 ID；不会生成空配置云包。');
@@ -23,14 +33,11 @@ export function preparePersonalMiniprogram({ root = repository, env, appid, func
   const destination = path.join(root, 'miniprogram-personal');
   const marker = path.join(destination, markerName);
   if (fs.existsSync(destination) && (fs.lstatSync(destination).isSymbolicLink() || !fs.existsSync(marker) || fs.readFileSync(marker, 'utf8') !== markerText)) throw new Error('miniprogram-personal 不是本工具生成的目录，已停止以保护文件。');
-  const ignored = new Set(['tests', 'node_modules', 'project.config.json', 'project.private.config.json', 'project.private.config.example.json', 'config/local.js', 'config/local.example.js', 'config/cloud.example.js', 'config/personal.example.js', 'config.local.js', 'package.json', 'README.md']);
   const temporary = fs.mkdtempSync(path.join(root, '.hyhq-personal-build-'));
   function filter(base, frontend) {
     return (file) => {
       const relative = path.relative(base, file);
-      const components = relative.split(path.sep);
-      if (components.some((part) => part.startsWith('.') || part === 'node_modules' || part === 'tests' || part === '__pycache__')) return false;
-      if ((frontend && ignored.has(relative)) || /(?:\.pem|\.key|\.env|\.pyc)$/i.test(file) || /(?:^|\/)(?:config|deployment)\.local\.(?:js|json)$/.test(relative) || /(?:^|\/)project\.private\.config\.json$/.test(relative)) return false;
+      if (personalSourceExcluded(relative, frontend)) return false;
       if (fs.lstatSync(file).isSymbolicLink()) throw new Error('项目来源中存在符号链接，已停止以保护私有文件。');
       return true;
     };

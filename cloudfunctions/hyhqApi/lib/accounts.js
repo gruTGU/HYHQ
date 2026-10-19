@@ -42,7 +42,7 @@ async function purgeAccount(ctx, user) {
       if (round === 99) throw new ApiError('CLEANUP_PENDING', '账号已停用，资料清理中，请稍后重试', 503);
     }
   }
-  for (const kind of ['favorites', 'histories', 'visits', 'feedback', 'recognition_jobs', 'assessment_jobs', 'asset_usage', 'llm_sessions', 'llm_turns', 'llm_owners', 'sessions', 'weather_ai_drafts']) {
+  for (const kind of ['event_subscriptions', 'environment_reports', 'favorites', 'histories', 'visits', 'feedback', 'recognition_jobs', 'assessment_jobs', 'asset_usage', 'llm_sessions', 'llm_turns', 'llm_owners', 'sessions', 'weather_ai_drafts']) {
     for (let round = 0; round < 100; round++) {
       const rows = await ctx.store.list(kind, { where: { owner_id: user.id }, limit: 100 });
       if (!rows.length) break;

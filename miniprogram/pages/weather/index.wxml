@@ -32,7 +32,8 @@
           <picker mode="time" value="{{dailyTime}}" disabled="{{busy || canConfirmAgain || canRetryGrant || intent}}" bindchange="changeDailyTime"><view class="daily-time-field" hover-class="pressable"><text>每日提醒时间</text><text class="daily-clock">{{dailyTime}} ⌄</text></view></picker>
           <text wx:if="{{dailyNextLabel}}" class="booking-help">所选安排：{{location.name}} · {{dailyNextLabel}}</text>
           <text wx:if="{{currentDailyPlan && currentDailyPlan.enabled}}" class="daily-plan-state">已开启：{{currentDailyPlan.subject_label}} · {{currentDailyPlan.time}}{{subscriptionPool.remaining ? '' : ' · 等待补充次数'}}</text>
-          <button class="primary booking-action daily-subscribe" hover-class="pressable" disabled="{{busy || loading || (!location) || canConfirmAgain || canRetryGrant || intent}}" loading="{{busy && !aiBusy && !grantBusy}}" bindtap="saveDailyPlan">{{currentDailyPlan && currentDailyPlan.enabled ? '保存每日安排' : '开启每日提醒'}}</button>
+          <button class="primary booking-action daily-subscribe" hover-class="pressable" disabled="{{busy || loading || (!location) || canConfirmAgain || canRetryGrant || intent}}" loading="{{savingDaily}}" bindtap="saveDailyPlan">{{savingDaily ? '正在保存' : currentDailyPlan && currentDailyPlan.enabled ? '保存每日安排' : '开启每日提醒'}}</button>
+          <view wx:if="{{dailyNotice || dailyError}}" class="daily-feedback" aria-live="polite"><text wx:if="{{dailyNotice}}" class="action-notice">{{dailyNotice}}</text><text wx:if="{{dailyError}}" class="action-error">{{dailyError}}</text></view>
           <button wx:if="{{currentDailyPlan && currentDailyPlan.enabled}}" class="text-button booking-edit" disabled="{{busy || canRetryGrant}}" bindtap="cancelDailyPlan">暂停每日提醒</button>
         </view>
         <view wx:if="{{naturalLanguageEnabled}}" class="ai-composer">

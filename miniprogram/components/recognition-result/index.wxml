@@ -1,6 +1,6 @@
 <view wx:if="{{result}}" class="result-card {{result.recognized ? 'recognized' : 'uncertain'}}">
   <view class="result-eyebrow">{{result.recognized ? 'MODEL RESULT / 模型结果' : 'NEEDS A CLOSER LOOK / 需要再看一眼'}}</view>
-  <view class="result-heading">{{result.heading}}</view>
+  <view class="environment-heading-row"><view class="result-heading environment-heading-title">{{result.heading}}</view><button wx:if="{{reportEnabled}}" class="activity-button environment-heading-action" disabled="{{busy}}" bindtap="environment">环境情况 ›</button></view>
   <view class="result-copy">{{result.explanation}}</view>
   <view class="candidate-title" wx:if="{{result.candidates.length}}">候选类别 · 最多 3 项</view>
   <view class="candidate" wx:for="{{result.candidates}}" wx:key="label">

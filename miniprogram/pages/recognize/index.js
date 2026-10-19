@@ -208,6 +208,10 @@ Page(withTheme({
     finally { if (!this._destroyed && version === this._selectionVersion) this.setData({ busy: false }); }
   },
   openContent(event) { if (event.detail.id) detail('content', event.detail.id); },
+  environmentReport() {
+    if (this._destroyed || !this._visible || this.data.busy || !this.data.task || this.data.task.status !== 'succeeded' || this._sessionToken !== app().session.token() || !requireLogin()) return;
+    wx.navigateTo({ url: '/pages/environment-report/index?task_kind=recognition&task_id=' + encodeURIComponent(this.data.task.id) });
+  },
   openAI() {
     if (!releasePolicy.recognitionInterpretationEnabled) return;
     if (this._destroyed || !this._visible || this.data.busy || !this.data.task || this.data.task.status !== 'succeeded' || this._sessionToken !== app().session.token() || !requireLogin()) return;

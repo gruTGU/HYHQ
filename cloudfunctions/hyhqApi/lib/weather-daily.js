@@ -17,6 +17,14 @@ const planId = (id, type) => sha256(id + ':' + type);
 function typeOf(type) { if (!['weather', 'ecology_simulation'].includes(type)) throw new ApiError('VALIDATION_ERROR', '请选择支持的提醒类型'); return type; }
 function poolDefault(id) { return { id, owner_id: id, template_id: TEMPLATE_ID, remaining: 0, reserved: 0, held: 0, consumed: 0, generation: 0, needs_resubscribe: false }; }
 function poolPublic(pool) { return { template_id: TEMPLATE_ID, remaining: pool && pool.remaining || 0, reserved: pool && pool.reserved || 0, held: pool && pool.held || 0, needs_resubscribe: !!(pool && pool.needs_resubscribe) }; }
+async function reserveCredit(tx, ownerId, n) {
+  const pool = await tx.get('weather_subscription_pools', ownerId);
+  if (!pool || pool.owner_id !== ownerId || pool.template_id !== TEMPLATE_ID || pool.needs_resubscribe
+    || !Number.isSafeInteger(pool.remaining) || pool.remaining < 1 || !Number.isSafeInteger(pool.reserved) || pool.reserved < 0
+    || typeof pool.openid !== 'string' || !/^[A-Za-z0-9_-]{8,128}$/.test(pool.openid)) return null;
+  pool.remaining--; pool.reserved++; pool.updated_at = iso(n);
+  await tx.set('weather_subscription_pools', pool.id, pool); return pool;
+}
 function scheduled(date, clock) { return Date.parse(date + 'T' + clock + ':00+08:00'); }
 function nextTime(clock, n, lastDate) { const date = weather.dayOf(n), today = scheduled(date, clock); return iso(today <= n || lastDate && date <= lastDate ? today + DAY : today); }
 function planPublic(row) {
@@ -70,6 +78,13 @@ async function confirmGrant(ctx, id) {
 async function releaseCredit(tx, row, n) {
   if (row.consent_kind !== 'subscription_pool' || row.credit_state !== 'reserved') return;
   if (!['sent', 'unknown', 'cancelled', 'expired', 'failed'].includes(row.state)) return;
+  if (row.type === 'event' && row.event_subscription_id && ['sent', 'unknown'].includes(row.state)) {
+    // A delivery receipt is a duplicate-send barrier, never another credit ledger.
+    // Keep it after normal job cleanup for events that remain open for a month.
+    await tx.set('event_delivery_receipts', row.event_subscription_id, { id: row.event_subscription_id, owner_id: row.owner_id,
+      event_id: row.event_id, reminder_id: row.id, state: row.state, reason: row.reason || '', scheduled_for: row.scheduled_for,
+      expires_at: row.expires_at, created_at: iso(n), retain_until: iso(Date.parse(row.expires_at) + 90 * DAY) });
+  }
   const pool = await tx.get('weather_subscription_pools', row.owner_id);
   if (!pool) { row.credit_state = 'invalid'; await tx.set('weather_reminders', row.id, row); return; }
   const current = row.credit_generation === pool.generation;
@@ -82,7 +97,7 @@ async function releaseCredit(tx, row, n) {
     if (current) invalidate(pool, row.pool_grants_at_dispatch);
   } else { row.credit_state = current ? 'released' : 'invalid'; if (current) pool.remaining++; }
   pool.updated_at = iso(n); await tx.set('weather_subscription_pools', pool.id, pool); await tx.set('weather_reminders', row.id, row);
-  const plan = await tx.get('weather_daily_plans', row.daily_plan_id);
+  const plan = row.daily_plan_id ? await tx.get('weather_daily_plans', row.daily_plan_id) : null;
   if (plan && plan.current_job_id === row.id) { plan.last_state = row.state; plan.last_reason = row.reason || ''; await tx.set('weather_daily_plans', plan.id, plan); }
 }
 function invalidate(pool, observedGrants) {
@@ -98,8 +113,16 @@ async function manualRefusal(tx, row, n) {
 async function recipient(tx, row) {
   if (row.consent_kind !== 'subscription_pool') return null;
   const pool = await tx.get('weather_subscription_pools', row.owner_id);
-  const plan = await tx.get('weather_daily_plans', row.daily_plan_id);
-  if (!pool || !plan || !plan.enabled || plan.generation !== row.daily_plan_generation || row.credit_state !== 'reserved' || row.credit_generation !== pool.generation || pool.needs_resubscribe || typeof pool.openid !== 'string') return null;
+  let authorized;
+  if (row.type === 'event' && row.event_subscription_id) {
+    const subscription = await tx.get('event_subscriptions', row.event_subscription_id);
+    authorized = subscription && subscription.owner_id === row.owner_id && subscription.event_id === row.event_id && subscription.reminder_id === row.id
+      && subscription.reminder_generation === row.event_subscription_generation;
+  } else {
+    const plan = row.daily_plan_id ? await tx.get('weather_daily_plans', row.daily_plan_id) : null;
+    authorized = plan && plan.enabled && plan.generation === row.daily_plan_generation;
+  }
+  if (!pool || pool.template_id !== TEMPLATE_ID || !authorized || row.credit_state !== 'reserved' || row.credit_generation !== pool.generation || pool.needs_resubscribe || typeof pool.openid !== 'string') return null;
   return { openid: pool.openid, total_grants: pool.total_grants || 0 };
 }
 async function cancelCurrent(tx, plan, n, reason) {
@@ -164,13 +187,12 @@ async function materialize(ctx, limit = 4) {
       if (!u || !u.is_active || u.deleting) { p.enabled = false; p.next_scheduled_for = null; await tx.set('weather_daily_plans', p.id, p); return 0; }
       const due = scheduled(date, p.time);
       if (p.last_target_date && date <= p.last_target_date || due > n) { p.next_scheduled_for = nextTime(p.time, n, p.last_target_date); await tx.set('weather_daily_plans', p.id, p); return 0; }
-      const pool = await tx.get('weather_subscription_pools', p.owner_id);
       p.last_target_date = date; p.next_scheduled_for = iso(due + DAY); p.updated_at = iso(n);
       if (n >= due + 30 * MINUTE) { p.last_state = 'missed'; await tx.set('weather_daily_plans', p.id, p); return 0; }
-      if (!pool || pool.needs_resubscribe || pool.remaining < 1 || !pool.openid) { p.last_state = 'no_credit'; await tx.set('weather_daily_plans', p.id, p); return 0; }
       const id = sha256('daily:' + p.id + ':' + date), existing = await tx.get('weather_reminders', id);
       if (existing) { await tx.set('weather_daily_plans', p.id, p); return 0; }
-      pool.remaining--; pool.reserved++; pool.updated_at = iso(n);
+      const pool = await reserveCredit(tx, p.owner_id, n);
+      if (!pool) { p.last_state = 'no_credit'; await tx.set('weather_daily_plans', p.id, p); return 0; }
       const row = { id, owner_id: p.owner_id, type: p.type, scenario: p.scenario, location: p.location, scheduled_for: iso(due), target_date: date, expires_at: iso(due + 30 * MINUTE),
         consent_expires_at: null, accepted_at: iso(n), state: 'pending', template_id: TEMPLATE_ID, created_at: iso(n), updated_at: iso(n), next_attempt_at: iso(due), reason: '', attempts: 0, weather_attempts: 0,
         recurrence: 'daily', consent_kind: 'subscription_pool', daily_plan_id: p.id, daily_plan_generation: p.generation, credit_state: 'reserved', credit_generation: pool.generation };
@@ -191,4 +213,4 @@ async function retireSimulationPlans(ctx, limit, ownerId) {
   });
   return changed;
 }
-module.exports = { handle, status, materialize, recipient, releaseCredit, manualRefusal, poolPublic, nextTime, retireSimulationPlans };
+module.exports = { handle, status, materialize, recipient, releaseCredit, manualRefusal, poolPublic, nextTime, retireSimulationPlans, reserveCredit, ready, identity, TEMPLATE_ID };

@@ -493,23 +493,26 @@ test('an unknown service status disables new sends while a measured existing com
   assert.equal(page.data.question, '需要保留的问题');
 });
 
-test('public chat selects weather explicitly, never refreshes weather and does not auto-fill the question', async () => {
-  const { page, calls, application } = fixture(async (path) => path === 'weather-data/locations/' ? { data: { items: [{ slug: 'tianjin-city', name: '天津市' }], enabled: true } } : undefined, { scope: 'learn', source_type: 'content', source_id: 'c1' });
-  application.globalData.weatherLocation = 'tianjin-city';
-  await page.onShow(); assert.equal(page.data.weatherIndex, 0); assert.equal(page.data.question, '');
-  page.chooseWeather(change(1)); await firstQuestion(page);
-  const post = calls.find((item) => item.path === 'llm/sessions/' && item.options.method === 'POST');
-  assert.equal(post.options.data.weather_location, 'tianjin-city');
-  assert.equal(calls.some((item) => item.path.includes('summary/') || item.path.includes('forecast/')), false);
-  assert.equal(page.data.question, '');
+test('public chat retains page context with no weather directory, attachment or prefilled question', async () => {
+  for (const scope of ['learn', 'explore']) {
+    const { page, calls, application } = fixture(undefined, { scope, source_type: 'region', source_id: 'r1', weather_location: 'tianjin' });
+    application.globalData.weatherLocation = 'tianjin';
+    await page.onShow(); assert.equal(page.data.question, ''); assert.equal(page.data.source.id, 'r1');
+    await firstQuestion(page);
+    const body = calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST').options.data;
+    assert.deepEqual(body, { scope, include_image: false, source_type: 'region', source_id: 'r1' });
+    assert.equal(calls.some(row => row.path.startsWith('weather-data/')), false);
+  }
 });
-test('weather directory failure degrades to page-only chat and existing sessions explain unavailable weather', async () => {
-  const { page, calls } = fixture(async (path) => { if (path === 'weather-data/locations/') throw new Error('暂时不可用'); }, { scope: 'explore', source_type: 'place', source_id: 'p1' });
-  await page.onShow(); assert.match(page.data.weatherError, /仅围绕页面/); await firstQuestion(page);
-  assert.equal('weather_location' in calls.find((item) => item.path === 'llm/sessions/' && item.options.method === 'POST').options.data, false);
-  const view = sessionView(session('s', { kind: 'learn', scope: 'learn', source_type: 'content', source_id: 'c1', weather_location: 'tianjin', weather_context: { location: { name: '天津市' }, status: 'unavailable' } }));
-  assert.match(view.weatherLabel, /过期或不可用/);
+
+test('an existing session with old weather settings remains readable without a weather request', async () => {
+  const { page, calls } = fixture(async path => {
+    if (path === 'llm/sessions/s1/') return { data: session('s1', { kind: 'learn', scope: 'learn', source_type: 'content', source_id: 'c1', weather_location: 'tianjin' }) };
+  });
+  await page.onShow(); assert.equal(page.data.session.id, 's1'); assert.equal(page.data.error, '');
+  assert.equal(calls.some(row => row.path.startsWith('weather-data/')), false);
 });
+
 test('source buttons navigate only to server-provided references attached to that turn', async () => {
   const { page, navigation } = fixture(); await page.onShow();
   page.data.turns = [turn('t', { status: 'succeeded', citations: [{ kind: 'content', id: 'c1', title: '公开科普' }] })];
@@ -585,27 +588,20 @@ test('hiding during the first create remembers the session but never sends a pai
   assert.equal(page.data.turns.length, 1);
 });
 
-test('weather entry is allowlisted, remains user-editable before sending, and never adds another quota scope', async () => {
-  for (const slug of ['tianjin-city', 'missing-city', '../private', ['tianjin-city']]) {
-    const { page, calls } = fixture(async path => path === 'weather-data/locations/' ? { data: { items: [{ slug: 'tianjin-city', name: '天津市' }, { slug: 'beijing-city', name: '北京市' }, null, { slug: '../private', name: '不合法条目' }] } } : undefined, { scope: 'explore', source_type: 'region', source_id: 'r1', weather_location: slug });
-    await page.onShow(); assert.equal(page.data.weatherIndex, slug === 'tianjin-city' ? 1 : 0);
-    assert.equal(page.data.question, ''); assert.equal(page.data.weatherLocations.length, 3);
-    page.chooseWeather(change(2)); await page.load(); assert.equal(page.data.weatherIndex, 2);
-    page.inputQuestion(change('适合去散步吗？')); await page.send();
-    const created = calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST');
-    assert.equal(created.options.data.scope, 'explore'); assert.equal(created.options.data.weather_location, 'beijing-city');
-    assert.equal(calls.some(row => /summary|forecast/.test(row.path)), false);
+test('old weather query parameters cannot reenable the removed attachment option', async () => {
+  for (const weather_location of ['tianjin', 'missing-city', '../private', ['tianjin']]) {
+    const { page, calls } = fixture(undefined, { scope: 'explore', source_type: 'region', source_id: 'r1', weather_location });
+    await page.onShow(); await firstQuestion(page);
+    assert.equal(calls.some(row => row.path.startsWith('weather-data/')), false);
+    assert.equal('weather_location' in calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST').options.data, false);
   }
 });
 
-test('weather preselection falls back to none on directory failure and is ignored for recognition', async () => {
-  const publicChat = fixture(async path => { if (path === 'weather-data/locations/') throw new Error('地点目录不可用'); }, { scope: 'learn', source_type: 'content', source_id: 'c1', weather_location: 'tianjin-city' });
-  await publicChat.page.onShow(); assert.equal(publicChat.page.data.weatherIndex, 0); await firstQuestion(publicChat.page);
-  assert.equal('weather_location' in publicChat.calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST').options.data, false);
-  const recognition = fixture(undefined, { kind: 'recognition', jobId: 'j1', weather_location: 'tianjin-city' });
-  await recognition.page.onShow(); await firstQuestion(recognition.page);
-  assert.equal(recognition.calls.some(row => row.path === 'weather-data/locations/'), false);
-  assert.equal('weather_location' in recognition.calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST').options.data, false);
+test('weather query remains ignored for recognition too', async () => {
+  const f = fixture(undefined, { kind: 'recognition', jobId: 'j1', weather_location: 'tianjin' });
+  await f.page.onShow(); await firstQuestion(f.page);
+  assert.equal(f.calls.some(row => row.path.startsWith('weather-data/')), false);
+  assert.equal('weather_location' in f.calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST').options.data, false);
 });
 
 test('fresh composer measurements tolerate no session and become stale when first send establishes one', async () => {
@@ -631,34 +627,37 @@ test('confirmed hidden send clears its retry key so repeating the same question 
   assert.equal(ids.length, 2); assert.notEqual(ids[0], ids[1]); assert.equal(page.data.turns[0].id, 'second');
 });
 
-test('first send attaches the requested weather only when its slug is in the server directory', async () => {
-  for (const requested of ['tianjin-city', 'not-in-directory']) {
-    const { page, calls } = fixture(async path => path === 'weather-data/locations/' ? { data: { items: [{ slug: 'tianjin-city', name: '天津市' }] } } : undefined, { scope: 'explore', source_type: 'region', source_id: 'r1', weather_location: requested });
-    await page.onShow(); await firstQuestion(page);
-    const body = calls.find(row => row.path === 'llm/sessions/' && row.options.method === 'POST').options.data;
-    assert.equal(body.weather_location, requested === 'tianjin-city' ? requested : undefined);
-    assert.equal(body.scope, 'explore');
+test('successful empty responses are not labelled as completed answers', () => {
+  for (const answer of ['', '  ', null, undefined]) {
+    const view = require('../lib/llm').turnView(turn('empty', { answer }));
+    assert.equal(view.status, 'failed'); assert.equal(view.error_code, 'LLM_ANSWER_MISSING');
+    assert.match(view.message, /刷新核对/); assert.equal(view.question, '如何核对？');
   }
 });
 
-test('new public chat dispatches independent status, fresh source and weather-directory reads together', async () => {
-  const status = deferred(), source = deferred(), weather = deferred();
+test('new public chat dispatches status and fresh source reads together without weather', async () => {
+  const status = deferred(), source = deferred();
   const { page, calls } = fixture(async path => {
     if (path === 'llm/status/') return status.promise;
     if (path === 'regions/') return source.promise;
-    if (path === 'weather-data/locations/') return weather.promise;
   }, { scope: 'explore', source_type: 'region', source_id: 'r1' });
   const loading = page.onShow(); await flush();
-  assert.deepEqual(calls.map(row => row.path), ['llm/status/', 'regions/', 'weather-data/locations/']);
+  assert.deepEqual(calls.map(row => row.path), ['llm/status/', 'regions/']);
   assert.equal(calls.find(row => row.path === 'regions/').options.cache, false);
-  assert.equal(page.data.loading, true); assert.equal(page.data.session, null);
   status.resolve({ data: { enabled: true, model: 'deepseek-flash' } });
-  source.resolve({ data: [{ id: 'r1', name: '当前公开区域' }] });
-  weather.resolve({ data: { items: [{ slug: 'tianjin', name: '天津市' }] } }); await loading;
-  assert.equal(page.data.loading, false); assert.equal(page.data.source.id, 'r1');
-  assert.equal(page.data.question, ''); assert.equal(calls.some(row => row.options && row.options.method), false);
+  source.resolve({ data: [{ id: 'r1', name: '当前公开区域' }] }); await loading;
+  assert.equal(page.data.loading, false); assert.equal(page.data.source.id, 'r1'); assert.equal(page.data.question, '');
 });
 
+test('pending to completed turn binds readable native Markdown nodes in the same page update', async () => {
+  const { page } = fixture(); await page.onShow();
+  page.updateTurns([turn('native', { status: 'running', answer: '' })]);
+  assert.deepEqual(page.data.displayTurns[0].answerNodes, []);
+  page.updateTurns([turn('native', { answer: '### 河边观察\n\n记录**叶片形状**，不要采摘。' })]);
+  const nodes = page.data.displayTurns[0].answerNodes;
+  const textOf = rows => rows.map(row => row.type === 'text' ? row.text : textOf(row.children || [])).join('');
+  assert.match(textOf(nodes), /记录叶片形状/); assert.equal(nodes[0].name, 'h3'); assert.equal(page.data.hasPending, false);
+});
 
 function imageFixture(status = 'failed', extra = {}) {
   return fixture(async (path, options) => {

@@ -19,7 +19,9 @@
     "pages/themes/index",
     "pages/submissions/index",
     "pages/llm/index",
-    "pages/llm-history/index"
+    "pages/llm-history/index",
+    "pages/events/index",
+    "pages/environment-report/index"
   ],
   "window": {
     "navigationBarTitleText": "HYHQ 海晏河清",

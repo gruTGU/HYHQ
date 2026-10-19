@@ -9,7 +9,10 @@
       <view class="detection-box" wx:for="{{task.result_view.boxes}}" wx:key="id" style="{{item.box_style}}"><text class="box-label">{{index + 1}}</text></view>
     </view>
   </view>
-  <view class="upload-panel section" wx:else><button class="leaf-camera" hover-class="leaf-camera-pressed" bindtap="choose" disabled="{{busy}}" aria-label="拍照或从相册选择河道照片"><image class="camera-icon" src="/assets/icons/observe-camera.png" mode="aspectFit" /><text class="camera-label">拍照 / 选图</text></button><view class="title upload-title">为这段河流，留一张照片</view></view>
+  <view class="upload-panel section {{themeId === 'design-2' && themeAssets.observationRiver ? 'observation-photo-panel' : ''}}" wx:else>
+    <block wx:if="{{themeId === 'design-2' && themeAssets.observationRiver}}"><image class="observation-photo-background" src="{{themeAssets.observationRiver}}" mode="widthFix" aria-hidden="true" /><view class="observation-photo-shade" aria-hidden="true"></view></block>
+    <button class="leaf-camera" hover-class="leaf-camera-pressed" bindtap="choose" disabled="{{busy}}" aria-label="拍照或从相册选择河道照片"><image class="camera-icon" src="/assets/icons/observe-camera.png" mode="aspectFit" /><text class="camera-label">拍照 / 选图</text></button><view class="title upload-title">为这段河流，留一张照片</view>
+  </view>
   <view class="small muted gap" wx:if="{{imageUnavailable}}">{{imageUnavailable}}</view>
   <button class="secondary gap" wx:if="{{imagePath}}" disabled="{{busy}}" bindtap="choose">选择另一张照片</button>
   <view class="error-inline gap" wx:if="{{photoError}}">{{photoError}}</view>
@@ -41,7 +44,7 @@
   </block>
   <view class="card section" wx:if="{{task && !task.result_view}}"><view class="row"><text class="title">{{task.status_label}}</text><text class="pill">观察进度</text></view><view class="copy">{{task.error_label || (task.status === 'queued' ? '照片正在排队，请稍候。' : task.status === 'running' ? '正在分析图片，请稍候。' : '本次未产生观察结论。')}}</view><view class="small muted gap">{{task.created_label}}</view><button class="secondary gap" bindtap="refreshTask">刷新观察进度</button></view>
   <block wx:if="{{task.result_view}}">
-    <view class="result-banner section"><view class="title">{{task.result_view.heading}}</view><view class="rule-score" wx:if="{{task.result_view.has_score}}">{{task.result_view.score_label}}<text class="rule-score-unit"> / 100</text></view><view class="small" wx:if="{{task.result_view.has_score}}">图像教学规则分</view><view class="copy">{{task.result_view.explanation}}</view></view>
+    <view class="result-banner section"><view class="environment-heading-row"><view class="title environment-heading-title">{{task.result_view.heading}}</view><button wx:if="{{task.status === 'succeeded' && task.reason !== 'LOW_IMAGE_QUALITY' && task.result.reason !== 'LOW_IMAGE_QUALITY'}}" class="observation-button activity-button environment-heading-action" disabled="{{busy}}" bindtap="environmentReport">环境情况 ›</button></view><view class="rule-score" wx:if="{{task.result_view.has_score}}">{{task.result_view.score_label}}<text class="rule-score-unit"> / 100</text></view><view class="small" wx:if="{{task.result_view.has_score}}">图像教学规则分</view><view class="copy">{{task.result_view.explanation}}</view></view>
     <view class="card section"><view class="row"><text class="title">检测候选</text><text class="pill">{{task.result_view.detections.length}} 个</text></view><view class="detection-row" wx:for="{{task.result_view.detections}}" wx:key="id"><text>{{index + 1}} · {{item.label}}</text><text class="small muted">置信分数 {{item.confidence_label}}</text></view><view class="copy" wx:if="{{!task.result_view.detections.length}}">暂时没有可展示的漂浮物候选。</view><view class="small muted gap" wx:if="{{task.result_view.detections.length}}">编号对应照片中的候选框。框按原图相对位置展示，不代表人工核实。</view></view>
     <view class="card section" wx:if="{{task.summary_view}}">
       <view class="title">画面观察摘要</view>

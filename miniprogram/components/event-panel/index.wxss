@@ -1,0 +1,2 @@
+@import "../../styles/activity-ui.wxss";
+.event-line { margin-top: 20rpx; line-height: 1.6; }

@@ -153,3 +153,22 @@ test('historical citations share one request catalog read and a new request imme
   const after = await invoke(ctx, 'GET', path, {}, ext);
   assert.equal(catalogReads, 1); assert.ok(after.data.data.every(turn => turn.citations.length === 1 && turn.citations[0].id === SOURCE));
 });
+
+test('mini release closes weather attachments for both new and existing sessions while retaining RAG and dialogue', async () => {
+  const policy = require('../../cloudfunctions/hyhqApi/lib/release-policy');
+  const ctx = await setup(); ctx.config = policy.applyReleasePolicy(ctx.config);
+  for (const scope of ['explore', 'learn']) {
+    const s = await session(ctx, scope, { weather_location: 'tianjin' });
+    assert.equal(s.weather_location, ''); assert.equal(s.weather_context, null);
+    await ctx.store.update('llm_sessions', s.id, { weather_location: 'tianjin' }); // previously saved setting
+    const get = ctx.store.get.bind(ctx.store);
+    ctx.store.get = async (kind, id) => { assert.notEqual(kind, 'weather_cache'); return get(kind, id); };
+    let captured;
+    const out = await finish(ctx, await enqueue(ctx, s.id), { ...adapters, generateLlm: async (_, messages) => { captured = messages; return adapters.generateLlm(); } });
+    assert.equal(out.status, 'succeeded'); assert.ok(out.answer); assert.ok(out.citations.length);
+    const facts = JSON.parse(captured[1].content.split('\n').slice(1).join('\n'));
+    assert.equal(Object.hasOwn(facts, 'weather'), false); assert.ok(facts.current_page); assert.equal(facts.scope, scope);
+    const publicSession = (await invoke(ctx, 'GET', `llm/sessions/${s.id}/`)).data.data;
+    assert.equal(publicSession.weather_location, ''); assert.equal(publicSession.weather_context, null);
+  }
+});

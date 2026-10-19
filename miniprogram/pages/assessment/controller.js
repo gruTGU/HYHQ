@@ -325,6 +325,10 @@ function createAssessmentController() { return {
   imageError() { if (!this._destroyed) this.setData({ imageReady: false, imageUnavailable: '图片暂时无法显示，观察记录仍可查看。' }); },
   refreshTask() { this._pollCount = 0; return this.data.task ? this.poll(this.data.task.id) : this.load(); },
   allRecords() { wx.navigateTo({ url: '/pages/records/index?kind=assessment-jobs' }); },
+  environmentReport() {
+    if (this._destroyed || !this._visible || this.data.busy || !this.data.task || this.data.task.status !== 'succeeded' || this._sessionToken !== app().session.token() || !requireLogin()) return;
+    wx.navigateTo({ url: '/pages/environment-report/index?task_kind=assessment&task_id=' + encodeURIComponent(this.data.task.id) });
+  },
   openImageAI() {
     if (!releasePolicy.recognitionInterpretationEnabled) return;
     if (this._destroyed || !this._visible || this.data.busy || !imageEligible(this.data.task) || this._sessionToken !== app().session.token() || !requireLogin()) return;

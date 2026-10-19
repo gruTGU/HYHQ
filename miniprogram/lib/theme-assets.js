@@ -1,9 +1,9 @@
 // Only public presentation assets belong here; identity and private files never do.
-// Discard v1's optimistic one-hour URLs. Requested storage TTL is not proof of
-// actual URL validity; keep the server expiry and an independent short cap.
-const KEY = 'hyhq.theme-assets.v2.';
+// Discard older cached manifests so newly added observation art is fetched.
+// Requested TTL is not proof of URL validity; keep the independent short cap.
+const KEY = 'hyhq.theme-assets.v3.';
 const THEMES = ['forest', 'design-2', 'design-3'];
-const ASSETS = ['weatherRiver', 'entryExplore', 'entryFlower', 'entryLearn', 'entryRiver', 'emptyState', 'paperTile', 'contours', 'riverExample'];
+const ASSETS = ['weatherRiver', 'entryExplore', 'entryFlower', 'entryLearn', 'entryRiver', 'observationFlower', 'observationRiver', 'emptyState', 'paperTile', 'contours', 'riverExample'];
 const MAX_AGE = 5 * 60 * 1000;
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 function scope(config = {}) {

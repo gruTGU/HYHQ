@@ -34,6 +34,8 @@
     </block>
     <view wx:if="{{!loading}}" class="card section menu-card">
       <button hover-class="pressable" wx:if="{{user && cloudMode}}" class="setting-button menu-row" bindtap="submissions"><text class="setting-label">我的资料反馈</text><text class="chevron">›</text></button>
+      <button hover-class="pressable" class="setting-button menu-row" bindtap="events"><text class="setting-label">活动订阅与年度花季</text><text class="chevron">›</text></button>
+      <button hover-class="pressable" wx:if="{{user}}" class="setting-button menu-row" bindtap="environmentReports"><text class="setting-label">我的环境反馈与模拟上报</text><text class="chevron">›</text></button>
       <button hover-class="pressable" class="setting-button menu-row" bindtap="openThemeSettings"><text class="setting-label">外观与主题</text><text class="setting-value">{{themeName}}</text><text class="chevron">›</text></button>
       <button hover-class="pressable" class="setting-button menu-row" bindtap="feedback"><text class="setting-label">意见与反馈</text><text class="chevron">›</text></button>
       <button hover-class="pressable" wx:if="{{user && canManage}}" class="setting-button menu-row" bindtap="management"><text class="setting-label">平台管理</text><text class="chevron">›</text></button>

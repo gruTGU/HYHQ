@@ -1,0 +1,86 @@
+<view class="page events-page theme-{{themeId}} {{themeId !== 'forest' ? 'theme-designed' : ''}}" style="{{themeStyle}};{{themeAssetStyle}}">
+  <view class="title">活动与订阅</view>
+  <view class="notice">模拟演示活动 · 非场地方公告，请勿据此前往。可主动订阅一次微信活动提醒。</view>
+  <view wx:if="{{loggedIn}}" class="card section">
+    <view class="row"><text class="grow">开启活动站内摘要</text><switch checked="{{enabled}}" disabled="{{busy || loading || privateError || canRetryGrant || dialogOpen}}" color="#3a7d5c" bindchange="notifications" /></view>
+    <view class="copy">打开应用或登录时展示今日与近期活动，每天最多一次，可随时关闭。此开关只管理站内摘要；具体活动的微信提醒需单独点击订阅。</view>
+    <view wx:if="{{!privateError}}" class="reminder-pool">
+      <view class="credit-balance"><view class="credit-summary"><text class="field-label">剩余提醒次数</text><text class="credit-count">{{subscriptionPool.remaining}} <text class="credit-unit">次</text></text></view><button class="credit-add" hover-class="pressable" loading="{{poolPreparing || (busy && creditOnly)}}" disabled="{{busy || loading || poolPreparing || canRetryGrant || dialogOpen || !reminderEnabled || !wechatLogin}}" bindtap="addPoolCredit" aria-label="主动授权并增加一次提醒次数">+1</button></view>
+      <view class="copy">已预约 {{subscriptionPool.reserved}} 次<text wx:if="{{subscriptionPool.held}}"> · 处理中 {{subscriptionPool.held}} 次</text></view>
+      <view wx:if="{{poolNotice}}" class="pool-feedback" aria-live="polite">{{poolNotice}}</view>
+      <view wx:if="{{creditOnly && dialogNotice}}" class="pool-feedback" aria-live="polite">{{dialogNotice}}</view>
+      <view wx:if="{{creditOnly && dialogError}}" class="error-inline" aria-live="polite">{{dialogError}}</view>
+      <button wx:if="{{creditOnly && canRetryGrant}}" class="activity-button secondary gap" disabled="{{busy}}" loading="{{busy}}" bindtap="retrySubscriptionCredit">重试保存提醒次数</button>
+      <view class="copy">与天气、生态模拟共用次数。每个活动消耗1次，次数不足时可主动 +1。</view>
+      <view class="copy">{{reminderNotice}}</view>
+      <view class="copy">{{timeRule}} 已过时间的活动预计5分钟内发送。</view>
+      <view wx:if="{{!reminderEnabled}}" class="notice">微信提醒暂未开放，请稍后刷新。</view>
+      <view wx:elif="{{!wechatLogin}}" class="notice">使用微信登录后，可预约活动微信提醒。</view>
+    </view>
+    <view class="error-inline" wx:if="{{privateError}}">{{privateError}}</view>
+  </view>
+  <button wx:else class="activity-button secondary section" bindtap="login">登录后订阅活动</button>
+  <view wx:if="{{!creditOnly && !dialogOpen && (canRetryGrant || canRetryBooking)}}" class="card section">
+    <view class="copy">{{canRetryGrant ? '微信授权已完成，提醒次数尚待保存。' : '活动提醒预约结果尚待核对。'}}继续确认不会重复申请授权。</view>
+    <button class="activity-button primary section" bindtap="resumeDialog">继续确认</button>
+  </view>
+  <page-state loading="{{loading}}" error="{{error}}" bindretry="load" />
+  <button wx:if="{{filtered}}" class="activity-button activity-text-button text-button section" bindtap="all">查看全部活动与年度花季</button>
+  <view wx:if="{{!error}}" class="card section calendar-card">
+    <view class="calendar-toolbar"><button class="calendar-arrow" data-delta="-1" bindtap="calendarMonth" disabled="{{loading || calendarPreviousDisabled}}" aria-label="上个月">‹</button><view class="calendar-title">{{calendarTitle}}</view><button class="calendar-arrow" data-delta="1" bindtap="calendarMonth" disabled="{{loading || calendarNextDisabled}}" aria-label="下个月">›</button></view>
+    <view class="calendar-grid calendar-week"><text wx:for="{{weekdays}}" wx:key="*this">{{item}}</text></view>
+    <view class="calendar-grid"><block wx:for="{{calendarCells}}" wx:key="id"><view wx:if="{{item.blank}}" class="calendar-blank"></view><button wx:else class="calendar-day {{item.selected ? 'calendar-selected' : ''}} {{item.today ? 'calendar-today' : ''}} {{item.past ? 'calendar-past' : ''}}" disabled="{{loading}}" data-date="{{item.date}}" bindtap="calendarDay" aria-label="{{item.date}}，{{item.count}}项模拟活动" aria-pressed="{{item.selected}}"><text class="calendar-number">{{item.day}}</text><text class="calendar-count">{{item.count ? item.count + '项' : '·'}}</text></button></block></view>
+    <view class="calendar-footer"><text>{{selectedDateLabel}}</text><button wx:if="{{selectedDate}}" class="activity-button secondary calendar-all" bindtap="calendarAll">本月全部</button></view>
+  </view>
+  <view wx:if="{{!loading && !error && !visibleItems.length}}" class="card section">{{selectedDate ? '当天暂无已整理的模拟活动。' : '本月暂无已整理的模拟活动。'}}</view>
+  <view wx:for="{{visibleItems}}" wx:key="id" class="card section event-card">
+    <view class="row"><text class="pill">模拟演示活动</text><text class="small muted">{{item.kind_label}}</text></view>
+    <view class="title gap">{{item.title}}</view><view class="copy">{{item.location_name}}</view>
+    <view class="copy">{{item.time_label}} 至 {{item.end_label}}</view><view class="copy">{{item.description}}</view>
+    <view wx:if="{{item.subscribed}}" class="reminder-status"><view>{{item.reminder_label}}</view><view wx:if="{{item.reminder}}" class="copy">发送安排：{{item.schedule_label}}</view></view>
+    <view class="actions">
+      <button class="activity-button secondary" data-id="{{item.id}}" bindtap="map">在地图中查看</button>
+      <button wx:if="{{loggedIn && !item.reminder}}" class="activity-button primary" data-id="{{item.id}}" bindtap="subscribe" disabled="{{busy || loading || privateError || item.ended || !reminderEnabled || !wechatLogin}}">{{item.ended ? '活动已结束' : '订阅活动提醒'}}</button>
+      <button wx:if="{{loggedIn && item.subscribed}}" class="activity-button secondary" data-id="{{item.id}}" bindtap="cancel" disabled="{{busy || loading || privateError || canRetryGrant}}">取消订阅</button>
+    </view>
+  </view>
+  <view wx:if="{{subscriptions.length}}" class="section">
+    <view class="section-title">我的订阅</view>
+    <view class="copy">发送前取消可退还预留次数；正在发送时暂不能取消。已发送或结果待核实的提醒不会退还次数，也不会重复发送。</view>
+    <view wx:for="{{subscriptions}}" wx:key="event_id" class="card section">
+      <view class="title">{{item.event.title}}</view><view class="copy">{{item.event.time_label}} · 模拟演示活动</view>
+      <view class="reminder-status">{{item.reminder_label}}</view><view wx:if="{{item.reminder}}" class="copy">发送安排：{{item.schedule_label}}</view>
+      <button wx:if="{{!item.reminder && !item.ended}}" class="activity-button primary section" data-id="{{item.event_id}}" bindtap="subscribe" disabled="{{busy || loading || privateError || !reminderEnabled || !wechatLogin}}">订阅活动提醒</button>
+      <button class="activity-button activity-text-button text-button" data-id="{{item.event_id}}" bindtap="cancel" disabled="{{busy || loading || privateError || canRetryGrant}}">取消此订阅</button>
+    </view>
+  </view>
+  <view wx:if="{{dialogOpen}}" class="activity-dialog-backdrop" catchtouchmove="stopTouch">
+    <view class="activity-dialog" aria-role="dialog" aria-modal="true" aria-label="订阅活动提醒">
+      <scroll-view scroll-y class="activity-dialog-scroll">
+        <view class="section-title">{{dialogFinished ? '活动提醒已确认' : '订阅活动提醒'}}</view>
+        <view class="pill gap">模拟演示活动</view>
+        <view class="title gap">{{dialogEvent.title}}</view><view class="copy">{{dialogEvent.location_name}}</view>
+        <view class="copy">活动时间：{{dialogEvent.time_label}}</view>
+        <view class="reminder-status">{{dialogFinished ? '发送安排' : '预计发送'}}：{{dialogSchedule}}</view>
+        <view class="copy">{{timeRule}} 每个活动只提醒一次，内容为模拟活动安排。</view>
+        <view wx:if="{{!dialogFinished}}" class="copy">可用 {{subscriptionPool.remaining}} 次。确认后预留1次，与天气、生态模拟共用额度。</view>
+        <view wx:if="{{needsCredit && !dialogFinished}}" class="notice">次数不足。点击“+1并订阅”后，由微信询问是否允许本次提醒；仅同意后增加1次并预约此活动。</view>
+        <view wx:if="{{dialogNotice}}" class="notice" aria-live="polite">{{dialogNotice}}</view>
+        <view wx:if="{{dialogError}}" class="error-inline" aria-live="polite">{{dialogError}}</view>
+        <view wx:if="{{!reminderEnabled && !dialogFinished}}" class="notice">微信提醒暂不可用，请稍后再试。</view>
+        <view wx:elif="{{!wechatLogin && !dialogFinished}}" class="notice">请先使用微信登录，再预约微信提醒。</view>
+        <view class="activity-dialog-actions">
+          <button wx:if="{{dialogFinished}}" class="activity-button primary" bindtap="closeDialog">完成</button>
+          <block wx:else>
+            <button wx:if="{{canRetryGrant}}" class="activity-button primary" disabled="{{busy}}" loading="{{busy}}" bindtap="retrySubscriptionCredit">重试保存并预约</button>
+            <button wx:elif="{{canRetryBooking}}" class="activity-button primary" disabled="{{busy}}" loading="{{busy}}" bindtap="confirmBooking">重试确认预约</button>
+            <button wx:elif="{{needsCredit && !grantIntent}}" class="activity-button primary" disabled="{{busy || grantPreparing || !reminderEnabled || !wechatLogin}}" loading="{{grantPreparing}}" bindtap="prepareSubscriptionGrant">{{grantPreparing ? '准备 +1…' : '重新准备 +1'}}</button>
+            <button wx:elif="{{needsCredit}}" class="activity-button primary" disabled="{{busy || !reminderEnabled || !wechatLogin}}" loading="{{busy}}" bindtap="addSubscriptionCredit">+1并订阅</button>
+            <button wx:else class="activity-button primary" disabled="{{busy || !reminderEnabled || !wechatLogin}}" loading="{{busy}}" bindtap="confirmBooking">确认预约 · 使用1次</button>
+            <button class="activity-button secondary" disabled="{{busy}}" bindtap="closeDialog">{{canRetryGrant || canRetryBooking ? '稍后继续' : '暂不订阅'}}</button>
+          </block>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

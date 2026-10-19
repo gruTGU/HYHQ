@@ -11,7 +11,7 @@ Page(withTheme({
     subscriptionEnabled: false, subscriptionNotice: '', loggedIn: false, wechatLogin: false,
     reminders: [], intent: null, busy: false, locating: false, locationNotice: '', actionError: '', notice: '', canConfirmAgain: false,
     subscriptionPool: { remaining: 0, reserved: 0, held: 0, needs_resubscribe: false }, dailyPlans: [], currentDailyPlan: null, legacySimulationPlans: [], grantIntent: null, grantPreparing: false, grantBusy: false, grantError: '', canRetryGrant: false,
-    dailyTime: '08:00', dailyNextLabel: '', templateId: '', naturalLanguageEnabled: releasePolicy.naturalLanguageReminderEnabled,
+    dailyNotice: '', dailyError: '', savingDaily: false, dailyTime: '08:00', dailyNextLabel: '', templateId: '', naturalLanguageEnabled: releasePolicy.naturalLanguageReminderEnabled,
     bookingDate: '', bookingTime: '08:00', minDate: '', maxDate: '', aiText: '', aiNotice: '', aiError: '', aiBusy: false },
   onLoad(options) {
     this._alive = true; this._wantedLocation = options && options.location || app().globalData.weatherLocation || 'tianjin';
@@ -22,7 +22,7 @@ Page(withTheme({
   onShow() { if (this._alive === false) return; this._hidden = false; return this.load(); },
   onHide() {
     if (this._alive === false) return; this._hidden = true; this._version = (this._version || 0) + 1; this._accepted = null; this._grantAccepted = null;
-    this.setData({ reminders: [], intent: null, grantIntent: null, grantPreparing: false, grantBusy: false, canRetryGrant: false, grantError: '', subscriptionPool: { remaining: 0, reserved: 0, held: 0, needs_resubscribe: false }, dailyPlans: [], currentDailyPlan: null, legacySimulationPlans: [], notice: '', actionError: '', canConfirmAgain: false, busy: false, aiBusy: false, locating: false });
+    this.setData({ reminders: [], intent: null, grantIntent: null, grantPreparing: false, grantBusy: false, canRetryGrant: false, grantError: '', subscriptionPool: { remaining: 0, reserved: 0, held: 0, needs_resubscribe: false }, dailyPlans: [], currentDailyPlan: null, legacySimulationPlans: [], dailyNotice: '', dailyError: '', savingDaily: false, notice: '', actionError: '', canConfirmAgain: false, busy: false, aiBusy: false, locating: false });
   },
   onUnload() { this._alive = false; this._version = (this._version || 0) + 1; this._accepted = null; this._grantAccepted = null; },
   active() { return this._alive !== false && !this._hidden; },
@@ -32,7 +32,7 @@ Page(withTheme({
     if (app().session.token() === token) return true;
     this._version += 1; this._accepted = null; this._grantAccepted = null; this._interpretRequest = null;
     this.setData({ reminders: [], intent: null, grantIntent: null, grantPreparing: false, grantBusy: false, canRetryGrant: false, subscriptionPool: { remaining: 0, reserved: 0, held: 0, needs_resubscribe: false }, dailyPlans: [], currentDailyPlan: null, legacySimulationPlans: [], busy: false, aiBusy: false, locating: false, loading: false,
-      loggedIn: Boolean(app().session.token()), wechatLogin: false, subscriptionEnabled: false, canConfirmAgain: false,
+      dailyNotice: '', dailyError: '', savingDaily: false, loggedIn: Boolean(app().session.token()), wechatLogin: false, subscriptionEnabled: false, canConfirmAgain: false,
       actionError: '登录状态已变化，请刷新后再操作。' }); return false;
   },
   onPullDownRefresh() { if (this.data.busy || this.data.locating) { wx.stopPullDownRefresh(); return; } return this.load(); },
@@ -40,7 +40,7 @@ Page(withTheme({
     if (!this.active() || this.data.busy) return;
     const version = this._version = (this._version || 0) + 1, token = app().session.token();
     this._token = token; this._accepted = null; this._grantAccepted = null;
-    this.setData({ loading: true, error: '', forecast: null, intent: null, grantIntent: null, grantError: '', canRetryGrant: false, reminders: [], legacySimulationPlans: [], loggedIn: Boolean(token), canConfirmAgain: false,
+    this.setData({ loading: true, error: '', dailyNotice: '', dailyError: '', savingDaily: false, forecast: null, intent: null, grantIntent: null, grantError: '', canRetryGrant: false, reminders: [], legacySimulationPlans: [], loggedIn: Boolean(token), canConfirmAgain: false,
       forecastEnabled: false, weatherReminderEnabled: false, subscriptionEnabled: false, templateId: '', wechatLogin: false, subscriptionNotice: '正在读取提醒服务状态…' });
     try {
       const results = await Promise.allSettled([app().api.request('weather-data/locations/'), app().api.request('weather-data/reminders/')]);
@@ -106,7 +106,7 @@ Page(withTheme({
     if (!this.active() || this.data.busy || this.data.canConfirmAgain || this.data.canRetryGrant || this.data.intent) return;
     const clock = String(event.detail.value || '');
     if (nextDailyBooking(clock, this.now()).error) return;
-    this.setData({ dailyTime: clock, actionError: '', notice: '' }); this.updateDailyLabel();
+    this.setData({ dailyTime: clock, dailyError: '', dailyNotice: '', actionError: '', notice: '' }); this.updateDailyLabel();
     try { wx.setStorageSync('hyhq.weather.daily-time.v1', clock); } catch (_) { /* The current selection still works without storage. */ }
   },
   poolView(value) {
@@ -141,14 +141,14 @@ Page(withTheme({
     }
     if (typeof wx.requestSubscribeMessage !== 'function') { this.setData({ grantError: '当前微信版本暂不支持订阅提醒。' }); return; }
     const version = this._version, token = this._token;
-    this.setData({ busy: true, grantBusy: true, grantError: '', notice: '' });
+    this.setData({ busy: true, grantBusy: true, grantError: '', dailyNotice: '', notice: '' });
     let handled = false;
     // One visible tap starts one native authorization synchronously. Preparing
     // the one-use grant happened earlier; no hidden/looped permission requests.
     try { wx.requestSubscribeMessage({ tmplIds: [grant.template_id], success: (result) => {
       if (handled) return; handled = true;
       if (!this.current(version, token)) return;
-      if (result[grant.template_id] !== 'accept') { this.setData({ busy: false, grantBusy: false, notice: '未增加提醒次数。' }); return; }
+      if (result[grant.template_id] !== 'accept') { this.setData({ busy: false, grantBusy: false, dailyNotice: '未增加提醒次数。' }); return; }
       this._grantAccepted = { grant, version, token }; return this.confirmSubscriptionCredit();
     }, fail: () => {
       if (handled) return; handled = true;
@@ -167,7 +167,7 @@ Page(withTheme({
       const data = result.data || {};
       if (!data.subscription_pool) throw new Error('提醒次数尚未核对，请重试保存。');
       this._grantAccepted = null; saved = true;
-      this.setData({ subscriptionPool: this.poolView(data.subscription_pool), grantIntent: null, notice: '已增加 1 次提醒次数。' });
+      this.setData({ subscriptionPool: this.poolView(data.subscription_pool), grantIntent: null, dailyNotice: '已增加 1 次提醒次数。' });
     } catch (error) { if (this.current(version, token)) this.setData({ canRetryGrant: true, grantError: message(error) + ' 授权已完成，重试保存不会再次询问微信授权。' }); }
     finally { if (this.current(version, token)) this.setData({ busy: false, grantBusy: false }); }
     if (saved && this.current(version, token)) await this.prepareSubscriptionGrant();
@@ -175,18 +175,19 @@ Page(withTheme({
   retrySubscriptionCredit() { if (this.canAct()) return this.confirmSubscriptionCredit(); },
   async saveDailyPlan() {
     if (!this.canAct() || !this.data.subscriptionEnabled || !this.data.wechatLogin || this.data.canConfirmAgain || this.data.canRetryGrant || this.data.intent) return;
-    if (nextDailyBooking(this.data.dailyTime, this.now()).error) { this.setData({ actionError: '请选择有效提醒时间。' }); return; }
+    if (nextDailyBooking(this.data.dailyTime, this.now()).error) { this.setData({ dailyError: '请选择有效提醒时间。' }); return; }
     if (!this.data.location) return;
     const version = this._version, token = this._token;
     const body = { type: 'weather', location: this.data.location.slug, time: this.data.dailyTime, enabled: true };
-    this.setData({ busy: true, actionError: '', notice: '' });
+    this.setData({ busy: true, savingDaily: true, dailyError: '', dailyNotice: '' });
     try {
       const result = await app().api.request('weather-data/reminders/daily/', { method: 'POST', data: body });
       if (!this.current(version, token)) return;
       this.upsertDailyPlan(result.data);
-      this.setData({ notice: this.data.subscriptionPool.remaining > 0 ? '每日提醒已保存，每次发送消耗 1 次提醒次数。' : '每日安排已保存，点击 +1 补充提醒次数后发送。' });
-    } catch (error) { if (this.current(version, token)) this.setData({ actionError: message(error) }); }
-    finally { if (this.current(version, token)) this.setData({ busy: false }); }
+      this.setData({ dailyNotice: this.data.subscriptionPool.remaining > 0 ? '每日提醒已保存，每次发送消耗 1 次提醒次数。' : '每日安排已保存，点击 +1 补充提醒次数后发送。' });
+      if (typeof wx.showToast === 'function') wx.showToast({ title: '每日安排已保存', icon: 'success', duration: 2000 });
+    } catch (error) { if (this.current(version, token)) this.setData({ dailyError: message(error) }); }
+    finally { if (this.current(version, token)) this.setData({ busy: false, savingDaily: false }); }
   },
   upsertDailyPlan(plan) {
     if (!plan || !['weather', 'ecology_simulation'].includes(plan.type) || typeof plan.enabled !== 'boolean') throw new Error('每日安排状态未确认，请刷新核对。');
@@ -195,13 +196,14 @@ Page(withTheme({
   async cancelDailyPlan() {
     if (!this.canAct() || !this.data.currentDailyPlan || !this.data.currentDailyPlan.enabled || this.data.canRetryGrant) return;
     const version = this._version, token = this._token, type = this.data.currentDailyPlan.type;
-    this.setData({ busy: true, actionError: '', notice: '' });
+    this.setData({ busy: true, savingDaily: true, dailyError: '', dailyNotice: '' });
     try {
       const result = await app().api.request('weather-data/reminders/daily/' + type + '/cancel/', { method: 'POST', data: {} });
       if (!this.current(version, token)) return;
-      this.upsertDailyPlan(result.data); this.setData({ notice: '每日提醒已暂停，剩余次数保留。' });
-    } catch (error) { if (this.current(version, token)) this.setData({ actionError: message(error) }); }
-    finally { if (this.current(version, token)) this.setData({ busy: false }); }
+      this.upsertDailyPlan(result.data); this.setData({ dailyNotice: '每日提醒已暂停，剩余次数保留。' });
+      if (typeof wx.showToast === 'function') wx.showToast({ title: '每日提醒已暂停', icon: 'success', duration: 2000 });
+    } catch (error) { if (this.current(version, token)) this.setData({ dailyError: message(error) }); }
+    finally { if (this.current(version, token)) this.setData({ busy: false, savingDaily: false }); }
   },
   async cancelLegacySimulationPlan() {
     if (!this.canAct() || this.data.canRetryGrant || !this.data.legacySimulationPlans.length) return;

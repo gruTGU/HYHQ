@@ -4,6 +4,8 @@ const { app, toast } = require('../../lib/page');
 const { message } = require('../../lib/format');
 const AGREEMENT_VERSION = '2026-10-07';
 Page(withTheme({
+  events() { wx.navigateTo({ url: '/pages/events/index' }); },
+  environmentReports() { wx.navigateTo({ url: '/pages/environment-report/index' }); },
   openThemeSettings() { wx.navigateTo({ url: '/pages/themes/index' }); },
   data: { loading: true, error: '', busy: false, user: null, nickname: '', avatar: '', avatarNotice: '', devAvailable: false, authMode: '', editingProfile: false, canManage: false, agreed: false, nicknameNotice: '', cloudMode: false },
   async onShow() {
@@ -191,7 +193,10 @@ Page(withTheme({
       operation.token = result.token;
       operation.userId = result.user.id;
       await this.loadUser(operation);
-      if (this._current(operation)) wx.showToast({ title: dev ? '已进入开发账号' : '登录成功', icon: 'success' });
+      if (this._current(operation)) {
+        wx.showToast({ title: dev ? '已进入开发账号' : '登录成功', icon: 'success' });
+        if (app().eventExperience) app().eventExperience.showLoginSummary(() => this._current(operation), true);
+      }
     } catch (error) { if (this._current(operation)) this.setData({ error: message(error) }); }
     finally { this._finish(operation); }
   },

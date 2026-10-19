@@ -1,3 +1,4 @@
+@import "./activity-ui.wxss";
 /* Shared by the page and isolated river component: class selectors only. */
 .flow-steps { display: flex; align-items: center; justify-content: center; padding: 6rpx 0; margin: 0; }
 .flow-step { display: flex; align-items: center; color: var(--hyhq-muted, #768677); gap: 8rpx; font-size: 22rpx; white-space: nowrap; }
@@ -34,3 +35,9 @@
 .theme-designed .ai-next { background: var(--hyhq-surface); }
 .theme-designed .ai-orbit { border: 1rpx solid var(--hyhq-border); border-radius: var(--hyhq-button-radius); }
 .theme-designed .image-wrap, .theme-designed .annotation-example-image { border-radius: var(--hyhq-card-radius); }
+
+/* Bottom anchoring keeps the subjects of the original portrait photos visible. */
+.observation-photo-background { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; display: block; pointer-events: none; }
+.observation-photo-shade { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: linear-gradient(180deg, rgba(250,248,241,.14), rgba(250,248,241,.04) 55%, rgba(250,248,241,.22)); pointer-events: none; }
+.theme-design-2 .observation-photo-panel .leaf-camera, .theme-design-2 .observation-photo-panel .upload-title { position: relative; z-index: 1; }
+.theme-design-2 .observation-photo-panel .upload-title { padding: 6rpx 20rpx; border-radius: var(--hyhq-button-radius); background: rgba(250,248,241,.92); }

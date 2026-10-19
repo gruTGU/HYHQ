@@ -4,7 +4,7 @@ const { ApiError, response } = require('./core');
 const deployedManifest = require('../data/theme-assets');
 const THEME_KEYS = Object.freeze({
   forest: Object.freeze([]),
-  'design-2': Object.freeze(['weatherRiver', 'entryExplore', 'entryFlower', 'entryLearn', 'entryRiver', 'emptyState']),
+  'design-2': Object.freeze(['weatherRiver', 'entryExplore', 'entryFlower', 'entryLearn', 'entryRiver', 'observationFlower', 'observationRiver', 'emptyState']),
   'design-3': Object.freeze(['paperTile', 'contours', 'emptyState']),
 });
 const SHARED_KEYS = Object.freeze(['riverExample']);
@@ -35,7 +35,7 @@ function createThemeAssetsHandler(cloud, { manifest = deployedManifest, clock = 
     manifests[theme] = Object.freeze(assets);
   }
   const version = typeof manifest.version === 'string' ? manifest.version : 'unconfigured';
-  // At most the ten manifest files can enter either map. A shared file also
+  // At most the twelve manifest files can enter either map. A shared file also
   // shares its signature and in-flight request across different themes.
   const cache = new Map(), pending = new Map();
 

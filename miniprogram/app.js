@@ -1,6 +1,7 @@
 const config = require('./config/index');
 const { createClient } = require('./lib/client');
 const { createSession } = require('./lib/session');
+const { createEventExperience } = require('./lib/events');
 const { createThemeStore } = require('./lib/theme');
 const { createThemeAssetStore } = require('./lib/theme-assets');
 App({
@@ -15,6 +16,7 @@ App({
       : config.transport === 'cloud' ? 'cloud.' + (cloud.env || 'unconfigured') + '.' + (cloud.service || 'unconfigured') : '';
     this.session = createSession(wx, sessionScope);
     this.api = createClient(wx, config, this.session);
+    this.eventExperience = createEventExperience(this, wx);
     this.themeAssets = createThemeAssetStore(wx, config);
   },
 });

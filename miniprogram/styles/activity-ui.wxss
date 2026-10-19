@@ -1,0 +1,19 @@
+/* Explicit content alignment keeps native buttons consistent across all themes. */
+.activity-button {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  min-height: 88rpx;
+  padding: 20rpx 22rpx;
+  line-height: 1.5;
+  text-align: center;
+  white-space: normal;
+}
+.activity-text-button { min-height: 72rpx; padding: 12rpx 16rpx; }
+.environment-heading-row { display: flex; align-items: center; gap: 16rpx; }
+.environment-heading-title { flex: 1; min-width: 0; }
+.environment-heading-action { flex: none; width: auto; min-width: 160rpx; min-height: 64rpx; height: auto; margin: 0 0 0 auto; padding: 12rpx 16rpx; font-size: 24rpx; line-height: 1.5; background: var(--hyhq-secondary, #e5efdf); color: var(--hyhq-secondary-text, #326849); border-radius: var(--hyhq-button-radius, 18rpx); }
+.environment-heading-row .environment-heading-action { flex: none; width: auto; max-width: 220rpx; }
+.environment-heading-action::after { border: none; }
