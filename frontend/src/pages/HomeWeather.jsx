@@ -48,6 +48,7 @@ import NotificationButton, {
 } from "../NotificationButton";
 import "./HomePage.css";
 import "./WeatherBooking.css";
+import { ActivityHomeLink } from "./Activities";
 import { validReminderDraft } from "./reminder-domain.js";
 import { weatherAppearance } from "./weather-appearance";
 import { preferenceStorage } from "../lib/privacy";
@@ -526,6 +527,7 @@ export function HomePage() {
         <NotificationButton />
       </div>
       <WeatherCard />
+      <ActivityHomeLink />
       <div className="section-title">
         <h2>与自然相遇</h2>
         <Leaf size={22} strokeWidth={1.3} />

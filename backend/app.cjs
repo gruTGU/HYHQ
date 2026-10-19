@@ -75,7 +75,7 @@ function createBackend(options = {}) {
       return response({
         status: "ok",
         runtime: "local-web",
-        version: "web-blog-guest-20261008",
+        version: "web-activities-environment-20261019",
         api_version: 1,
         mode: "mixed",
         dev_auth_enabled: false,
@@ -84,6 +84,8 @@ function createBackend(options = {}) {
           recognition: capabilities.recognition.enabled,
           assessment: capabilities.assessment.enabled,
           llm: require("./vendor/lib/llm").configFor(ctx).enabled,
+          events: true,
+          environment_feedback: true,
         },
         optional_services: {
           weather: require("./vendor/lib/weather").configured(config),
@@ -282,6 +284,8 @@ function createBackend(options = {}) {
       });
     }
     for (const handler of [
+      require("./events.cjs").handle,
+      require("./environment-reports.cjs").handle,
       reminders.handle,
       () => ctx.storage.handle(),
       require("./vendor/lib/community").handle,

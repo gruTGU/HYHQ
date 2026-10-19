@@ -182,6 +182,7 @@ async function statistics(ctx) {
     users_active: await ctx.store.count('users', { is_active: true }),
     public_catalog: Object.fromEntries(['regions', 'places', 'contents', 'routes', 'stations', 'water_bodies', 'simulation_runs', 'observations'].map((kind) => [kind, current[kind].length])), jobs,
     feedback: { pending: await ctx.store.count('feedback', { status: 'pending' }), resolved: await ctx.store.count('feedback', { status: 'resolved' }) },
+    environment_reports: { pending: await ctx.store.count('environment_reports', { status: 'pending' }), resolved: await ctx.store.count('environment_reports', { status: 'resolved' }) },
     llm_today: { day, attempts: llm && llm.attempts || 0, accounted_tokens: llm && llm.accounted_tokens || 0, reserved_tokens: llm && llm.reserved_tokens || 0 },
     weather_budget: { month, calendar_month_requests: Object.entries(budget && budget.days || {}).filter(([key]) => key.startsWith(month)).reduce((sum, [, value]) => sum + value, 0),
       rolling_31_days_requests: Object.entries(budget && budget.days || {}).filter(([key]) => key >= oldest && key <= day).reduce((sum, [, value]) => sum + value, 0),
@@ -329,4 +330,4 @@ async function handle(ctx) {
   throw new ApiError('METHOD_NOT_ALLOWED', '此管理路径或方法暂不支持', 405);
 }
 
-module.exports = { handle, cleanupPreview, policyValue, EDITABLE };
+module.exports = { handle, cleanupPreview, policyValue, EDITABLE, authorize, listPage, mutate, audit };

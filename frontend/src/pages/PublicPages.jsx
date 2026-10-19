@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import L from "leaflet";
 import TencentMap from "../TencentMap";
+import { PlaceActivities } from "./Activities";
 import { preferenceStorage } from "../lib/privacy";
 import { contentCover, featuredContents } from "../lib/content-covers";
 import "leaflet/dist/leaflet.css";
@@ -1295,6 +1296,7 @@ export function ExplorePage() {
                     {selected.access_note && (
                       <p className="public-small">{selected.access_note}</p>
                     )}
+                    <PlaceActivities place={selected} key={(selected.isReference ? "reference:" : "place:") + selected.id} />
                     <div className="public-selected-footer">
                       <div>
                         <p className="public-small public-muted">

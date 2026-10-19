@@ -709,6 +709,7 @@ function AdminWorkspace() {
             刷新
           </button>
           <Link className="btn secondary" to="/admin/blog"><ShieldCheck size={16} />博客审核</Link>
+          <Link className="btn secondary" to="/admin/environment"><ClipboardList size={16} />环境反馈待办</Link>
           <Link className="btn secondary" to="/me">
             返回我的主页
           </Link>

@@ -46,6 +46,8 @@ import {
   LegalPage,
 } from "./pages/PersonalPages";
 import AdminPage from "./pages/AdminPage";
+import { ActivityProvider, ActivitiesPage } from "./pages/Activities";
+import { EnvironmentReportsPage } from "./pages/EnvironmentReports";
 import "./styles.css";
 import "./DarkTheme.css";
 const nav = [
@@ -107,7 +109,7 @@ function Shell() {
       ? nav[1]
       : (loc.pathname.startsWith("/detail/") || loc.pathname.startsWith("/blog/"))
         ? nav[3]
-        : /^\/(login|records|feedback|submissions|themes|conversations|legal|admin|notifications)(\/|$)/.test(
+        : /^\/(login|records|feedback|environment-reports|activities|submissions|themes|conversations|legal|admin|notifications)(\/|$)/.test(
               loc.pathname,
             )
           ? nav[4]
@@ -186,7 +188,7 @@ function Shell() {
         <div className="page-wrap">
           <Boundary key={loc.pathname}>
             {loading &&
-            /^\/(me|login|records|feedback|submissions|conversations|admin|notifications|blog\/(write|mine))(\/|$)/.test(
+            /^\/(me|login|records|feedback|environment-reports|submissions|conversations|admin|notifications|blog\/(write|mine))(\/|$)/.test(
               loc.pathname,
             ) ? (
               <State loading />
@@ -195,6 +197,9 @@ function Shell() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/weather" element={<WeatherPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/activities" element={<ActivitiesPage />} />
+                <Route path="/environment-reports" element={<EnvironmentReportsPage />} />
+                <Route path="/admin/environment" element={<EnvironmentReportsPage admin />} />
                 <Route path="/explore" element={<ExplorePage />} />
                 <Route path="/learn" element={<LearnPage />} />
                 <Route path="/blog/write" element={<BlogEditorPage />} />
@@ -268,7 +273,9 @@ function Shell() {
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <Providers>
+      <ActivityProvider>
       <Shell />
+      </ActivityProvider>
     </Providers>
   </BrowserRouter>,
 );

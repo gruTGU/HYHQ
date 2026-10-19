@@ -41,6 +41,7 @@ import AltchaField from "../AltchaField.jsx";
 import NotificationButton from "../NotificationButton.jsx";
 import { FlowerCategoryLabels } from "../FlowerCategoryIcons.jsx";
 import { riverAssistant } from "./recognition-domain.js";
+import { EnvironmentFeedbackEntry } from "./EnvironmentReports";
 import {
   time,
   pending,
@@ -752,6 +753,12 @@ export function ProfilePage() {
       )}
       <SectionTitle title="偏好与服务" />
       <div className="card p-menu">
+        <MenuLink to="/activities" Icon={Flower2}>
+          地方活动与站内提醒
+        </MenuLink>
+        {user && <MenuLink to="/environment-reports" Icon={ShieldCheck}>
+          我的环境反馈
+        </MenuLink>}
         {user && (
           <MenuLink to="/submissions" Icon={FilePenLine}>
             我的资料反馈
@@ -1781,6 +1788,7 @@ function ObservationPanel({ river, requestedId, onBusy }) {
           <FlowerResult result={view} />
         ))}
       {!riverAI?.beforeResult && assistant}
+      {view && task && <EnvironmentFeedbackEntry key={task.id} task={task} river={river} photo={picture} />}
       {task && (
         <button
           className="p-link-button p-danger-text"
