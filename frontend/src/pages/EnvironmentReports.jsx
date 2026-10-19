@@ -3,10 +3,11 @@ import { Link } from "react-router-dom";
 import {
   Check,
   ClipboardList,
+  ChevronRight,
+  ExternalLink,
   LockKeyhole,
   MapPin,
   Send,
-  ShieldCheck,
 } from "lucide-react";
 import { api, allPages } from "../lib/api";
 import { useAuth } from "../state";
@@ -30,29 +31,25 @@ export function EnvironmentFeedbackEntry({ task, river, photo }) {
   const { user } = useAuth(),
     [open, setOpen] = useState(false);
   return (
-    <section className="card environment-entry">
-      <div>
-        <h2>
-          <ShieldCheck size={22} />
-          记录你看到的环境问题
-        </h2>
-        <p>
-          发现河岸垃圾、植物损伤或其他环境异常？核对地点、照片和描述后，可提交给平台管理员查看。
-        </p>
-        <small>识别结果只是图像观察参考，不能判断污染程度或水质等级。</small>
-      </div>
-      <div className="activity-actions">
-        {user ? (
-          <button className="btn secondary" onClick={() => setOpen(true)}>
-            <ClipboardList size={16} />
-            环境反馈 · 模拟提交
-          </button>
-        ) : (
-          <Link className="btn secondary" to="/login">
-            登录后使用环境反馈
-          </Link>
-        )}
-      </div>
+    <>
+      {user ? (
+        <button
+          className="btn secondary environment-entry-button"
+          onClick={() => setOpen(true)}
+          aria-label="查看环境情况并填写反馈"
+          title="核对环境情况，选择是否提交给平台管理员"
+        >
+          环境情况 <ChevronRight size={16} aria-hidden="true" />
+        </button>
+      ) : (
+        <Link
+          className="btn secondary environment-entry-button"
+          to="/login"
+          aria-label="登录后查看环境情况并填写反馈"
+        >
+          环境情况 <ChevronRight size={16} aria-hidden="true" />
+        </Link>
+      )}
       {open && user && (
         <EnvironmentReportDialog
           key={user.id + task.id}
@@ -62,7 +59,7 @@ export function EnvironmentFeedbackEntry({ task, river, photo }) {
           onClose={() => setOpen(false)}
         />
       )}
-    </section>
+    </>
   );
 }
 
@@ -178,13 +175,53 @@ function EnvironmentReportDialog({ task, river, photo, onClose }) {
 
   return (
     <Modal
-      title={saved ? "环境反馈已保存" : "核对环境反馈"}
+      title={
+        saved
+          ? "环境反馈已保存"
+          : river
+            ? "该地河道情况如何？"
+            : "该地环境情况如何？"
+      }
       className="activity-dialog environment-dialog"
       onClose={() => {
         if (!busy) onClose();
       }}
     >
+      {!saved && (
+        <p className="environment-intent">
+          是否选择上报有关部门？当前反馈仅提交给平台管理员，供私密模拟处理，未发送给政府或环保部门。请先核对地点、照片与实际观察；图像识别不能判断污染程度或水质等级。
+        </p>
+      )}
       <EnvironmentNotice />
+      <section
+        className="environment-official-links"
+        aria-label="生态环境局官网通知与信息"
+      >
+        <h3>官网通知与信息</h3>
+        <p className="activity-note">
+          可自行打开官网查看通知与公开信息；网站跳转不会提交本次照片或反馈。
+        </p>
+        <div className="activity-actions">
+          <a
+            className="btn secondary"
+            href="https://sthj.tj.gov.cn/"
+            target="_blank"
+            rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
+          >
+            天津生态环境局网站跳转 <ExternalLink size={15} aria-hidden="true" />
+          </a>
+          <a
+            className="btn secondary"
+            href="https://sthjj.beijing.gov.cn/"
+            target="_blank"
+            rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
+          >
+            北京生态环境局网站跳转 <ExternalLink size={15} aria-hidden="true" />
+          </a>
+        </div>
+      </section>
       {saved ? (
         <div className="environment-saved">
           <Check size={34} />
@@ -621,7 +658,7 @@ function EnvironmentReportList({ admin }) {
             <p>
               {admin
                 ? "当前没有符合条件的环境反馈。"
-                : "暂无环境反馈。花卉或河道识别完成后，可从结果下方提交。"}
+                : "暂无环境反馈。花卉或河道识别完成后，可点击结果标题旁的“环境情况”提交。"}
             </p>
           </div>
         )}

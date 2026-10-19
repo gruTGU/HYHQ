@@ -18,6 +18,7 @@ import {
   ArrowUpRight,
   BookOpen,
   Check,
+  CalendarDays,
   ChevronDown,
   Compass,
   Droplets,
@@ -138,12 +139,19 @@ function Status({
     );
   return children || null;
 }
-function Heading({ eyebrow, title, description, children }) {
+function Heading({ eyebrow, title, description, action, children }) {
   return (
     <header className="public-heading">
       <div>
         <span className="public-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
+        {action ? (
+          <div className="public-heading-title">
+            <h1>{title}</h1>
+            {action}
+          </div>
+        ) : (
+          <h1>{title}</h1>
+        )}
         {description && <p>{description}</p>}
       </div>
       {children}
@@ -1089,7 +1097,20 @@ export function ExplorePage() {
       : null;
   return (
     <main className="public-page explore-page">
-      <Heading eyebrow="EXPLORE THE CITY" title="生态导览">
+      <Heading
+        eyebrow="EXPLORE THE CITY"
+        title="生态导览"
+        action={
+          <Link
+            className="pub-btn outline explore-calendar-link"
+            to="/activities"
+          >
+            <CalendarDays size={16} aria-hidden="true" />
+            活动日历
+            <ArrowRight size={15} aria-hidden="true" />
+          </Link>
+        }
+      >
         <div className="public-city-tabs">
           {regions.data?.map((r) => (
             <button

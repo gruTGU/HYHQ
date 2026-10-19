@@ -543,3 +543,28 @@
     width: 100%;
   }
 }
+
+.environment-intent {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.environment-official-links {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.environment-official-links h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.environment-official-links .activity-note {
+  margin: 8px 0 0;
+}
+.environment-official-links .activity-actions {
+  margin-top: 12px;
+}
+.environment-official-links .btn {
+  flex: 1 1 220px;
+  font-size: 13px;
+}

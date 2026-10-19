@@ -1030,7 +1030,7 @@ function PointPicker({ places, onSelect, onClose }) {
     </Modal>
   );
 }
-function FlowerResult({ result }) {
+function FlowerResult({ result, feedback }) {
   return (
     <div className="card p-result">
       <span className="p-eyebrow">
@@ -1038,7 +1038,10 @@ function FlowerResult({ result }) {
           ? "MODEL RESULT / 模型结果"
           : "NEEDS A CLOSER LOOK / 需要再看一眼"}
       </span>
-      <h2>{result.heading}</h2>
+      <div className="p-result-heading">
+        <h2>{result.heading}</h2>
+        {feedback}
+      </div>
       <p>{result.explanation}</p>
       {!!result.candidates.length && <h3>候选类别 · 最多 3 项</h3>}
       {result.candidates.map((candidate) => (
@@ -1080,13 +1083,16 @@ function FlowerResult({ result }) {
     </div>
   );
 }
-function RiverResult({ task, result }) {
+function RiverResult({ task, result, feedback }) {
   const summary = summaryView(task);
   return (
     <>
       <div className="p-result-banner">
         <span className="p-eyebrow">RIVER OBSERVATION / 河道观察</span>
-        <h2>{result.heading}</h2>
+        <div className="p-result-heading">
+          <h2>{result.heading}</h2>
+          {feedback}
+        </div>
         {result.has_score && (
           <div className="p-rule-score">
             {result.score_label}
@@ -1783,12 +1789,32 @@ function ObservationPanel({ river, requestedId, onBusy }) {
       )}
       {view &&
         (river ? (
-          <RiverResult task={task} result={view} />
+          <RiverResult
+            task={task}
+            result={view}
+            feedback={
+              <EnvironmentFeedbackEntry
+                key={task.id}
+                task={task}
+                river={river}
+                photo={picture}
+              />
+            }
+          />
         ) : (
-          <FlowerResult result={view} />
+          <FlowerResult
+            result={view}
+            feedback={
+              <EnvironmentFeedbackEntry
+                key={task.id}
+                task={task}
+                river={river}
+                photo={picture}
+              />
+            }
+          />
         ))}
       {!riverAI?.beforeResult && assistant}
-      {view && task && <EnvironmentFeedbackEntry key={task.id} task={task} river={river} photo={picture} />}
       {task && (
         <button
           className="p-link-button p-danger-text"

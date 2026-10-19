@@ -357,7 +357,7 @@ export function ActivityHomeLink() {
     <Link to="/activities" className="card activity-home-link">
       <CalendarDays size={28} strokeWidth={1.5} />
       <span>
-        <strong>一年花事 · 地方活动</strong>
+        <strong>活动日历</strong>
         <small>全年花季日历与近期自然活动 · 模拟演示</small>
       </span>
       <span aria-hidden="true">→</span>

@@ -1918,3 +1918,40 @@
     transition: none;
   }
 }
+
+/* Keep feedback beside its result title at phone and desktop widths. */
+.p-result-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 16px;
+}
+.p-result-heading > h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.p-result-heading .environment-entry-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 4px;
+  min-height: 44px;
+  padding: 9px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  white-space: nowrap;
+}
+@media (max-width: 380px) {
+  .p-result-heading {
+    gap: 8px;
+  }
+  .p-result-heading .environment-entry-button {
+    padding: 9px;
+    font-size: 12px;
+  }
+}
